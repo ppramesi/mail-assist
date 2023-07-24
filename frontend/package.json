@@ -1,0 +1,8 @@
+{
+  "name": "frontend",
+  "version": "0.0.1",
+  "description": "do shit with ai",
+  "main": "index.js",
+  "author": "Priya X. Pramesi",
+  "license": "MIT"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mail-gpt",
+  "version": "0.0.1",
+  "workspaces": [
+    "server",
+    "frontend"
+  ],
+  "description": "do shit with ai",
+  "main": "index.js",
+  "author": "Priya X. Pramesi",
+  "license": "MIT",
+  "private": true
+}
