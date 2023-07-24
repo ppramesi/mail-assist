@@ -9,6 +9,7 @@
 		"format": "prettier --write \"src\""
 	},
 	"dependencies": {
+		"dotenv": "^16.3.1",
 		"express": "^4.18.2",
 		"langchain": "^0.0.114",
 		"lodash": "^4.17.21",

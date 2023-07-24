@@ -12,6 +12,7 @@ import { ChainValues } from "langchain/schema";
 import { Email } from "../adapters/base";
 import { Document } from "langchain/document";
 import { Database } from "../databases/base";
+import * as uuid from "uuid";
 
 export type MainExecutorOpts = {
   allowedHosts: string[];
