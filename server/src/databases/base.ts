@@ -67,7 +67,7 @@ export abstract class Database {
   abstract updateEmailProcessedData(
     id: string,
     status: string,
-    summary: string,
+    summary?: string,
   ): Promise<void>;
 
   /**
@@ -106,5 +106,5 @@ export abstract class Database {
 
   abstract insertEmailChatHistory(chatHistory: RawChatHistory): Promise<string>; // returns id
 
-  abstract getEmailChatHistory(emailId: string): Promise<RawChatHistory>;
+  abstract getEmailChatHistory(replyId: string): Promise<RawChatHistory>;
 }

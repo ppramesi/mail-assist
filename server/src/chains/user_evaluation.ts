@@ -1,11 +1,6 @@
 import { LLMChainInput, LLMChain } from "langchain/chains";
-import { BaseMemory } from "langchain/memory";
-import {
-  Database,
-  RawChatHistory,
-  AIMessage,
-  HumanMessage,
-} from "../databases/base";
+// import { BaseMemory } from "langchain/memory";
+import { Database, AIMessage, HumanMessage } from "../databases/base";
 import { ChainValues } from "langchain/schema";
 import {
   AIMessagePromptTemplate,
@@ -30,13 +25,12 @@ Original Intention
 export interface ConversationalEmailEvaluatorOpts
   extends Omit<LLMChainInput, "prompt"> {
   db: Database;
-  potentialReplyId: string;
 }
 
 export class ConversationalEmailEvaluator extends LLMChain {
   db: Database;
   chatMessages: (AIMessage | HumanMessage)[];
-  potentialReplyId: string;
+  replyId?: string;
   conversationId?: string;
   promptBuilt = false;
 
@@ -52,13 +46,15 @@ export class ConversationalEmailEvaluator extends LLMChain {
 
     this.db = opts.db;
     this.chatMessages = [];
-    this.potentialReplyId = opts.potentialReplyId;
   }
 
   async buildPrompt(fetch: boolean = true) {
+    if (!this.replyId) {
+      throw new Error("Please set the potential reply id!");
+    }
     if (fetch || !this.conversationId) {
       const { chat_messages: chatMessages, id } =
-        await this.db.getEmailChatHistory(this.potentialReplyId);
+        await this.db.getEmailChatHistory(this.replyId);
       this.conversationId = id;
       this.chatMessages = cloneDeep(chatMessages);
     }
@@ -82,11 +78,16 @@ export class ConversationalEmailEvaluator extends LLMChain {
   }
 
   async _call(
-    values: ChainValues & this["llm"]["CallOptions"],
+    aValues: ChainValues & this["llm"]["CallOptions"],
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
+    const { replyId, ...values } = aValues;
+    this.replyId = replyId;
+    if (!this.replyId) {
+      throw new Error("Please set the potential reply id!");
+    }
     if (!this.promptBuilt) {
-      await this.buildPrompt();
+      await this.buildPrompt(true);
     }
     const { input } = values;
     const humanInput: HumanMessage = { type: "human", text: input };

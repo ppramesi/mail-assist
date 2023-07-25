@@ -88,11 +88,13 @@ export class InMemoryDatabase extends Database {
   async updateEmailProcessedData(
     id: string,
     status: string,
-    summary: string,
+    summary?: string,
   ): Promise<void> {
     const email = this.emails.find((email) => email.id === id)!;
     email.status = status;
-    email.summary = summary;
+    if (summary) {
+      email.summary = summary;
+    }
   }
 
   async insertPotentialReply(data: PotentialReplyEmail): Promise<string> {

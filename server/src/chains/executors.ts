@@ -178,12 +178,12 @@ export class MainExecutor {
                   );
                   const { id: emailId, ...rest } = email;
                   return {
+                    ...rest,
                     process_status: "potential_reply",
                     intention,
                     reply_text: text,
                     email_id: emailId,
                     summary,
-                    ...rest,
                   } as PotentialReplyEmail;
                   // await this.db.insertPotentialReply({
                   //   ...potentialEmail,
