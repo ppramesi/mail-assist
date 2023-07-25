@@ -10,7 +10,7 @@ export interface EmailAddress {
 export interface Email extends ParsedMail {
   id: string;
   read: boolean;
-  status: string;
+  status?: string;
   summary?: string;
 }
 

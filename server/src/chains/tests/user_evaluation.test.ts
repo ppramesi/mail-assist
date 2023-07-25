@@ -30,8 +30,7 @@ Priya`,
 
   const evaluator = new ConversationalEmailEvaluator({
     llm,
-    db,
-    potentialReplyId: "test",
+    db
   });
 
   const criteriaObj = {
@@ -61,6 +60,7 @@ Best,
 John Person`;
 
   const k1 = await evaluator.call({
+    replyId: "test",
     criteria: Object.entries(criteriaObj)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n"),
