@@ -17,7 +17,6 @@ import { ChatOpenAI } from "langchain/chat_models/openai";
 export interface EmailSummarizerOpts extends ChainInputs {
   llm: ChatOpenAI;
   summarizerOpts?: StuffDocumentsChainInput;
-  criteria: Record<string, string>;
 }
 
 const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to summarize the email's body, given the context below. Please make the summary as short as possible.
@@ -44,7 +43,7 @@ const buildPrompt = () =>
   });
 
 export class EmailSummarizer extends BaseChain {
-  criteria: Record<string, string>;
+  criteria?: Record<string, string>;
   stufferChain: StuffDocumentsChain;
 
   constructor(opts: EmailSummarizerOpts) {
@@ -55,7 +54,6 @@ export class EmailSummarizer extends BaseChain {
       type: "stuff",
       prompt: buildPrompt(),
     }) as StuffDocumentsChain;
-    this.criteria = opts.criteria;
   }
 
   setCriteria(newCriteria: Record<string, string>) {
@@ -78,8 +76,12 @@ export class EmailSummarizer extends BaseChain {
     values: ChainValues,
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
+    if (!this.criteria) throw new Error("Criteria not set");
+    let criteria: string = Object.entries(this.criteria)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n");
     return this.stufferChain.call(
-      { ...values, criteria: this.criteria },
+      { ...values, criteria },
       runManager?.getChild(),
     );
   }

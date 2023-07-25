@@ -1,4 +1,4 @@
-import { BaseChain } from "langchain/chains";
+// import { BaseChain } from "langchain/chains";
 import { buildFilterFunction } from "./filters/simple_host";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { EmailRelevancyEvaluator } from "./evaluators/relevancy";
@@ -7,19 +7,18 @@ import { KeywordsGenerator } from "./generators/keywords_generator";
 import { ReplyGenerator } from "./generators/replier";
 import { EmailSummarizer } from "./generators/summarizer";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
-import { CallbackManagerForChainRun, Callbacks } from "langchain/callbacks";
+import { Callbacks } from "langchain/callbacks";
 import { ChainValues } from "langchain/schema";
 import { Email } from "../adapters/base";
 import { Document } from "langchain/document";
-import { Database } from "../databases/base";
-import * as uuid from "uuid";
+// import { Database } from "../databases/base";
+// import * as uuid from "uuid";
 
 export type MainExecutorOpts = {
   allowedHosts: string[];
   llm: ChatOpenAI;
-  initialCriteria: Record<string, string>;
   retriever: VectorStoreRetriever;
-  db: Database;
+  // db: Database;
 };
 
 export interface EmptyEmail extends Email {
@@ -39,6 +38,8 @@ export interface PotentialReplyEmail extends Email {
   process_status: "potential_reply";
   intention: string;
   reply_text: string;
+  email_id: string;
+  summary: string;
 }
 
 export type ProcessedEmail =
@@ -55,11 +56,12 @@ export class MainExecutor {
   replier: ReplyGenerator;
   summarizer: EmailSummarizer;
   retriever: VectorStoreRetriever;
-  db: Database;
+  criteria?: Record<string, string>;
+  // db: Database;
 
   constructor(opts: MainExecutorOpts) {
     this.hostsFilter = buildFilterFunction(opts.allowedHosts);
-    const chainParams = { criteria: opts.initialCriteria, llm: opts.llm };
+    const chainParams = { llm: opts.llm };
     this.relevancyChain = new EmailRelevancyEvaluator(chainParams);
     this.intentionsGenerator = new IntentionsGenerator(chainParams);
     this.keywordsGenerator = new KeywordsGenerator(chainParams);
@@ -69,33 +71,20 @@ export class MainExecutor {
     });
     this.summarizer = new EmailSummarizer(chainParams);
     this.retriever = opts.retriever;
-    this.db = opts.db;
+    // this.db = opts.db;
   }
 
   setCriteria(newCriteria: Record<string, string>) {
-    this.relevancyChain.setCriteria(newCriteria);
-    this.intentionsGenerator.setCriteria(newCriteria);
-    this.keywordsGenerator.setCriteria(newCriteria);
-    this.replier.setCriteria(newCriteria);
-    this.summarizer.setCriteria(newCriteria);
+    this.criteria = newCriteria;
+    this.relevancyChain.setCriteria(this.criteria);
+    this.intentionsGenerator.setCriteria(this.criteria);
+    this.keywordsGenerator.setCriteria(this.criteria);
+    this.replier.setCriteria(this.criteria);
+    this.summarizer.setCriteria(this.criteria);
   }
 
-  async summarizeAndSave(
-    id: string,
-    values: ChainValues,
-    metadata: { [k: string]: any },
-    callbacks?: Callbacks,
-  ) {
+  async summarizeAndSaveToVectorDB(values: ChainValues, callbacks?: Callbacks) {
     const { text: summary } = await this.summarizer.call(values, callbacks);
-    await Promise.all([
-      this.retriever.vectorStore.addDocuments([
-        new Document({
-          pageContent: summary,
-          metadata,
-        }),
-      ]),
-      this.db.updateEmailProcessedData(id, "summarized", summary)
-    ])
     return summary;
   }
 
@@ -130,6 +119,12 @@ export class MainExecutor {
     return text;
   }
 
+  /**
+   * When called, returned values hsould be saved to the database and vector database
+   * @param emails
+   * @param callbacks
+   * @returns
+   */
   async processEmails(
     emails: Email[],
     callbacks?: Callbacks,
@@ -156,11 +151,7 @@ export class MainExecutor {
             };
             return Promise.resolve([irrelevantEmail]);
           }
-          const summarizePromise = this.summarizeAndSave(id, values, {
-            body,
-            from,
-            delivery_date: deliveryDate,
-          });
+          const summarizePromise = this.summarizeAndSaveToVectorDB(values);
           if (isRelevant === "reply") {
             const fetchSummariesPromise = this.vectorStoreFetchSummaries(
               values,
@@ -176,7 +167,7 @@ export class MainExecutor {
               summarizePromise,
             ]).then(async ([summariesResult, intentionsResult, summary]) => {
               const generator = await Promise.all(
-                intentionsResult.map(async (intention, index) => {
+                intentionsResult.map(async (intention) => {
                   const text = await this.generateReply(
                     {
                       ...values,
@@ -186,17 +177,19 @@ export class MainExecutor {
                     callbacks,
                   );
                   const { id: emailId, ...rest } = email;
-                  const potentialEmail = {
+                  return {
                     process_status: "potential_reply",
                     intention,
                     reply_text: text,
+                    email_id: emailId,
+                    summary,
                     ...rest,
                   } as PotentialReplyEmail;
-                  await this.db.insertPotentialReply({
-                    ...potentialEmail,
-                    email_id: emailId,
-                  });
-                  return potentialEmail;
+                  // await this.db.insertPotentialReply({
+                  //   ...potentialEmail,
+                  //   email_id: emailId,
+                  // }); // do it outside
+                  // return potentialEmail;
                 }),
               );
               const summarizedEmail: SummarizedEmail = {

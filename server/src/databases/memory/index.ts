@@ -90,13 +90,13 @@ export class InMemoryDatabase extends Database {
     status: string,
     summary: string,
   ): Promise<void> {
-    const email = this.emails.find((email) => email.id === id)!
+    const email = this.emails.find((email) => email.id === id)!;
     email.status = status;
     email.summary = summary;
   }
 
   async insertPotentialReply(data: PotentialReplyEmail): Promise<string> {
-    if(!data.id){
+    if (!data.id) {
       data.id = uuid.v4();
     }
     this.potentialReply.push(data);
@@ -104,11 +104,13 @@ export class InMemoryDatabase extends Database {
   }
 
   async getPotentialReply(id: string): Promise<PotentialReplyEmail> {
-    return Promise.resolve(this.potentialReply.find((email) => email.id === id)!);
+    return Promise.resolve(
+      this.potentialReply.find((email) => email.id === id)!,
+    );
   }
 
   async insertChatHistory(chatHistory: RawChatHistory): Promise<string> {
-    if(!chatHistory.id){
+    if (!chatHistory.id) {
       chatHistory.id = uuid.v4();
     }
     this.chatHistory.push(chatHistory);
@@ -119,16 +121,20 @@ export class InMemoryDatabase extends Database {
     id: string,
     messages: (AIMessage | HumanMessage)[],
   ): Promise<void> {
-    const chatHistory = this.chatHistory.find((chatHistory) => chatHistory.id === id)!;
-    messages.forEach(m => chatHistory.chat_messages.push(m))
+    const chatHistory = this.chatHistory.find(
+      (chatHistory) => chatHistory.id === id,
+    )!;
+    messages.forEach((m) => chatHistory.chat_messages.push(m));
   }
 
   async getChatHistory(id: string): Promise<RawChatHistory> {
-    return Promise.resolve(this.chatHistory.find((chatHistory) => chatHistory.id === id)!);
+    return Promise.resolve(
+      this.chatHistory.find((chatHistory) => chatHistory.id === id)!,
+    );
   }
 
   async insertEmailChatHistory(chatHistory: RawChatHistory): Promise<string> {
-    if(!chatHistory.id){
+    if (!chatHistory.id) {
       chatHistory.id = uuid.v4();
     }
     this.chatHistory.push(chatHistory);
@@ -136,6 +142,10 @@ export class InMemoryDatabase extends Database {
   }
 
   async getEmailChatHistory(potentialReplyId: string): Promise<RawChatHistory> {
-    return Promise.resolve(this.chatHistory.find((chatHistory) => chatHistory.potential_reply_id === potentialReplyId)!);
+    return Promise.resolve(
+      this.chatHistory.find(
+        (chatHistory) => chatHistory.potential_reply_id === potentialReplyId,
+      )!,
+    );
   }
 }

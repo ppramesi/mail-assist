@@ -42,12 +42,11 @@ const buildPrompt = () =>
   });
 
 export type IntentionsOpts = {
-  criteria: Record<string, string>;
   llm: ChatOpenAI;
 };
 
 export class IntentionsGenerator extends LLMChain<any, ChatOpenAI> {
-  criteria: Record<string, string>;
+  criteria?: Record<string, string>;
   outputKey: string = keyName;
   constructor(opts: IntentionsOpts) {
     const functionName = "output_formatter";
@@ -68,7 +67,6 @@ export class IntentionsGenerator extends LLMChain<any, ChatOpenAI> {
         },
       },
     });
-    this.criteria = opts.criteria;
   }
 
   setCriteria(newCriteria: Record<string, string>) {
@@ -76,12 +74,13 @@ export class IntentionsGenerator extends LLMChain<any, ChatOpenAI> {
   }
 
   _call(
-    values: ChainValues &
-      this["llm"]["CallOptions"] & {
-        newCriteria?: Record<string, string>;
-      },
+    values: ChainValues & this["llm"]["CallOptions"],
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
-    return super._call({ ...values, criteria: this.criteria }, runManager);
+    if (!this.criteria) throw new Error("Criteria not set");
+    let criteria: string = Object.entries(this.criteria)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n");
+    return super._call({ ...values, criteria }, runManager);
   }
 }

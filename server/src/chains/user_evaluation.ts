@@ -27,7 +27,8 @@ Original Email body:
 Original Intention
 {intention}`;
 
-export interface ConversationalEmailEvaluatorOpts extends Omit<LLMChainInput, "prompt"> {
+export interface ConversationalEmailEvaluatorOpts
+  extends Omit<LLMChainInput, "prompt"> {
   db: Database;
   potentialReplyId: string;
 }

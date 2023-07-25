@@ -11,7 +11,6 @@ import { VectorStoreRetriever } from "langchain/vectorstores/base";
 
 export interface ReplyGeneratorOpts {
   llm: ChatOpenAI;
-  criteria: Record<string, string>;
   retriever: VectorStoreRetriever;
 }
 
@@ -52,13 +51,12 @@ const buildPrompt = () =>
   });
 
 export class ReplyGenerator extends LLMChain {
-  criteria: Record<string, string>;
+  criteria?: Record<string, string>;
   retriever: VectorStoreRetriever;
 
   constructor(opts: ReplyGeneratorOpts) {
     super({ llm: opts.llm, prompt: buildPrompt() });
     this.retriever = opts.retriever;
-    this.criteria = opts.criteria;
   }
 
   setCriteria(newCriteria: Record<string, string>) {
@@ -72,6 +70,10 @@ export class ReplyGenerator extends LLMChain {
       },
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
-    return super._call({ ...values, criteria: this.criteria }, runManager);
+    if (!this.criteria) throw new Error("Criteria not set");
+    let criteria: string = Object.entries(this.criteria)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n");
+    return super._call({ ...values, criteria }, runManager);
   }
 }

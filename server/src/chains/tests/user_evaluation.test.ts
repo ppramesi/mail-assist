@@ -9,7 +9,8 @@ import { ConversationalEmailEvaluator } from "../user_evaluation";
     potential_reply_id: "test",
     chat_messages: [
       {
-        type: "ai", text: `Dear John,
+        type: "ai",
+        text: `Dear John,
     
 Thanks for the detailed task. I have a few questions before I can start working on these endpoints.
   
@@ -20,22 +21,23 @@ Thanks for the detailed task. I have a few questions before I can start working 
 I would also appreciate it if you could provide any existing API documentation or sample data that I could use for reference.
   
 Thanks,
-Priya` }
+Priya`,
+      },
     ],
-  })
+  });
 
-  const llm = new ChatOpenAI()
+  const llm = new ChatOpenAI();
 
   const evaluator = new ConversationalEmailEvaluator({
     llm,
     db,
     potentialReplyId: "test",
-  })
+  });
 
   const criteriaObj = {
     "User's full name": "Priya Pramesi",
-    "User's email address": "ppramesi@test.com"
-  }
+    "User's email address": "ppramesi@test.com",
+  };
 
   const body = `Dear Priya,
 
@@ -56,28 +58,35 @@ Please let me know if you have any questions or if anything is unclear.
 Thank you for your hard work!
 
 Best,
-John Person`
+John Person`;
 
   const k1 = await evaluator.call({
-    criteria: Object.entries(criteriaObj).map(([key, value]) => `${key}: ${value}`).join("\n"),
+    criteria: Object.entries(criteriaObj)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n"),
     body,
     intention: "Clarify requirements",
-    input: "Could you make it more detailed for me?"
-  })
+    input: "Could you make it more detailed for me?",
+  });
 
   const k2 = await evaluator.call({
-    criteria: Object.entries(criteriaObj).map(([key, value]) => `${key}: ${value}`).join("\n"),
+    criteria: Object.entries(criteriaObj)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n"),
     body,
     intention: "Clarify requirements",
-    input: "Oh wait I'm Indonesian, could you translate it to Indonesian for me?"
-  })
+    input:
+      "Oh wait I'm Indonesian, could you translate it to Indonesian for me?",
+  });
 
   const k3 = await evaluator.call({
-    criteria: Object.entries(criteriaObj).map(([key, value]) => `${key}: ${value}`).join("\n"),
+    criteria: Object.entries(criteriaObj)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n"),
     body,
     intention: "Clarify requirements",
-    input: "Oh wait John Person is German, could you translate it for me?"
-  })
+    input: "Oh wait John Person is German, could you translate it for me?",
+  });
 
-  console.log(await db.getChatHistory("test"))
+  console.log(await db.getChatHistory("test"));
 })();
