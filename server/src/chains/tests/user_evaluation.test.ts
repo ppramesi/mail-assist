@@ -30,7 +30,7 @@ Priya`,
 
   const evaluator = new ConversationalEmailEvaluator({
     llm,
-    db
+    db,
   });
 
   const criteriaObj = {
