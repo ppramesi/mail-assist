@@ -1,4 +1,4 @@
-import { Email } from "../../adapters/base";
+import { Email } from "../adapters/base";
 import {
   Database,
   Context,
@@ -6,7 +6,7 @@ import {
   HumanMessage,
   RawChatHistory,
   PotentialReplyEmail,
-} from "../base";
+} from "./base";
 import * as uuid from "uuid";
 
 export class InMemoryDatabase extends Database {
