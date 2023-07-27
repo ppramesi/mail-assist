@@ -6,7 +6,7 @@ import { ConversationalEmailEvaluator } from "../user_evaluation";
   const db = new InMemoryDatabase();
   db.insertChatHistory({
     id: "test",
-    potential_reply_id: "test",
+    reply_id: "test",
     chat_messages: [
       {
         type: "ai",
@@ -33,7 +33,7 @@ Priya`,
     db,
   });
 
-  const criteriaObj = {
+  const contextObj = {
     "User's full name": "Priya Pramesi",
     "User's email address": "ppramesi@test.com",
   };
@@ -61,7 +61,7 @@ John Person`;
 
   const k1 = await evaluator.call({
     replyId: "test",
-    criteria: Object.entries(criteriaObj)
+    context: Object.entries(contextObj)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n"),
     body,
@@ -70,7 +70,7 @@ John Person`;
   });
 
   const k2 = await evaluator.call({
-    criteria: Object.entries(criteriaObj)
+    context: Object.entries(contextObj)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n"),
     body,
@@ -80,7 +80,7 @@ John Person`;
   });
 
   const k3 = await evaluator.call({
-    criteria: Object.entries(criteriaObj)
+    context: Object.entries(contextObj)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n"),
     body,

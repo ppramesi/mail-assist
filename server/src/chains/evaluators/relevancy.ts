@@ -21,7 +21,7 @@ Respond with one of the following actions:
 For instances where the email is promotional or spam, your response should consistently be 'none'. However, if the email is pertinent to the context information below, your response should at least be 'save'. But, if the email is of utmost importance that warrants a response from the user's standpoint (for instance, if the email explicitly mentions the user's name or email address, or when the user's feedback is sought), you should respond with 'reply'.
 
 Context:
-{criteria}`;
+{context}`;
 
 const userPrompt = `Email from:
 {from}
@@ -48,7 +48,7 @@ const buildPrompt = () =>
       SystemMessagePromptTemplate.fromTemplate(systemBasePrompt),
       HumanMessagePromptTemplate.fromTemplate(userPrompt),
     ],
-    inputVariables: ["from", "body", "delivery_date", "criteria"],
+    inputVariables: ["from", "body", "delivery_date", "context"],
   });
 
 export type RelevancyOpts = {
@@ -56,7 +56,7 @@ export type RelevancyOpts = {
 };
 
 export class EmailRelevancyEvaluator extends LLMChain<any, ChatOpenAI> {
-  criteria?: Record<string, string>;
+  context?: Record<string, string>;
   outputKey: string = keyName;
   constructor(opts: RelevancyOpts) {
     const functionName = "output_formatter";
@@ -79,18 +79,18 @@ export class EmailRelevancyEvaluator extends LLMChain<any, ChatOpenAI> {
     });
   }
 
-  setCriteria(newCriteria: Record<string, string>) {
-    this.criteria = newCriteria;
+  setContext(newContext: Record<string, string>) {
+    this.context = newContext;
   }
 
   _call(
     values: ChainValues & this["llm"]["CallOptions"],
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
-    if (!this.criteria) throw new Error("Criteria not set");
-    let criteria: string = Object.entries(this.criteria)
+    if (!this.context) throw new Error("Context not set");
+    let context: string = Object.entries(this.context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
-    return super._call({ ...values, criteria }, runManager);
+    return super._call({ ...values, context }, runManager);
   }
 }

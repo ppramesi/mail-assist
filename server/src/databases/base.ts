@@ -14,20 +14,17 @@ export type HumanMessage = {
 
 export type RawChatHistory = {
   id: string;
-  potential_reply_id: string;
+  email_id: string;
+  reply_id: string;
   chat_messages: (AIMessage | HumanMessage)[];
 };
-
-export interface DBSummarizedEmail extends Email {
-  process_status: "summarized";
-  summary: string;
-}
 
 export interface PotentialReplyEmail extends Email {
   process_status: "potential_reply";
   intention: string;
   reply_text: string;
   email_id: string;
+  summary: string;
 }
 
 export abstract class Database {
@@ -91,9 +88,15 @@ export abstract class Database {
 
   abstract setAllowedHosts(hosts: string[]): Promise<void>;
 
+  abstract deleteAllowedHosts(hosts: string[]): Promise<void>;
+
   abstract insertPotentialReply(data: PotentialReplyEmail): Promise<string>;
 
-  abstract getPotentialReply(id: string): Promise<PotentialReplyEmail>;
+  abstract getPotentialReply(id: string): Promise<PotentialReplyEmail | null>;
+
+  abstract getPotentialReplies(
+    emailId: string,
+  ): Promise<PotentialReplyEmail[] | null>;
 
   abstract insertChatHistory(chatHistory: RawChatHistory): Promise<string>; // returns id
 
@@ -102,9 +105,7 @@ export abstract class Database {
     messages: (AIMessage | HumanMessage)[],
   ): Promise<void>;
 
-  abstract getChatHistory(id: string): Promise<RawChatHistory>;
+  abstract getChatHistoryById(id: string): Promise<RawChatHistory>;
 
-  abstract insertEmailChatHistory(chatHistory: RawChatHistory): Promise<string>; // returns id
-
-  abstract getEmailChatHistory(replyId: string): Promise<RawChatHistory>;
+  abstract getChatHistoryByReply(replyId: string): Promise<RawChatHistory>;
 }

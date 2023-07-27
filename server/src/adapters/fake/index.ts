@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { Email, MailAdapter, SearchCriteria } from "../base";
+import { Email, MailAdapter, SearchContext } from "../base";
 import * as uuid from "uuid";
 
 export class FakeMailAdapter extends MailAdapter {
@@ -61,7 +61,7 @@ export class FakeMailAdapter extends MailAdapter {
     }
   }
 
-  async search(_criteria: SearchCriteria): Promise<Email[]> {
+  async search(_context: SearchContext): Promise<Email[]> {
     // Implement a basic search algorithm here
     throw new Error("Method not implemented.");
   }

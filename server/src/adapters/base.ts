@@ -7,7 +7,8 @@ export interface EmailAddress {
   address: string;
 }
 
-export interface Email extends ParsedMail {
+export interface Email
+  extends Pick<ParsedMail, "from" | "to" | "subject" | "text" | "date"> {
   id: string;
   read: boolean;
   status?: string;
@@ -22,7 +23,7 @@ export interface EmailAttachment {
   data: Buffer; // or other type suitable for storing binary data
 }
 
-export interface SearchCriteria {
+export interface SearchContext {
   from?: string;
   to?: string;
   subject?: string;
@@ -45,7 +46,7 @@ export abstract class MailAdapter {
   abstract send(email: Email): Promise<void>;
   abstract delete(emailId: string): Promise<void>;
   abstract markAsRead(emailId: string): Promise<void>;
-  abstract search(criteria: SearchCriteria): Promise<Email[]>; // where `SearchCriteria` is a class or interface you define
+  abstract search(context: SearchContext): Promise<Email[]>; // where `SearchContext` is a class or interface you define
   abstract disconnect(): Promise<void>;
 
   static async parseEmail(rawEmail: string) {

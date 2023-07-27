@@ -17,7 +17,7 @@ export interface ReplyGeneratorOpts {
 const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. Your task is to write a reply given the email's body, user's intention and relevant summaries of previous emails (ignore them if they're irrelevant). You answer should only be the email's text and nothing else.
 
 Context:
-{criteria}
+{context}
 
 Past email summaries:
 {summaries}`;
@@ -45,13 +45,13 @@ const buildPrompt = () =>
       "from",
       "body",
       "delivery_date",
-      "criteria",
+      "context",
       "intention",
     ],
   });
 
 export class ReplyGenerator extends LLMChain {
-  criteria?: Record<string, string>;
+  context?: Record<string, string>;
   retriever: VectorStoreRetriever;
 
   constructor(opts: ReplyGeneratorOpts) {
@@ -59,21 +59,21 @@ export class ReplyGenerator extends LLMChain {
     this.retriever = opts.retriever;
   }
 
-  setCriteria(newCriteria: Record<string, string>) {
-    this.criteria = newCriteria;
+  setContext(newContext: Record<string, string>) {
+    this.context = newContext;
   }
 
   async _call(
     values: ChainValues &
       this["llm"]["CallOptions"] & {
-        newCriteria?: Record<string, string>;
+        newContext?: Record<string, string>;
       },
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
-    if (!this.criteria) throw new Error("Criteria not set");
-    let criteria: string = Object.entries(this.criteria)
+    if (!this.context) throw new Error("Context not set");
+    let context: string = Object.entries(this.context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
-    return super._call({ ...values, criteria }, runManager);
+    return super._call({ ...values, context }, runManager);
   }
 }

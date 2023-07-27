@@ -26,7 +26,7 @@ export abstract class MailGPTServer {
   executor: MainExecutor;
   conversator: ConversationalEmailEvaluator;
   retriever: VectorStoreRetriever;
-  criteria?: Record<string, string>;
+  context?: Record<string, string>;
   constructor(opts: MailGPTServerOpts) {
     this.database = opts.database;
     this.mailAdapter = opts.mailAdapter;
@@ -45,8 +45,8 @@ export abstract class MailGPTServer {
   abstract startServer(): Promise<void>;
 
   async getContext() {
-    return this.criteria
-      ? Promise.resolve(this.criteria)
+    return this.context
+      ? Promise.resolve(this.context)
       : this.database.getContext();
   }
 
@@ -56,9 +56,12 @@ export abstract class MailGPTServer {
       this.database.getPotentialReply(replyId),
       this.getContext(),
     ]);
+    if (!email || !reply) {
+      throw new Error("Email or reply not found!");
+    }
     const { text: newPotentialEmail } = await this.conversator.call({
-      criteria: context,
-      body: email?.text ?? "",
+      context,
+      body: email.text,
       intention: reply.intention,
       input,
     });
@@ -67,11 +70,11 @@ export abstract class MailGPTServer {
   }
 
   async processEmails() {
-    const [emails, criteria] = await Promise.all([
+    const [emails, context] = await Promise.all([
       this.mailAdapter.fetch(),
       this.getContext(),
     ]);
-    this.executor.setCriteria(criteria ?? {});
+    this.executor.setContext(context ?? {});
     const processedEmails = await this.executor.processEmails(emails);
     const processedPromises = processedEmails.map((emailOrReply) => {
       switch (emailOrReply.process_status) {
@@ -148,7 +151,7 @@ export class MailGPTAPIServer extends MailGPTServer {
     this.app.post("fetch-chat-history", async (req, res) => {
       const { replyId } = req.body;
       try {
-        const chatHistory = await this.database.getEmailChatHistory(replyId);
+        const chatHistory = await this.database.getChatHistoryByReply(replyId);
         res.status(200).send({ chat_history: chatHistory });
       } catch (error) {
         res.status(500).send(error);

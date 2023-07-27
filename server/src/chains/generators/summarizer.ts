@@ -22,7 +22,7 @@ export interface EmailSummarizerOpts extends ChainInputs {
 const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to summarize the email's body, given the context below. Please make the summary as short as possible.
 
 Context:
-{criteria}`;
+{context}`;
 
 const userPrompt = `Email from:
 {from}
@@ -39,11 +39,11 @@ const buildPrompt = () =>
       SystemMessagePromptTemplate.fromTemplate(systemBasePrompt),
       HumanMessagePromptTemplate.fromTemplate(userPrompt),
     ],
-    inputVariables: ["from", "body", "delivery_date", "criteria"],
+    inputVariables: ["from", "body", "delivery_date", "context"],
   });
 
 export class EmailSummarizer extends BaseChain {
-  criteria?: Record<string, string>;
+  context?: Record<string, string>;
   stufferChain: StuffDocumentsChain;
 
   constructor(opts: EmailSummarizerOpts) {
@@ -56,8 +56,8 @@ export class EmailSummarizer extends BaseChain {
     }) as StuffDocumentsChain;
   }
 
-  setCriteria(newCriteria: Record<string, string>) {
-    this.criteria = newCriteria;
+  setContext(newContext: Record<string, string>) {
+    this.context = newContext;
   }
 
   get inputKeys(): string[] {
@@ -76,12 +76,12 @@ export class EmailSummarizer extends BaseChain {
     values: ChainValues,
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
-    if (!this.criteria) throw new Error("Criteria not set");
-    let criteria: string = Object.entries(this.criteria)
+    if (!this.context) throw new Error("Context not set");
+    let context: string = Object.entries(this.context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
     return this.stufferChain.call(
-      { ...values, criteria },
+      { ...values, context },
       runManager?.getChild(),
     );
   }

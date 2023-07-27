@@ -14,7 +14,7 @@ import cloneDeep from "lodash/cloneDeep";
 const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. You were tasked with writing a reply given the email's body, and have written a reply for the given email in the past. The user has an input and would like you to change something in the reply. You answer should only be the email's text and nothing else.
 
 Context:
-{criteria}
+{context}
 
 Original Email body:
 {body}
@@ -54,7 +54,7 @@ export class ConversationalEmailEvaluator extends LLMChain {
     }
     if (fetch || !this.conversationId) {
       const { chat_messages: chatMessages, id } =
-        await this.db.getEmailChatHistory(this.replyId);
+        await this.db.getChatHistoryByReply(this.replyId);
       this.conversationId = id;
       this.chatMessages = cloneDeep(chatMessages);
     }
@@ -72,7 +72,7 @@ export class ConversationalEmailEvaluator extends LLMChain {
         ...templates,
         HumanMessagePromptTemplate.fromTemplate("{input}"),
       ],
-      inputVariables: ["body", "intention", "criteria", "input"],
+      inputVariables: ["body", "intention", "context", "input"],
     });
     this.promptBuilt = true;
   }

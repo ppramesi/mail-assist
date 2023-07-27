@@ -56,7 +56,7 @@ export class MainExecutor {
   replier: ReplyGenerator;
   summarizer: EmailSummarizer;
   retriever: VectorStoreRetriever;
-  criteria?: Record<string, string>;
+  context?: Record<string, string>;
   // db: Database;
 
   constructor(opts: MainExecutorOpts) {
@@ -74,13 +74,13 @@ export class MainExecutor {
     // this.db = opts.db;
   }
 
-  setCriteria(newCriteria: Record<string, string>) {
-    this.criteria = newCriteria;
-    this.relevancyChain.setCriteria(this.criteria);
-    this.intentionsGenerator.setCriteria(this.criteria);
-    this.keywordsGenerator.setCriteria(this.criteria);
-    this.replier.setCriteria(this.criteria);
-    this.summarizer.setCriteria(this.criteria);
+  setContext(newContext: Record<string, string>) {
+    this.context = newContext;
+    this.relevancyChain.setContext(this.context);
+    this.intentionsGenerator.setContext(this.context);
+    this.keywordsGenerator.setContext(this.context);
+    this.replier.setContext(this.context);
+    this.summarizer.setContext(this.context);
   }
 
   async summarizeAndSaveToVectorDB(values: ChainValues, callbacks?: Callbacks) {

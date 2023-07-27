@@ -1,63 +1,164 @@
 import { Email } from "../adapters/base";
-import { AIMessage, Context, Database, HumanMessage, PotentialReplyEmail, RawChatHistory } from "./base";
-
+import {
+  AIMessage,
+  Context,
+  Database,
+  HumanMessage,
+  PotentialReplyEmail,
+  RawChatHistory,
+} from "./base";
+import Knex, { Knex as KnexT } from "knex";
 
 export class KnexDatabase extends Database {
-    connect(): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    disconnect(): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    insertEmail(email: Email): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    insertEmails(emails: Email[]): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    getEmails(): Promise<Email[] | null> {
-        throw new Error("Method not implemented.");
-    }
-    getEmail(id: string): Promise<Email | null> {
-        throw new Error("Method not implemented.");
-    }
-    updateEmailProcessedData(id: string, status: string, summary?: string | undefined): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    insertContext(context: Context): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    getContext(): Promise<Context | null> {
-        throw new Error("Method not implemented.");
-    }
-    getContextValue(key: string): Promise<string | null> {
-        throw new Error("Method not implemented.");
-    }
-    getAllowedHosts(): Promise<string[] | null> {
-        throw new Error("Method not implemented.");
-    }
-    setAllowedHosts(hosts: string[]): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    insertPotentialReply(data: PotentialReplyEmail): Promise<string> {
-        throw new Error("Method not implemented.");
-    }
-    getPotentialReply(id: string): Promise<PotentialReplyEmail> {
-        throw new Error("Method not implemented.");
-    }
-    insertChatHistory(chatHistory: RawChatHistory): Promise<string> {
-        throw new Error("Method not implemented.");
-    }
-    appendChatHistory(id: string, messages: (AIMessage | HumanMessage)[]): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    getChatHistory(id: string): Promise<RawChatHistory> {
-        throw new Error("Method not implemented.");
-    }
-    insertEmailChatHistory(chatHistory: RawChatHistory): Promise<string> {
-        throw new Error("Method not implemented.");
-    }
-    getEmailChatHistory(replyId: string): Promise<RawChatHistory> {
-        throw new Error("Method not implemented.");
-    }
+  private db: KnexT;
+  constructor(config: KnexT.Config) {
+    super();
+    this.db = Knex(config);
+  }
+
+  async connect(): Promise<void> {
+    await this.db.raw("SELECT 1+1 AS result");
+  }
+
+  async disconnect(): Promise<void> {
+    await this.db.destroy();
+  }
+
+  async insertEmail(email: Email): Promise<void> {
+    await this.db("emails").insert(email);
+  }
+
+  async insertEmails(emails: Email[]): Promise<void> {
+    await this.db("emails").insert(emails);
+  }
+
+  async getEmails(): Promise<Email[] | null> {
+    return this.db("emails")
+      .select("*")
+      .then((v) => (v.length > 0 ? v : null));
+  }
+
+  async getEmail(id: string): Promise<Email | null> {
+    return this.db("emails")
+      .where("id", id)
+      .first()
+      .then((v) => v || null);
+  }
+
+  async updateEmailProcessedData(
+    id: string,
+    status: string,
+    summary?: string | undefined,
+  ): Promise<void> {
+    const updateData: Partial<Email> = { status };
+    if (summary) updateData.summary = summary;
+    await this.db("emails").where("id", id).update(updateData);
+  }
+
+  async insertContext(context: Context): Promise<void> {
+    const entries = Object.entries(context).map(([key, value]) => ({
+      key,
+      value,
+    }));
+    await this.db("contexts").insert(entries);
+  }
+
+  async getContext(): Promise<Context | null> {
+    return this.db("contexts")
+      .select("*")
+      .then((v) =>
+        v.length > 0
+          ? v.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {})
+          : null,
+      );
+  }
+
+  async getContextValue(key: string): Promise<string | null> {
+    return this.db("contexts")
+      .where("key", key)
+      .first()
+      .then((v) => v?.value || null);
+  }
+
+  async getAllowedHosts(): Promise<string[] | null> {
+    return this.db("allowed_hosts")
+      .select("*")
+      .then((v) => (v.length > 0 ? v.map(({ host }) => host) : null));
+  }
+
+  async setAllowedHosts(hosts: string[]): Promise<void> {
+    await this.db("allowed_hosts").insert(hosts.map((host) => ({ host })));
+  }
+
+  async deleteAllowedHosts(hosts: string[]): Promise<void> {
+    await this.db("allowed_hosts").whereIn("host", hosts).delete();
+  }
+
+  async insertPotentialReply(data: PotentialReplyEmail): Promise<string> {
+    const { intention, reply_text, email_id, summary } = data;
+    return this.db("potential_replies")
+      .insert({ intention, reply_text, email_id, summary })
+      .returning("id")
+      .then((ids) => ids[0]);
+  }
+
+  async getPotentialReply(id: string): Promise<PotentialReplyEmail> {
+    return this.db("potential_replies")
+      .where("id", id)
+      .first()
+      .then((v) => v || null);
+  }
+
+  async getPotentialReplies(
+    emailId: string,
+  ): Promise<PotentialReplyEmail[] | null> {
+    return this.db("potential_replies")
+      .where("email_id", emailId)
+      .select("*")
+      .then((v) => (v.length > 0 ? v : null));
+  }
+
+  async insertChatHistory(chatHistory: RawChatHistory): Promise<string> {
+    return this.db("chat_history")
+      .insert(chatHistory)
+      .returning("id")
+      .then((ids) => ids[0]);
+  }
+
+  async appendChatHistory(
+    id: string,
+    messages: (AIMessage | HumanMessage)[],
+  ): Promise<void> {
+    await this.db.raw(
+      `
+      UPDATE chat_history
+      SET chat_messages = (
+        SELECT jsonb_agg(elems)
+        FROM (
+          SELECT elems
+          from chat_history, jsonb_array_elements(chat_messages) WITH ORDINALITY arr(elems, order)
+          WHERE id = :id
+          UNION ALL
+          SELECT jsonb_array_elements(:messageData::jsonb)
+        ) sub
+      )
+      WHERE id = :id;
+    `,
+      { id, messageData: JSON.stringify(messages) },
+    );
+  }
+
+  async getChatHistoryById(id: string): Promise<RawChatHistory> {
+    return this.db("chat_history")
+      .where("id", id)
+      .first()
+      .then((v) => v || null);
+  }
+
+  async getChatHistoryByReply(replyId: string): Promise<RawChatHistory> {
+    return this.db("chat_history")
+      .where("reply_id", replyId)
+      .first()
+      .then((v) => v || null);
+  }
 }

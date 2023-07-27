@@ -13,7 +13,7 @@ import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
 const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to generate possible users intentions for replies, given the context below. Generate an array of sentences describing possible user reply intentions.
 
 Context:
-{criteria}`;
+{context}`;
 
 const userPrompt = `Email from:
 {from}
@@ -38,7 +38,7 @@ const buildPrompt = () =>
       SystemMessagePromptTemplate.fromTemplate(systemBasePrompt),
       HumanMessagePromptTemplate.fromTemplate(userPrompt),
     ],
-    inputVariables: ["from", "body", "delivery_date", "criteria"],
+    inputVariables: ["from", "body", "delivery_date", "context"],
   });
 
 export type IntentionsOpts = {
@@ -46,7 +46,7 @@ export type IntentionsOpts = {
 };
 
 export class IntentionsGenerator extends LLMChain<any, ChatOpenAI> {
-  criteria?: Record<string, string>;
+  context?: Record<string, string>;
   outputKey: string = keyName;
   constructor(opts: IntentionsOpts) {
     const functionName = "output_formatter";
@@ -69,18 +69,18 @@ export class IntentionsGenerator extends LLMChain<any, ChatOpenAI> {
     });
   }
 
-  setCriteria(newCriteria: Record<string, string>) {
-    this.criteria = newCriteria;
+  setContext(newContext: Record<string, string>) {
+    this.context = newContext;
   }
 
   _call(
     values: ChainValues & this["llm"]["CallOptions"],
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
-    if (!this.criteria) throw new Error("Criteria not set");
-    let criteria: string = Object.entries(this.criteria)
+    if (!this.context) throw new Error("Context not set");
+    let context: string = Object.entries(this.context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
-    return super._call({ ...values, criteria }, runManager);
+    return super._call({ ...values, context }, runManager);
   }
 }
