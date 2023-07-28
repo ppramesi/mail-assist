@@ -1,4 +1,3 @@
-// import { BaseChain } from "langchain/chains";
 import { buildFilterFunction } from "./filters/simple_host";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { EmailRelevancyEvaluator } from "./evaluators/relevancy";
@@ -10,15 +9,11 @@ import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Callbacks } from "langchain/callbacks";
 import { ChainValues } from "langchain/schema";
 import { Email } from "../adapters/base";
-import { Document } from "langchain/document";
-// import { Database } from "../databases/base";
-// import * as uuid from "uuid";
 
 export type MainExecutorOpts = {
   allowedHosts: string[];
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
-  // db: Database;
 };
 
 export interface EmptyEmail extends Email {

@@ -28,6 +28,18 @@ export interface PotentialReplyEmail extends Email {
 }
 
 export abstract class Database {
+  protected emailKeys = [
+    "hash",
+    "id",
+    "from",
+    "to",
+    "subject",
+    "text",
+    "date",
+    "read",
+    "summary",
+    "status",
+  ];
   /**
    * Establishes a connection to the database.
    */
