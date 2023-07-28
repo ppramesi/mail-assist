@@ -2,11 +2,18 @@ import { promises as fs } from "fs";
 import path from "path";
 import { Email, BaseMailAdapter, SearchContext } from "../base";
 import * as uuid from "uuid";
+import {
+  TEST_EMAILS_1,
+  TEST_EMAILS_2,
+  TEST_EMAILS_3,
+  TEST_EMAILS_4,
+} from "./emails/fake_emails";
+
+const testEmails = [TEST_EMAILS_1, TEST_EMAILS_2, TEST_EMAILS_3, TEST_EMAILS_4];
 
 export class FakeMailAdapter extends BaseMailAdapter {
   connected: boolean = false;
   private emails: Email[] = [];
-  private emailDir = path.resolve(__dirname, "emails");
 
   constructor() {
     super({});
@@ -14,26 +21,21 @@ export class FakeMailAdapter extends BaseMailAdapter {
   }
 
   private async loadEmails() {
-    const files = await fs.readdir(this.emailDir);
-    for (const file of files) {
-      if (path.extname(file) === ".txt") {
-        const rawEmail = await fs.readFile(
-          path.join(this.emailDir, file),
-          "utf-8",
-        );
-        const email = await FakeMailAdapter.parseEmail(rawEmail);
-        // Now we transform the email into our `Email` format.
-        const to = (Array.isArray(email.to!) ? email.to! : [email.to!]).flatMap(
-          ({ value }) => value.map((addr) => `${addr.name} <${addr.address}>`),
-        );
-        const emailToPush: Email = {
-          ...email,
-          to,
-          id: email.messageId ?? uuid.v4(),
-          read: false, // we assume all emails are unread at the beginning
-        };
-        this.emails.push(emailToPush);
-      }
+    for (const rawEmail of testEmails) {
+      const email = await FakeMailAdapter.parseEmail(rawEmail);
+      // Now we transform the email into our `Email` format.
+      const to = (Array.isArray(email.to!) ? email.to! : [email.to!]).flatMap(
+        ({ value }) => value.map((addr) => `${addr.name} <${addr.address}>`),
+      );
+      // Now we transform the email into our `Email` format.
+      const emailToPush: Email = {
+        ...email,
+        to,
+        hash: FakeMailAdapter.hashText(email.text ?? ""),
+        id: email.messageId ?? uuid.v4(),
+        read: false, // we assume all emails are unread at the beginning
+      };
+      this.emails.push(emailToPush);
     }
   }
 

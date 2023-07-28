@@ -110,7 +110,7 @@ export class KnexVectorStore extends VectorStore {
         )
         .toString(),
       this.buildSqlFilterStr(filter),
-      this.knex.raw(`ORDER BY "_distance" ASC LIMIT ?;`, [k]).toString(),
+      this.knex.raw(`ORDER BY "_distance" ASC LIMIT ?;`, [k]).toString(), // might want to add ::vector
     ]
       .filter((x) => x != null)
       .join(" ");

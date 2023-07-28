@@ -1,3 +1,4 @@
+import { isNil, pick } from "lodash";
 import { Email } from "../adapters/base";
 import {
   AIMessage,
@@ -25,11 +26,42 @@ export class KnexDatabase extends Database {
   }
 
   async insertEmail(email: Email): Promise<void> {
-    await this.db("emails").insert(email);
+    if (isNil(email.date)) return;
+    await this.db("emails")
+      .insert(pick(email, this.emailKeys))
+      .onConflict("hash")
+      .ignore();
   }
 
   async insertEmails(emails: Email[]): Promise<void> {
-    await this.db("emails").insert(emails);
+    const procEmails = emails
+      .filter((e) => !isNil(e.date))
+      .map((email) => {
+        return pick(email, this.emailKeys);
+      });
+
+    await this.db("emails").insert(procEmails).onConflict("hash").ignore();
+  }
+
+  async filterNotInDatabase(emails: Email[]) {
+    const oldestEmailDate = emails
+      .filter((e) => !isNil(e.date))
+      .reduce((oldestDate, currentEmail) => {
+        return currentEmail.date! < oldestDate!
+          ? currentEmail.date
+          : oldestDate;
+      }, emails[0].date);
+
+    const recentDbEmails = await this.db("emails")
+      .where<string>("date", ">", oldestEmailDate!)
+      .select();
+
+    const newEmails = emails.filter(
+      (serverEmail) =>
+        !recentDbEmails.some((dbEmail) => dbEmail.hash === serverEmail.hash),
+    );
+
+    return newEmails;
   }
 
   async getEmails(): Promise<Email[] | null> {

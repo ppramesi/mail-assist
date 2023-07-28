@@ -1,4 +1,5 @@
 import { simpleParser, ParsedMail, AddressObject } from "mailparser";
+import crypto from "crypto";
 
 export type FetchOpts = {};
 
@@ -8,7 +9,8 @@ export interface EmailAddress {
 }
 
 export interface Email
-  extends Pick<ParsedMail, "from" | "subject" | "text" | "date"> {
+  extends Pick<ParsedMail, "from" | "to" | "subject" | "text" | "date"> {
+  hash: string;
   to: string[];
   id: string;
   read: boolean;
@@ -45,6 +47,13 @@ export abstract class BaseMailAdapter {
   abstract connect(): Promise<void>;
   abstract fetch(opts?: any): Promise<Email[]>; // where `Email` is a class or interface you define
   abstract disconnect(): Promise<void>;
+
+  static hashText(text: string) {
+    return crypto
+      .createHash("SHA-256")
+      .update(new TextEncoder().encode(text))
+      .digest("base64");
+  }
 
   static async parseEmail(rawEmail: string) {
     try {

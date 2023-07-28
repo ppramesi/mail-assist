@@ -7,7 +7,8 @@
 	"license": "MIT",
 	"scripts": {
 		"format": "prettier --write \"src\"",
-		"build": "tsc"
+		"build": "tsc",
+		"knex:migrate:latest": "knex migrate:latest"
 	},
 	"dependencies": {
 		"dotenv": "^16.3.1",
