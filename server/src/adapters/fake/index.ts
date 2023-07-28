@@ -23,8 +23,12 @@ export class FakeMailAdapter extends BaseMailAdapter {
         );
         const email = await FakeMailAdapter.parseEmail(rawEmail);
         // Now we transform the email into our `Email` format.
+        const to = (Array.isArray(email.to!) ? email.to! : [email.to!]).flatMap(
+          ({ value }) => value.map((addr) => `${addr.name} <${addr.address}>`),
+        );
         const emailToPush: Email = {
           ...email,
+          to,
           id: email.messageId ?? uuid.v4(),
           read: false, // we assume all emails are unread at the beginning
         };

@@ -50,7 +50,7 @@ const buildPrompt = () =>
       "delivery_date",
       "context",
       "intention",
-      "to"
+      "to",
     ],
   });
 

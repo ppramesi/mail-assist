@@ -1,9 +1,8 @@
 import express, { Express } from "express";
 import { BaseMailAdapter } from "./adapters/base";
 import { Database } from "./databases/base";
-import { fetchMailService } from "./services/fetch_email";
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { MainExecutor } from "./chains/executors";
+import { MainExecutor, MainExecutorOpts } from "./chains/executors";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Document } from "langchain/document";
 import { ConversationalEmailEvaluator } from "./chains/user_evaluation";
@@ -13,7 +12,7 @@ export interface MailGPTServerOpts {
   database: Database;
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
-  allowedHosts: string[];
+  allowedHosts?: string[];
 }
 
 export interface MailGPTAPIServerOpts extends MailGPTServerOpts {
@@ -34,15 +33,28 @@ export abstract class MailGPTServer {
       llm: opts.llm,
       db: opts.database,
     });
-    this.executor = new MainExecutor({
+    const executorOpts: MainExecutorOpts = {
       llm: opts.llm,
-      allowedHosts: opts.allowedHosts,
       retriever: opts.retriever,
-    });
+    };
+    if (opts.allowedHosts) {
+      executorOpts.allowedHosts = opts.allowedHosts;
+      this.executor = new MainExecutor(executorOpts);
+    } else {
+      this.executor = new MainExecutor(executorOpts);
+      this.setAllowedHosts();
+    }
     this.retriever = opts.retriever;
   }
 
   abstract startServer(): Promise<void>;
+
+  async setAllowedHosts() {
+    const hosts = await this.database.getAllowedHosts();
+    if (hosts) {
+      this.executor.setAllowedHosts(hosts);
+    }
+  }
 
   async getContext() {
     return this.context
