@@ -1,8 +1,11 @@
-import { MailAdapter } from "../adapters/base";
+import { BaseMailAdapter } from "../adapters/base";
 import { Request, Response } from "express";
 import { Database } from "../databases/base";
 
-export function fetchMailService(mailAdapter: MailAdapter, database: Database) {
+export function fetchMailService(
+  mailAdapter: BaseMailAdapter,
+  database: Database,
+) {
   return async function (_req: Request, res: Response) {
     if (!mailAdapter.connected) {
       await mailAdapter.connect();

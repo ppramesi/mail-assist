@@ -25,6 +25,9 @@ Past email summaries:
 const userPrompt = `Email from:
 {from}
 
+Email to:
+{to}
+
 Email body:
 {body}
 
@@ -47,6 +50,7 @@ const buildPrompt = () =>
       "delivery_date",
       "context",
       "intention",
+      "to",
     ],
   });
 

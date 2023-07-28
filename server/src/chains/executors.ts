@@ -11,7 +11,7 @@ import { ChainValues } from "langchain/schema";
 import { Email } from "../adapters/base";
 
 export type MainExecutorOpts = {
-  allowedHosts: string[];
+  allowedHosts?: string[];
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
 };
@@ -44,7 +44,7 @@ export type ProcessedEmail =
   | PotentialReplyEmail;
 
 export class MainExecutor {
-  hostsFilter: (email: Email) => boolean;
+  hostsFilter?: (email: Email) => boolean;
   relevancyChain: EmailRelevancyEvaluator;
   intentionsGenerator: IntentionsGenerator;
   keywordsGenerator: KeywordsGenerator;
@@ -55,7 +55,9 @@ export class MainExecutor {
   // db: Database;
 
   constructor(opts: MainExecutorOpts) {
-    this.hostsFilter = buildFilterFunction(opts.allowedHosts);
+    if (opts.allowedHosts) {
+      this.hostsFilter = buildFilterFunction(opts.allowedHosts);
+    }
     const chainParams = { llm: opts.llm };
     this.relevancyChain = new EmailRelevancyEvaluator(chainParams);
     this.intentionsGenerator = new IntentionsGenerator(chainParams);
@@ -67,6 +69,10 @@ export class MainExecutor {
     this.summarizer = new EmailSummarizer(chainParams);
     this.retriever = opts.retriever;
     // this.db = opts.db;
+  }
+
+  setAllowedHosts(allowedHosts: string[]) {
+    this.hostsFilter = buildFilterFunction(allowedHosts);
   }
 
   setContext(newContext: Record<string, string>) {
@@ -125,15 +131,17 @@ export class MainExecutor {
     callbacks?: Callbacks,
   ): Promise<ProcessedEmail[]> {
     const processEmailPromise = emails
-      .filter(this.hostsFilter)
+      .filter(this.hostsFilter ?? (() => true))
       .map(async (email) => {
-        const { text: body, from, date, id } = email;
+        const { text: body, from, date, to: rawTo } = email;
+        const to = rawTo.slice(0, 10).join("\n");
         if (body && from && date) {
           let deliveryDate = date.toLocaleString();
           const values = {
             body,
             from: from.text,
             delivery_date: deliveryDate,
+            to,
           };
           const { is_relevant: isRelevant } = await this.relevancyChain.call(
             values,
