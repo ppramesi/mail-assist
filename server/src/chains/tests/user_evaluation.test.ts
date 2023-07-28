@@ -6,6 +6,7 @@ import { ConversationalEmailEvaluator } from "../user_evaluation";
   const db = new InMemoryDatabase();
   db.insertChatHistory({
     id: "test",
+    email_id: "test",
     reply_id: "test",
     chat_messages: [
       {

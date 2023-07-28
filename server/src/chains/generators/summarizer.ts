@@ -27,6 +27,9 @@ Context:
 const userPrompt = `Email from:
 {from}
 
+Email to:
+{to}
+
 Email body:
 {body}
 
@@ -39,7 +42,7 @@ const buildPrompt = () =>
       SystemMessagePromptTemplate.fromTemplate(systemBasePrompt),
       HumanMessagePromptTemplate.fromTemplate(userPrompt),
     ],
-    inputVariables: ["from", "body", "delivery_date", "context"],
+    inputVariables: ["from", "body", "delivery_date", "context", "to"],
   });
 
 export class EmailSummarizer extends BaseChain {

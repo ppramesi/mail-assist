@@ -1,5 +1,5 @@
 import express, { Express } from "express";
-import { MailAdapter } from "./adapters/base";
+import { BaseMailAdapter } from "./adapters/base";
 import { Database } from "./databases/base";
 import { fetchMailService } from "./services/fetch_email";
 import { ChatOpenAI } from "langchain/chat_models/openai";
@@ -9,7 +9,7 @@ import { Document } from "langchain/document";
 import { ConversationalEmailEvaluator } from "./chains/user_evaluation";
 
 export interface MailGPTServerOpts {
-  mailAdapter: MailAdapter;
+  mailAdapter: BaseMailAdapter;
   database: Database;
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
@@ -21,7 +21,7 @@ export interface MailGPTAPIServerOpts extends MailGPTServerOpts {
 }
 
 export abstract class MailGPTServer {
-  mailAdapter: MailAdapter;
+  mailAdapter: BaseMailAdapter;
   database: Database;
   executor: MainExecutor;
   conversator: ConversationalEmailEvaluator;

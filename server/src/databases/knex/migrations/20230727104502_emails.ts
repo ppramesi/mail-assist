@@ -4,7 +4,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("emails", (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
     table.string("from");
-    table.string("to");
+    table.specificType("to", "TEXT[]");
     table.string("subject");
     table.string("text");
     table.date("date");

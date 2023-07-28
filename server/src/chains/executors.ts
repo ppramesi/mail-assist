@@ -132,13 +132,15 @@ export class MainExecutor {
     const processEmailPromise = emails
       .filter(this.hostsFilter)
       .map(async (email) => {
-        const { text: body, from, date, id } = email;
+        const { text: body, from, date, to: rawTo } = email;
+        const to = rawTo.slice(0, 10).join("\n")
         if (body && from && date) {
           let deliveryDate = date.toLocaleString();
           const values = {
             body,
             from: from.text,
             delivery_date: deliveryDate,
+            to
           };
           const { is_relevant: isRelevant } = await this.relevancyChain.call(
             values,

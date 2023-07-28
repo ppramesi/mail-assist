@@ -1,9 +1,9 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { Email, MailAdapter, SearchContext } from "../base";
+import { Email, BaseMailAdapter, SearchContext } from "../base";
 import * as uuid from "uuid";
 
-export class FakeMailAdapter extends MailAdapter {
+export class FakeMailAdapter extends BaseMailAdapter {
   connected: boolean = false;
   private emails: Email[] = [];
   private emailDir = path.resolve(__dirname, "emails");
