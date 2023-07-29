@@ -1,4 +1,4 @@
-import { isNil, pick } from "lodash";
+import { isNil, isObject, pick } from "lodash";
 import { Email } from "../adapters/base";
 import {
   AIMessage,
@@ -12,9 +12,13 @@ import Knex, { Knex as KnexT } from "knex";
 
 export class KnexDatabase extends Database {
   private db: KnexT;
-  constructor(config: KnexT.Config) {
+  constructor(configOrInstance: KnexT.Config | KnexT) {
     super();
-    this.db = Knex(config);
+    if (isObject(configOrInstance)) {
+      this.db = Knex(configOrInstance);
+    } else {
+      this.db = configOrInstance;
+    }
   }
 
   async connect(): Promise<void> {
@@ -34,7 +38,8 @@ export class KnexDatabase extends Database {
   }
 
   async insertEmails(emails: Email[]): Promise<void> {
-    const procEmails = emails
+    const emailsNotInDb = await this.filterNotInDatabase(emails);
+    const procEmails = emailsNotInDb
       .filter((e) => !isNil(e.date))
       .map((email) => {
         return pick(email, this.emailKeys);
@@ -112,6 +117,13 @@ export class KnexDatabase extends Database {
       .then((v) => v?.value || null);
   }
 
+  async setContextValue(id: string, key: string, value: string): Promise<void> {
+    await this.db("context").where("id", id).update({
+      key,
+      value,
+    });
+  }
+
   async getAllowedHosts(): Promise<string[] | null> {
     return this.db("allowed_hosts")
       .select("*")
@@ -141,11 +153,17 @@ export class KnexDatabase extends Database {
       .then((v) => v || null);
   }
 
-  async getPotentialReplies(
+  async getPotentialRepliesByEmail(
     emailId: string,
   ): Promise<PotentialReplyEmail[] | null> {
     return this.db("potential_replies")
       .where("email_id", emailId)
+      .select("*")
+      .then((v) => (v.length > 0 ? v : null));
+  }
+
+  getChatHistory(): Promise<RawChatHistory[] | null> {
+    return this.db("chat_history")
       .select("*")
       .then((v) => (v.length > 0 ? v : null));
   }
@@ -183,6 +201,13 @@ export class KnexDatabase extends Database {
   async getChatHistoryById(id: string): Promise<RawChatHistory> {
     return this.db("chat_history")
       .where("id", id)
+      .first()
+      .then((v) => v || null);
+  }
+
+  async getChatHistoryByEmail(emailId: string): Promise<RawChatHistory> {
+    return this.db("chat_history")
+      .where("email_id", emailId)
       .first()
       .then((v) => v || null);
   }

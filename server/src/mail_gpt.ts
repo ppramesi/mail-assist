@@ -6,6 +6,13 @@ import { MainExecutor, MainExecutorOpts } from "./chains/executors";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Document } from "langchain/document";
 import { ConversationalEmailEvaluator } from "./chains/user_evaluation";
+import {
+  buildAllowedHostsRoutes,
+  buildChatHistoryRoutes,
+  buildContextRoutes,
+  buildEmailRoutes,
+  buildReplyRoutes,
+} from "./routes/express";
 
 export interface MailGPTServerOpts {
   mailAdapter: BaseMailAdapter;
@@ -28,7 +35,9 @@ export abstract class MailGPTServer {
   context?: Record<string, string>;
   constructor(opts: MailGPTServerOpts) {
     this.database = opts.database;
+    this.database.connect();
     this.mailAdapter = opts.mailAdapter;
+    this.mailAdapter.connect();
     this.conversator = new ConversationalEmailEvaluator({
       llm: opts.llm,
       db: opts.database,
@@ -56,8 +65,8 @@ export abstract class MailGPTServer {
     }
   }
 
-  async getContext() {
-    return this.context
+  async getContext(fromDb = false) {
+    return this.context && !fromDb
       ? Promise.resolve(this.context)
       : this.database.getContext();
   }
@@ -86,6 +95,7 @@ export abstract class MailGPTServer {
       this.mailAdapter.fetch(),
       this.getContext(),
     ]);
+    await this.database.insertEmails(emails);
     this.executor.setContext(context ?? {});
     const processedEmails = await this.executor.processEmails(emails);
     const processedPromises = processedEmails.map((emailOrReply) => {
@@ -148,11 +158,12 @@ export class MailGPTAPIServer extends MailGPTServer {
     this.app.use(express.json());
     this.port = opts.port ?? 8080;
     this.buildRoute();
-    this.mailAdapter.connect();
   }
 
   buildRoute() {
-    this.app.post("process-emails", async (_, res) => {
+    const gptRoutes = express.Router();
+
+    gptRoutes.post("/process-emails", async (_, res) => {
       try {
         await this.processEmails();
         res.status(200).send({ status: "ok" });
@@ -160,7 +171,7 @@ export class MailGPTAPIServer extends MailGPTServer {
         res.status(500).send(error);
       }
     });
-    this.app.post("fetch-chat-history", async (req, res) => {
+    gptRoutes.post("/fetch-chat-history", async (req, res) => {
       const { replyId } = req.body;
       try {
         const chatHistory = await this.database.getChatHistoryByReply(replyId);
@@ -169,7 +180,7 @@ export class MailGPTAPIServer extends MailGPTServer {
         res.status(500).send(error);
       }
     });
-    this.app.post("evaluate-email", async (req, res) => {
+    gptRoutes.post("/evaluate-email", async (req, res) => {
       const { input, emailId, replyId } = req.body;
       try {
         const newReplyEmail = await this.evaluateEmail(input, emailId, replyId);
@@ -178,10 +189,20 @@ export class MailGPTAPIServer extends MailGPTServer {
         res.status(500).send(error);
       }
     });
-    //build route
+
+    this.app.use("/gpt", gptRoutes);
+    this.app.use("/allowed-hosts", buildAllowedHostsRoutes(this.database));
+    this.app.use("/chat-history", buildChatHistoryRoutes(this.database));
+    this.app.use("/context", buildContextRoutes(this.database));
+    this.app.use("/emails", buildEmailRoutes(this.database));
+    this.app.use("/replies", buildReplyRoutes(this.database));
   }
 
   async startServer() {
-    this.app.listen(this.port);
+    await new Promise<void>((resolve) => {
+      this.app.listen(this.port, () => {
+        resolve();
+      });
+    });
   }
 }

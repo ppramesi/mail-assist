@@ -9,8 +9,9 @@ import {
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { z } from "zod";
 import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
+import { stringJoinArrayOrNone } from "../utils/string";
 
-const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to generate possible users intentions for replies, given the context below. Generate an array of sentences describing possible user reply intentions.
+const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to generate possible users intentions for email replies, given the context below. Generate an array of sentences describing possible user reply intentions.
 
 Context:
 {context}`;
@@ -20,6 +21,12 @@ const userPrompt = `Email from:
 
 Email to:
 {to}
+
+Email Cc:
+{cc}
+
+Email Bcc:
+{bcc}
 
 Email body:
 {body}
@@ -41,7 +48,15 @@ const buildPrompt = () =>
       SystemMessagePromptTemplate.fromTemplate(systemBasePrompt),
       HumanMessagePromptTemplate.fromTemplate(userPrompt),
     ],
-    inputVariables: ["from", "body", "delivery_date", "context", "to"],
+    inputVariables: [
+      "from",
+      "body",
+      "delivery_date",
+      "context",
+      "to",
+      "cc",
+      "bcc",
+    ],
   });
 
 export type IntentionsOpts = {
@@ -81,9 +96,12 @@ export class IntentionsGenerator extends LLMChain<any, ChatOpenAI> {
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
     if (!this.context) throw new Error("Context not set");
+    let { cc, bcc, ...rest } = values;
+    cc = stringJoinArrayOrNone(cc);
+    bcc = stringJoinArrayOrNone(bcc);
     let context: string = Object.entries(this.context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
-    return super._call({ ...values, context }, runManager);
+    return super._call({ ...rest, context, cc, bcc }, runManager);
   }
 }

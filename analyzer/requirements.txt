@@ -1,0 +1,7 @@
+numpy
+scipy
+scikit-learn
+grpcio
+grpcio-tools
+python-dotenv
+umap-learn

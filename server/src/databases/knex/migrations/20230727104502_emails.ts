@@ -5,7 +5,9 @@ export async function up(knex: Knex): Promise<void> {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
     table.string("hash").unique();
     table.string("from");
-    table.specificType("to", "TEXT[]");
+    table.specificType("to", "text[]");
+    table.specificType("cc", "text[]").nullable();
+    table.specificType("bcc", "text[]").nullable();
     table.string("subject");
     table.string("text");
     table.date("date");

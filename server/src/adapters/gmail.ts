@@ -7,7 +7,7 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
   client: Imap;
   connected: boolean = false;
 
-  constructor(auth: IMAPAuth, opts: any) {
+  constructor(auth: IMAPAuth, opts?: any) {
     super(auth, opts);
     this.client = new Imap(auth);
   }
@@ -49,19 +49,17 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
             msg.on("body", (stream) => {
               simpleParser(stream, (err, mail) => {
                 if (err) reject(err);
-                const to = (
-                  Array.isArray(mail.to!) ? mail.to! : [mail.to!]
-                ).flatMap(({ value }) =>
-                  value.map((addr) => `${addr.name} <${addr.address}>`),
-                );
                 emails.push({
                   read: false,
                   id: uuid.v4(),
                   from: mail.from,
-                  to,
+                  to: IMAPGmailAdapter.flattenAddressObjects(mail.to!)!,
+                  cc: IMAPGmailAdapter.flattenAddressObjects(mail.cc),
+                  bcc: IMAPGmailAdapter.flattenAddressObjects(mail.bcc),
                   subject: mail.subject,
                   date: mail.date,
                   text: mail.text,
+                  hash: IMAPGmailAdapter.hashText(mail.text ?? ""),
                 });
               });
             });

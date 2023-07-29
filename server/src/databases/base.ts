@@ -2,14 +2,17 @@ import { Email } from "../adapters/base";
 
 export type Context = Record<string, string>;
 
-export type AIMessage = {
-  type: "ai";
+export type Message = {
+  type: "ai" | "human";
   text: string;
 };
 
-export type HumanMessage = {
+export type AIMessage = Message & {
+  type: "ai";
+};
+
+export type HumanMessage = Message & {
   type: "human";
-  text: string;
 };
 
 export type RawChatHistory = {
@@ -73,6 +76,12 @@ export abstract class Database {
    */
   abstract getEmail(id: string): Promise<Email | null>;
 
+  /**
+   * updates an email's status and summary (if exists)
+   * @param id
+   * @param status
+   * @param summary
+   */
   abstract updateEmailProcessedData(
     id: string,
     status: string,
@@ -96,6 +105,12 @@ export abstract class Database {
    */
   abstract getContextValue(key: string): Promise<string | null>;
 
+  abstract setContextValue(
+    id: string,
+    key: string,
+    value: string,
+  ): Promise<void>;
+
   abstract getAllowedHosts(): Promise<string[] | null>;
 
   abstract setAllowedHosts(hosts: string[]): Promise<void>;
@@ -106,11 +121,13 @@ export abstract class Database {
 
   abstract getPotentialReply(id: string): Promise<PotentialReplyEmail | null>;
 
-  abstract getPotentialReplies(
+  abstract getPotentialRepliesByEmail(
     emailId: string,
   ): Promise<PotentialReplyEmail[] | null>;
 
   abstract insertChatHistory(chatHistory: RawChatHistory): Promise<string>; // returns id
+
+  abstract getChatHistory(): Promise<RawChatHistory[] | null>;
 
   abstract appendChatHistory(
     id: string,
@@ -119,5 +136,10 @@ export abstract class Database {
 
   abstract getChatHistoryById(id: string): Promise<RawChatHistory>;
 
+  abstract getChatHistoryByEmail(emailId: string): Promise<RawChatHistory>;
+
   abstract getChatHistoryByReply(replyId: string): Promise<RawChatHistory>;
+
+  // util methods
+  abstract filterNotInDatabase(emails: Email[]): Promise<Email[]>;
 }

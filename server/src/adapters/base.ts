@@ -9,11 +9,13 @@ export interface EmailAddress {
 }
 
 export interface Email
-  extends Pick<ParsedMail, "from" | "to" | "subject" | "text" | "date"> {
-  hash: string;
-  to: string[];
+  extends Pick<ParsedMail, "from" | "subject" | "text" | "date"> {
   id: string;
   read: boolean;
+  hash: string;
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
   status?: string;
   summary?: string;
 }
@@ -43,7 +45,7 @@ export interface DateRange {
 
 export abstract class BaseMailAdapter {
   abstract connected: boolean;
-  constructor(public opts: FetchOpts) {}
+  constructor(public opts?: FetchOpts) {}
   abstract connect(): Promise<void>;
   abstract fetch(opts?: any): Promise<Email[]>; // where `Email` is a class or interface you define
   abstract disconnect(): Promise<void>;
@@ -62,6 +64,17 @@ export abstract class BaseMailAdapter {
       console.error(error);
       throw error;
     }
+  }
+
+  static flattenAddressObjects(
+    addressObjects?: AddressObject | AddressObject[],
+  ) {
+    if (!addressObjects) return undefined;
+    return (
+      Array.isArray(addressObjects) ? addressObjects : [addressObjects]
+    ).flatMap(({ value }) =>
+      value.map((addr) => `${addr.name} <${addr.address}>`),
+    );
   }
 }
 
@@ -83,7 +96,7 @@ export type IMAPAuth = {
 
 export abstract class IMAPMailAdapter extends BaseMailAdapter {
   auth: IMAPAuth;
-  constructor(auth: IMAPAuth, opts: FetchOpts) {
+  constructor(auth: IMAPAuth, opts?: FetchOpts) {
     super(opts);
     this.auth = auth;
   }

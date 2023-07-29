@@ -133,7 +133,7 @@ export class MainExecutor {
     const processEmailPromise = emails
       .filter(this.hostsFilter ?? (() => true))
       .map(async (email) => {
-        const { text: body, from, date, to: rawTo } = email;
+        const { text: body, from, date, to: rawTo, cc, bcc } = email;
         const to = rawTo.slice(0, 10).join("\n");
         if (body && from && date) {
           let deliveryDate = date.toLocaleString();
@@ -142,6 +142,8 @@ export class MainExecutor {
             from: from.text,
             delivery_date: deliveryDate,
             to,
+            cc,
+            bcc,
           };
           const { is_relevant: isRelevant } = await this.relevancyChain.call(
             values,
@@ -188,11 +190,6 @@ export class MainExecutor {
                     email_id: emailId,
                     summary,
                   } as PotentialReplyEmail;
-                  // await this.db.insertPotentialReply({
-                  //   ...potentialEmail,
-                  //   email_id: emailId,
-                  // }); // do it outside
-                  // return potentialEmail;
                 }),
               );
               const summarizedEmail: SummarizedEmail = {

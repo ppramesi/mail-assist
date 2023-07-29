@@ -9,8 +9,9 @@ import {
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { z } from "zod";
 import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
+import { stringJoinArrayOrNone } from "../utils/string";
 
-const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to analyze the provided email and extract as much important information as possible from the body of the email. You should answer with an array of short sentences that contains important information relevant to the following context.
+const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to analyze the provided email and extract as much important information as possible from the body of the email. Your answer should be in the form of an array of short sentences that contains important information from the email relevant to the following context.
 
 Context:
 {context}`;
@@ -20,6 +21,12 @@ const userPrompt = `Email from:
 
 Email to:
 {to}
+
+Email Cc:
+{cc}
+
+Email Bcc:
+{bcc}
 
 Email body:
 {body}
@@ -43,7 +50,15 @@ const buildPrompt = () =>
       SystemMessagePromptTemplate.fromTemplate(systemBasePrompt),
       HumanMessagePromptTemplate.fromTemplate(userPrompt),
     ],
-    inputVariables: ["from", "body", "delivery_date", "context", "to"],
+    inputVariables: [
+      "from",
+      "body",
+      "delivery_date",
+      "context",
+      "to",
+      "cc",
+      "bcc",
+    ],
   });
 
 export type KeywordsOpts = {
@@ -84,9 +99,12 @@ export class KeywordsGenerator extends LLMChain<any, ChatOpenAI> {
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
     if (!this.context) throw new Error("Context not set");
+    let { cc, bcc, ...rest } = values;
+    cc = stringJoinArrayOrNone(cc);
+    bcc = stringJoinArrayOrNone(bcc);
     let context: string = Object.entries(this.context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
-    return super._call({ ...values, context }, runManager);
+    return super._call({ ...rest, context, cc, bcc }, runManager);
   }
 }

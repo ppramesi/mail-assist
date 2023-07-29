@@ -13,6 +13,7 @@ import {
 } from "langchain/prompts";
 import { ChainValues } from "langchain/schema";
 import { ChatOpenAI } from "langchain/chat_models/openai";
+import { stringJoinArrayOrNone } from "../utils/string";
 
 export interface EmailSummarizerOpts extends ChainInputs {
   llm: ChatOpenAI;
@@ -30,6 +31,12 @@ const userPrompt = `Email from:
 Email to:
 {to}
 
+Email Cc:
+{cc}
+
+Email Bcc:
+{bcc}
+
 Email body:
 {body}
 
@@ -42,7 +49,15 @@ const buildPrompt = () =>
       SystemMessagePromptTemplate.fromTemplate(systemBasePrompt),
       HumanMessagePromptTemplate.fromTemplate(userPrompt),
     ],
-    inputVariables: ["from", "body", "delivery_date", "context", "to"],
+    inputVariables: [
+      "from",
+      "body",
+      "delivery_date",
+      "context",
+      "to",
+      "cc",
+      "bcc",
+    ],
   });
 
 export class EmailSummarizer extends BaseChain {
@@ -80,11 +95,14 @@ export class EmailSummarizer extends BaseChain {
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
     if (!this.context) throw new Error("Context not set");
+    let { cc, bcc, ...rest } = values;
+    cc = stringJoinArrayOrNone(cc);
+    bcc = stringJoinArrayOrNone(bcc);
     let context: string = Object.entries(this.context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
     return this.stufferChain.call(
-      { ...values, context },
+      { ...rest, context, cc, bcc },
       runManager?.getChild(),
     );
   }

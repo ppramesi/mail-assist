@@ -8,6 +8,7 @@ import {
 } from "langchain/prompts";
 import { ChainValues } from "langchain/schema";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
+import { stringJoinArrayOrNone } from "../utils/string";
 
 export interface ReplyGeneratorOpts {
   llm: ChatOpenAI;
@@ -27,6 +28,12 @@ const userPrompt = `Email from:
 
 Email to:
 {to}
+
+Email Cc:
+{cc}
+
+Email Bcc:
+{bcc}
 
 Email body:
 {body}
@@ -51,6 +58,8 @@ const buildPrompt = () =>
       "context",
       "intention",
       "to",
+      "cc",
+      "bcc",
     ],
   });
 
@@ -75,9 +84,12 @@ export class ReplyGenerator extends LLMChain {
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
     if (!this.context) throw new Error("Context not set");
+    let { cc, bcc, ...rest } = values;
+    cc = stringJoinArrayOrNone(cc);
+    bcc = stringJoinArrayOrNone(bcc);
     let context: string = Object.entries(this.context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
-    return super._call({ ...values, context }, runManager);
+    return super._call({ ...rest, context, cc, bcc }, runManager);
   }
 }

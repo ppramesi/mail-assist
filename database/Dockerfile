@@ -30,6 +30,7 @@ RUN cd /tmp && \
     rm -rf /tmp/pgvector
 
 RUN echo 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";' >> /docker-entrypoint-initdb.d/uuid-ossp.sql
+RUN echo 'CREATE EXTENSION IF NOT EXISTS vector;' >> /docker-entrypoint-initdb.d/vector.sql
 
 # Clean up
 RUN apt-get remove -y --auto-remove \

@@ -89,5 +89,5 @@ John Person`;
     input: "Oh wait John Person is German, could you translate it for me?",
   });
 
-  console.log(await db.getChatHistory("test"));
+  console.log(await db.getChatHistoryByEmail("test"));
 })();
