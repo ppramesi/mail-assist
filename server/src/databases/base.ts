@@ -92,7 +92,7 @@ export abstract class Database {
    * Inserts an context into the database.
    * @param context The context data to insert.
    */
-  abstract insertContext(context: Context): Promise<void>;
+  abstract insertContext(context: Context): Promise<string[] | null>;
 
   /**
    * Fetches all context from the database.
@@ -119,6 +119,8 @@ export abstract class Database {
 
   abstract insertPotentialReply(data: PotentialReplyEmail): Promise<string>;
 
+  abstract updatePotentialReply(id:string, text: string): Promise<void>;
+
   abstract getPotentialReply(id: string): Promise<PotentialReplyEmail | null>;
 
   abstract getPotentialRepliesByEmail(
@@ -142,4 +144,16 @@ export abstract class Database {
 
   // util methods
   abstract filterNotInDatabase(emails: Email[]): Promise<Email[]>;
+
+  abstract getUserMetakey(email: string): Promise<string>;
+
+  abstract getUserSessionKey(email: string): Promise<string>;
+
+  abstract setUserSessionKey(email: string, sessionKey: string): Promise<void>;
+
+  abstract getUserBySessionKey(sessionKey: string): Promise<{ email: string; metakey: string; } | null>;
+
+  abstract setUserAuth(email: string, pass: string, salt: string, metakey: string): Promise<void>;
+
+  abstract getUserAuth(email:string): Promise<{ password: string, salt: string } | null>;
 }

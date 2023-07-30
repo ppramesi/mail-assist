@@ -5,6 +5,8 @@ import { ChatOpenAI } from "langchain/chat_models/openai";
 import { MainExecutor, MainExecutorOpts } from "./chains/executors";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Document } from "langchain/document";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { ConversationalEmailEvaluator } from "./chains/user_evaluation";
 import {
   buildAllowedHostsRoutes,
@@ -13,7 +15,7 @@ import {
   buildEmailRoutes,
   buildReplyRoutes,
 } from "./routes/express";
-import { authMiddleware } from "./middlewares/auth";
+import { buildAuthMiddleware } from "./middlewares/auth";
 import logger from "./logger/bunyan"; // the logger is already imported here
 
 export interface MailGPTServerOpts {
@@ -166,14 +168,38 @@ export class MailGPTAPIServer extends MailGPTServer {
     this.app = express();
     this.app.use(express.json());
     this.port = opts.port ?? 8080;
+    this.buildAuthenticationRoutes();
     this.buildMiddlewares(opts.middlewareOpts ?? {});
     this.buildRoute();
     this.onStartServer = opts.onStartServer;
   }
 
+  buildAuthenticationRoutes(){
+    this.app.post("/login", async (req, res) => {
+      const { body: { password, email } } = req
+      const authData = await this.database.getUserAuth(email)
+      if(!authData){
+        res.status(403).send({ status: "who are you?" })
+      }
+
+      const hashed = await bcrypt.hash(password, authData?.salt!)
+      const authenticated = await bcrypt.compare(password, hashed)
+      if(authenticated){
+        const metakey = await this.database.getUserMetakey(email)
+        const sessionKey = jwt.sign({
+          email
+        }, process.env.TOKEN_KEY! + metakey, { expiresIn: "10h" })
+        await this.database.setUserSessionKey(email, sessionKey);
+        res.status(200).send({ session_key: sessionKey });
+      }else{
+        res.status(403).send({ status: "wrong password" })
+      }
+    })
+  }
+
   buildMiddlewares(middlewareOpts: MiddlewareOpts) {
     if (middlewareOpts.useAuth) {
-      this.app.use(authMiddleware);
+      this.app.use(buildAuthMiddleware(this.database));
     }
   }
 
@@ -192,7 +218,7 @@ export class MailGPTAPIServer extends MailGPTServer {
     });
 
     gptRoutes.post("/evaluate-email", async (req, res) => {
-      const { input, emailId, replyId } = req.body;
+      const { input, email_id: emailId, reply_id: replyId } = req.body;
       try {
         logger.info(`Starting to evaluate email with id: ${emailId}`);
         const newReplyEmail = await this.evaluateEmail(input, emailId, replyId);
@@ -209,7 +235,7 @@ export class MailGPTAPIServer extends MailGPTServer {
     this.app.use("/gpt", gptRoutes);
     this.app.use("/allowed-hosts", buildAllowedHostsRoutes(this.database));
     this.app.use("/chat-history", buildChatHistoryRoutes(this.database));
-    this.app.use("/context", buildContextRoutes(this.database));
+    this.app.use("/contexts", buildContextRoutes(this.database));
     this.app.use("/emails", buildEmailRoutes(this.database));
     this.app.use("/replies", buildReplyRoutes(this.database));
   }

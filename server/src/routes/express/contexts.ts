@@ -5,17 +5,6 @@ import logger from "../../logger/bunyan";
 export function buildContextRoutes(db: Database) {
   const router = express.Router();
 
-  router.get("/", async (req, res) => {
-    try {
-      const context = await db.getContext();
-      logger.info(`Fetched the whole context`);
-      res.status(200).send(context);
-    } catch (error) {
-      logger.error("Failed to fetch the whole context:", error);
-      res.status(500).send(JSON.stringify(error));
-    }
-  });
-
   router.get("/:key", async (req, res) => {
     const { key } = req.params;
     try {
@@ -27,20 +16,6 @@ export function buildContextRoutes(db: Database) {
         `Failed to fetch specific context value by key: ${key}`,
         error,
       );
-      res.status(500).send(JSON.stringify(error));
-    }
-  });
-
-  router.post("/", async (req: Request<{}, {}, Context>, res) => {
-    const { body } = req;
-    try {
-      await db.insertContext(body);
-      logger.info(
-        `Set multiple context key-value pairs: ${JSON.stringify(body)}`,
-      );
-      res.status(200).send({ status: "ok" });
-    } catch (error) {
-      logger.error("Failed to set multiple context key-value pairs:", error);
       res.status(500).send(JSON.stringify(error));
     }
   });
@@ -68,6 +43,31 @@ export function buildContextRoutes(db: Database) {
       }
     },
   );
+
+  router.post("/", async (req: Request<{}, {}, Context>, res) => {
+    const { body } = req;
+    try {
+      await db.insertContext(body);
+      logger.info(
+        `Set multiple context key-value pairs: ${JSON.stringify(body)}`,
+      );
+      res.status(200).send({ status: "ok" });
+    } catch (error) {
+      logger.error("Failed to set multiple context key-value pairs:", error);
+      res.status(500).send(JSON.stringify(error));
+    }
+  });
+
+  router.get("/", async (req, res) => {
+    try {
+      const context = await db.getContext();
+      logger.info(`Fetched the whole context`);
+      res.status(200).send(context);
+    } catch (error) {
+      logger.error("Failed to fetch the whole context:", error);
+      res.status(500).send(JSON.stringify(error));
+    }
+  });
 
   return router;
 }
