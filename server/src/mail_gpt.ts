@@ -192,7 +192,7 @@ export class MailGPTAPIServer extends MailGPTServer {
     });
 
     gptRoutes.post("/evaluate-email", async (req, res) => {
-      const { input, emailId, replyId } = req.body;
+      const { input, email_id: emailId, reply_id: replyId } = req.body;
       try {
         logger.info(`Starting to evaluate email with id: ${emailId}`);
         const newReplyEmail = await this.evaluateEmail(input, emailId, replyId);
@@ -209,7 +209,7 @@ export class MailGPTAPIServer extends MailGPTServer {
     this.app.use("/gpt", gptRoutes);
     this.app.use("/allowed-hosts", buildAllowedHostsRoutes(this.database));
     this.app.use("/chat-history", buildChatHistoryRoutes(this.database));
-    this.app.use("/context", buildContextRoutes(this.database));
+    this.app.use("/contexts", buildContextRoutes(this.database));
     this.app.use("/emails", buildEmailRoutes(this.database));
     this.app.use("/replies", buildReplyRoutes(this.database));
   }

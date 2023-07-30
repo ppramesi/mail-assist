@@ -92,7 +92,7 @@ export abstract class Database {
    * Inserts an context into the database.
    * @param context The context data to insert.
    */
-  abstract insertContext(context: Context): Promise<void>;
+  abstract insertContext(context: Context): Promise<string[] | null>;
 
   /**
    * Fetches all context from the database.
@@ -118,6 +118,8 @@ export abstract class Database {
   abstract deleteAllowedHosts(hosts: string[]): Promise<void>;
 
   abstract insertPotentialReply(data: PotentialReplyEmail): Promise<string>;
+
+  abstract updatePotentialReply(id:string, text: string): Promise<void>;
 
   abstract getPotentialReply(id: string): Promise<PotentialReplyEmail | null>;
 

@@ -92,12 +92,12 @@ export class KnexDatabase extends Database {
     await this.db("emails").where("id", id).update(updateData);
   }
 
-  async insertContext(context: Context): Promise<void> {
+  async insertContext(context: Context): Promise<string[] | null> {
     const entries = Object.entries(context).map(([key, value]) => ({
       key,
       value,
     }));
-    await this.db("contexts").insert(entries);
+    return this.db("contexts").insert(entries).returning("id").then(v => v.length > 0 ? v : null);
   }
 
   async getContext(): Promise<Context | null> {
@@ -144,6 +144,13 @@ export class KnexDatabase extends Database {
       .insert({ intention, reply_text, email_id, summary })
       .returning("id")
       .then((ids) => ids[0]);
+  }
+
+  async updatePotentialReply(id: string, text: string): Promise<void> {
+    await this.db("potential_replies").where("id", id)
+      .update({
+        reply_text: text
+      })
   }
 
   async getPotentialReply(id: string): Promise<PotentialReplyEmail> {

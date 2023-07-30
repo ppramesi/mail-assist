@@ -58,13 +58,13 @@ export class InMemoryDatabase extends Database {
     return Promise.resolve(email || null);
   }
 
-  async insertContext(context: Context): Promise<void> {
+  async insertContext(context: Context): Promise<string[] | null> {
     // Push the new email onto the end of the array.
     this.context = {
       ...this.context,
       ...context,
     };
-    return Promise.resolve();
+    return Promise.resolve([]);
   }
 
   async getContext(): Promise<Context | null> {
@@ -111,6 +111,10 @@ export class InMemoryDatabase extends Database {
     }
     this.potentialReply.push(data);
     return Promise.resolve(data.id);
+  }
+
+  async updatePotentialReply(id: string, text: string): Promise<void> {
+    throw new Error("Method not implemented.");
   }
 
   async getPotentialReply(id: string): Promise<PotentialReplyEmail> {

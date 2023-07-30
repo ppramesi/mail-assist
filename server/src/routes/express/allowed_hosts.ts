@@ -16,11 +16,11 @@ export function buildAllowedHostsRoutes(db: Database) {
     }
   }); // get all allowed hosts
 
-  router.post("/", async (req: Request<{}, {}, string[]>, res) => {
+  router.post("/", async (req: Request<{}, {}, { hosts: string[] }>, res) => {
     try {
       const { body } = req;
-      await db.setAllowedHosts(body);
-      logger.info(`Set allowed hosts to: ${JSON.stringify(body)}`);
+      await db.setAllowedHosts(body.hosts);
+      logger.info(`Set allowed hosts to: ${JSON.stringify(body.hosts)}`);
       res.status(200).send({ status: "ok" });
     } catch (error) {
       logger.error("Failed to set allowed hosts:", error);
@@ -28,11 +28,11 @@ export function buildAllowedHostsRoutes(db: Database) {
     }
   }); // insert allowed hosts
 
-  router.delete("/", async (req: Request<{}, {}, string[]>, res) => {
+  router.delete("/", async (req: Request<{}, {}, { hosts: string[] }>, res) => {
     try {
       const { body } = req;
-      await db.deleteAllowedHosts(body);
-      logger.info(`Deleted allowed hosts: ${JSON.stringify(body)}`);
+      await db.deleteAllowedHosts(body.hosts);
+      logger.info(`Deleted allowed hosts: ${JSON.stringify(body.hosts)}`);
       res.status(200).send({ status: "ok" });
     } catch (error) {
       logger.error("Failed to delete allowed hosts:", error);
