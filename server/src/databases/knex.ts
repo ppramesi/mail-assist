@@ -225,4 +225,55 @@ export class KnexDatabase extends Database {
       .first()
       .then((v) => v || null);
   }
+
+  async getUserMetakey(email: string): Promise<string> {
+    return this.db("users")
+      .where("email", email)
+      .returning("metakey")
+      .first()
+      .then(v => v || null)
+  }
+
+  async getUserSessionKey(email: string): Promise<string> {
+    return this.db("users")
+      .where("email", email)
+      .returning("session_key")
+      .first()
+      .then(v => v || null)
+  }
+
+  async setUserSessionKey(email: string, sessionKey: string): Promise<void> {
+    await this.db("users")
+      .where("email", email)
+      .update({
+        session_key: sessionKey
+      })
+  }
+
+  async getUserBySessionKey(sessionKey: string): Promise<{ email: string; metakey: string; } | null> {
+    return this.db("users")
+      .where("session_key", sessionKey)
+      .returning(["email", "metakey"])
+      .first()
+      .then(v => v || null)
+  }
+
+  async setUserAuth(email: string, password: string, salt: string, metakey: string): Promise<void> {
+    await this.db("users")
+      .insert({
+        email,
+        password,
+        salt,
+        metakey
+      })
+      .onConflict("email")
+      .merge()
+  }
+
+  async getUserAuth(email: string): Promise<{ password: string; salt: string; } | null> {
+    return this.db("users")
+      .where("email", email)
+      .first()
+      .then(v => v ? {password: v.password, salt: v.salt} : null)
+  }
 }

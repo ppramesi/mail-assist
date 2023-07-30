@@ -2,6 +2,7 @@ import Imap from "imap";
 import { simpleParser } from "mailparser";
 import { Email, IMAPAuth, IMAPMailAdapter } from "./base";
 import * as uuid from "uuid";
+import { Source } from "mailparser";
 
 export class IMAPGmailAdapter extends IMAPMailAdapter {
   client: Imap;
@@ -47,7 +48,7 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
 
           fetch.on("message", (msg) => {
             msg.on("body", (stream) => {
-              simpleParser(stream, (err, mail) => {
+              simpleParser(stream as unknown as Source, (err, mail) => {
                 if (err) reject(err);
                 emails.push({
                   read: false,

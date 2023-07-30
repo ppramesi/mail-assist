@@ -144,4 +144,16 @@ export abstract class Database {
 
   // util methods
   abstract filterNotInDatabase(emails: Email[]): Promise<Email[]>;
+
+  abstract getUserMetakey(email: string): Promise<string>;
+
+  abstract getUserSessionKey(email: string): Promise<string>;
+
+  abstract setUserSessionKey(email: string, sessionKey: string): Promise<void>;
+
+  abstract getUserBySessionKey(sessionKey: string): Promise<{ email: string; metakey: string; } | null>;
+
+  abstract setUserAuth(email: string, pass: string, salt: string, metakey: string): Promise<void>;
+
+  abstract getUserAuth(email:string): Promise<{ password: string, salt: string } | null>;
 }
