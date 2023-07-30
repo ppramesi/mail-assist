@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "workspaces": [
     "server",
-    "frontend"
+    "frontend",
+    "cloud-run-scheduler"
   ],
   "scripts": {
     "build:protobuf:vector_service": "python3 -m grpc_tools.protoc -I./protos --python_out=./analyzer/vector_grpc --pyi_out=./analyzer/vector_grpc --grpc_python_out=./analyzer/vector_grpc ./protos/vector_services.proto",

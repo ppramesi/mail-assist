@@ -1,0 +1,29 @@
+{
+    "name": "cloud-run-scheduler",
+    "version": "0.0.1",
+    "description": "do shit with ai",
+    "main": "./dist/index.js",
+    "author": "Priya X. Pramesi",
+    "license": "MIT",
+	"scripts": {
+		"format": "prettier --write \"src\"",
+		"build": "tsc",
+		"start": "node ./dist/index.js"
+	},
+	"dependencies": {
+        "@google-cloud/logging-bunyan": "^4.2.2",
+		"bunyan": "^1.8.15",
+		"jsonwebtoken": "^9.0.1",
+		"p-retry": "^5.1.2"
+	},
+	"devDependencies": {
+		"@tsconfig/recommended": "^1.0.2",
+		"@types/bunyan": "^1.8.8",
+		"@types/jsonwebtoken": "^9.0.2",
+		"@types/node": "^20.4.3",
+		"@types/p-retry": "^3.0.1",
+		"prettier": "^3.0.0",
+		"ts-node": "^10.9.1",
+		"typescript": "^5.1.6"
+	}
+}

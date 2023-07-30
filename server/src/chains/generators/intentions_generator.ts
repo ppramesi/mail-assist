@@ -11,28 +11,30 @@ import { z } from "zod";
 import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
 import { stringJoinArrayOrNone } from "../utils/string";
 
-const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to generate possible users intentions for email replies, given the context below. Generate an array of sentences describing possible user reply intentions.
+const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to generate possible users intentions for email replies, given the context below. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Generate an array of sentences describing possible user reply intentions.
 
-Context:
-{context}`;
+<context>
+{context}
+</context>`;
 
-const userPrompt = `Email from:
+const userPrompt = `<email-from>
 {from}
-
-Email to:
+</email-from>
+<email-to>
 {to}
-
-Email Cc:
+</email-to>
+<email-cc>
 {cc}
-
-Email Bcc:
+</email-cc>
+<email-bcc>
 {bcc}
-
-Email body:
+</email-bcc>
+<email-body>
 {body}
-
-Delivery date:
-{delivery_date}`;
+</email-body>
+<delivery-date>
+{delivery_date}
+</delivery-date>`;
 
 const keyName = "intentions";
 

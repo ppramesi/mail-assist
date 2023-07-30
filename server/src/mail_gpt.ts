@@ -13,6 +13,8 @@ import {
   buildEmailRoutes,
   buildReplyRoutes,
 } from "./routes/express";
+import { authMiddleware } from "./middlewares/auth";
+import logger from "./logger/bunyan"; // the logger is already imported here
 
 export interface MailGPTServerOpts {
   mailAdapter: BaseMailAdapter;
@@ -22,8 +24,14 @@ export interface MailGPTServerOpts {
   allowedHosts?: string[];
 }
 
+export type MiddlewareOpts = {
+  useAuth?: boolean;
+};
+
 export interface MailGPTAPIServerOpts extends MailGPTServerOpts {
   port?: number;
+  onStartServer?: () => void;
+  middlewareOpts?: MiddlewareOpts;
 }
 
 export abstract class MailGPTServer {
@@ -150,6 +158,7 @@ export class MailGPTGRPCServer extends MailGPTServer {
 }
 
 export class MailGPTAPIServer extends MailGPTServer {
+  onStartServer?: () => void;
   port: number;
   app: Express;
   constructor(opts: MailGPTAPIServerOpts) {
@@ -157,35 +166,42 @@ export class MailGPTAPIServer extends MailGPTServer {
     this.app = express();
     this.app.use(express.json());
     this.port = opts.port ?? 8080;
+    this.buildMiddlewares(opts.middlewareOpts ?? {});
     this.buildRoute();
+    this.onStartServer = opts.onStartServer;
+  }
+
+  buildMiddlewares(middlewareOpts: MiddlewareOpts) {
+    if (middlewareOpts.useAuth) {
+      this.app.use(authMiddleware);
+    }
   }
 
   buildRoute() {
     const gptRoutes = express.Router();
 
-    gptRoutes.post("/process-emails", async (_, res) => {
+    gptRoutes.get("/process-emails", async (_, res) => {
       try {
+        logger.info("Starting to process emails...");
         await this.processEmails();
         res.status(200).send({ status: "ok" });
       } catch (error) {
+        logger.error("Error while processing emails:", error);
         res.status(500).send(error);
       }
     });
-    gptRoutes.post("/fetch-chat-history", async (req, res) => {
-      const { replyId } = req.body;
-      try {
-        const chatHistory = await this.database.getChatHistoryByReply(replyId);
-        res.status(200).send({ chat_history: chatHistory });
-      } catch (error) {
-        res.status(500).send(error);
-      }
-    });
+
     gptRoutes.post("/evaluate-email", async (req, res) => {
       const { input, emailId, replyId } = req.body;
       try {
+        logger.info(`Starting to evaluate email with id: ${emailId}`);
         const newReplyEmail = await this.evaluateEmail(input, emailId, replyId);
         res.status(200).send({ new_reply_email: newReplyEmail });
       } catch (error) {
+        logger.error(
+          `Error while evaluating email with id: ${emailId}:`,
+          error,
+        );
         res.status(500).send(error);
       }
     });
@@ -201,8 +217,10 @@ export class MailGPTAPIServer extends MailGPTServer {
   async startServer() {
     await new Promise<void>((resolve) => {
       this.app.listen(this.port, () => {
+        logger.info(`Server started on port ${this.port}`);
         resolve();
       });
     });
+    this.onStartServer?.();
   }
 }

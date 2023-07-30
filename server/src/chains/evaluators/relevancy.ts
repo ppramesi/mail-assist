@@ -19,28 +19,30 @@ Respond with one of the following actions:
 'save': Although the user doesn't need to reply, the email carries enough importance to be stored in the database.
 'none': The user doesn't need to reply, and the email shouldn't be stored in the database.
 
-For instances where the email is promotional or spam, your response should consistently be 'none'. However, if the email is pertinent to the context information below, your response should at least be 'save'. But, if the email is of utmost importance that warrants a response from the user's standpoint (for instance, if the email explicitly mentions the user's name or email address, or when the user's feedback is sought), you should respond with 'reply'.
+For instances where the email is promotional or spam, your response should consistently be 'none'. However, if the email is pertinent to the context information below, your response should at least be 'save'. But, if the email is of utmost importance that warrants a response from the user's standpoint (for instance, if the email explicitly mentions the user's name or email address, or when the user's feedback is sought), you should respond with 'reply'. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags.
 
-Context:
-{context}`;
+<context>
+{context}
+</context>`;
 
-const userPrompt = `Email from:
+const userPrompt = `<email-from>
 {from}
-
-Email to:
+</email-from>
+<email-to>
 {to}
-
-Email Cc:
+</email-to>
+<email-cc>
 {cc}
-
-Email Bcc:
+</email-cc>
+<email-bcc>
 {bcc}
-
-Email body:
+</email-bcc>
+<email-body>
 {body}
-
-Delivery date:
-{delivery_date}`;
+</email-body>
+<delivery-date>
+{delivery_date}
+</delivery-date>`;
 
 const keyName = "decision";
 

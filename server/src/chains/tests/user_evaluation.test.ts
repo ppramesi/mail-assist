@@ -22,7 +22,7 @@ Thanks for the detailed task. I have a few questions before I can start working 
 I would also appreciate it if you could provide any existing API documentation or sample data that I could use for reference.
   
 Thanks,
-Priya`,
+Jim Testing`,
       },
     ],
   });
@@ -35,11 +35,11 @@ Priya`,
   });
 
   const contextObj = {
-    "User's full name": "Priya Pramesi",
-    "User's email address": "ppramesi@test.com",
+    "User's full name": "Jim Testing Lorem",
+    "User's email address": "jim_testing_lorem@test.com",
   };
 
-  const body = `Dear Priya,
+  const body = `Dear Jim Testing,
 
 I hope this email finds you well.
 

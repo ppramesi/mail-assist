@@ -83,7 +83,7 @@ def serve():
     vector_grpc.vector_services_pb2_grpc.add_VectorServiceServicer_to_server(
         VectorService(), server
     )
-    address = '[::]:{}'.format(os.getenv('VECTOR_SERVICE_PORT'))
+    address = '[::]:{}'.format(os.getenv('VECTOR_SERVICE_PORT', 69420))
     print('trying to listen to {}'.format(address))
     server.add_insecure_port(address)
     server.start()

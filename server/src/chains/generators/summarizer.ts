@@ -20,28 +20,30 @@ export interface EmailSummarizerOpts extends ChainInputs {
   summarizerOpts?: StuffDocumentsChainInput;
 }
 
-const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to summarize the email's body, given the context below. Please make the summary as short as possible.
+const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to summarize the email's body, given the context below. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Please make the summary as short as possible.
 
-Context:
-{context}`;
+<context>
+{context}
+</context>`;
 
-const userPrompt = `Email from:
+const userPrompt = `<email-from>
 {from}
-
-Email to:
+</email-from>
+<email-to>
 {to}
-
-Email Cc:
+</email-to>
+<email-cc>
 {cc}
-
-Email Bcc:
+</email-cc>
+<email-bcc>
 {bcc}
-
-Email body:
+</email-bcc>
+<email-body>
 {body}
-
-Delivery date:
-{delivery_date}`;
+</email-body>
+<delivery-date>
+{delivery_date}
+</delivery-date>`;
 
 const buildPrompt = () =>
   new ChatPromptTemplate({

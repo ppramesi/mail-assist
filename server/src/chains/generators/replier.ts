@@ -15,34 +15,37 @@ export interface ReplyGeneratorOpts {
   retriever: VectorStoreRetriever;
 }
 
-const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. Your task is to write a reply given the email's body, user's intention and relevant summaries of previous emails (ignore them if they're irrelevant). You answer should only be the email's text and nothing else.
+const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. Your task is to write a reply given the email's body, user's intention and relevant summaries of previous emails (ignore them if they're irrelevant). Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. You answer should only be the email's text and nothing else.
 
-Context:
+<context>
 {context}
+</context>
 
-Past email summaries:
-{summaries}`;
+<summaries>
+{summaries}
+</summaries>`;
 
-const userPrompt = `Email from:
+const userPrompt = `<email-from>
 {from}
-
-Email to:
+</email-from>
+<email-to>
 {to}
-
-Email Cc:
+</email-to>
+<email-cc>
 {cc}
-
-Email Bcc:
+</email-cc>
+<email-bcc>
 {bcc}
-
-Email body:
+</email-bcc>
+<email-body>
 {body}
-
-Delivery date:
+</email-body>
+<delivery-date>
 {delivery_date}
-
-Intention:
-{intention}`;
+</delivery-date>
+<intention>
+{intention}
+</intention>`;
 
 const buildPrompt = () =>
   new ChatPromptTemplate({

@@ -1,46 +1,90 @@
 import express, { Request } from "express";
 import { Database, RawChatHistory, Message } from "../../databases/base";
+import logger from "../../logger/bunyan";
+
 export function buildChatHistoryRoutes(db: Database) {
   const router = express.Router();
 
   router.get("/", async (req, res) => {
-    const chatHistory = await db.getChatHistory();
-    res.status(200).send(chatHistory);
-  }); // get all chat history
+    try {
+      const chatHistory = await db.getChatHistory();
+      logger.info(`Fetched all chat histories`);
+      res.status(200).send(chatHistory);
+    } catch (error) {
+      logger.error("Failed to fetch all chat histories:", error);
+      res.status(500).send(JSON.stringify(error));
+    }
+  });
 
   router.get("/:id", async (req, res) => {
     const { id } = req.params;
-    const chatHistory = await db.getChatHistoryById(id);
-    res.status(200).send(chatHistory);
-  }); // get specific chat history by id
+    try {
+      const chatHistory = await db.getChatHistoryById(id);
+      logger.info(`Fetched chat history by ID: ${id}`);
+      res.status(200).send(chatHistory);
+    } catch (error) {
+      logger.error(`Failed to fetch chat history by ID: ${id}`, error);
+      res.status(500).send(JSON.stringify(error));
+    }
+  });
 
   router.get("/email/:emailId", async (req, res) => {
     const { emailId } = req.params;
-    const chatHistory = await db.getChatHistoryByEmail(emailId);
-    res.status(200).send(chatHistory);
+    try {
+      const chatHistory = await db.getChatHistoryByEmail(emailId);
+      logger.info(`Fetched chat history by email ID: ${emailId}`);
+      res.status(200).send(chatHistory);
+    } catch (error) {
+      logger.error(
+        `Failed to fetch chat history by email ID: ${emailId}`,
+        error,
+      );
+      res.status(500).send(JSON.stringify(error));
+    }
   });
 
   router.get("/reply/:replyId", async (req, res) => {
     const { replyId } = req.params;
-    const chatHistory = await db.getChatHistoryByReply(replyId);
-    res.status(200).send(chatHistory);
-  }); // get chat history by reply id
+    try {
+      const chatHistory = await db.getChatHistoryByReply(replyId);
+      logger.info(`Fetched chat history by reply ID: ${replyId}`);
+      res.status(200).send(chatHistory);
+    } catch (error) {
+      logger.error(
+        `Failed to fetch chat history by reply ID: ${replyId}`,
+        error,
+      );
+      res.status(500).send(JSON.stringify(error));
+    }
+  });
 
   router.post("/", async (req: Request<{}, {}, RawChatHistory>, res) => {
     const { body } = req;
-    await db.insertChatHistory(body);
-    res.status(200).send({ status: "ok" });
-  }); // insert a chat history
+    try {
+      await db.insertChatHistory(body);
+      logger.info(`Inserted new chat history: ${JSON.stringify(body)}`);
+      res.status(200).send({ status: "ok" });
+    } catch (error) {
+      logger.error("Failed to insert chat history:", error);
+      res.status(500).send(JSON.stringify(error));
+    }
+  });
 
   router.put(
     "/:id",
     async (req: Request<{ id: string }, {}, Message[]>, res) => {
       const { body } = req;
       const { id } = req.params;
-      await db.appendChatHistory(id, body);
-      res.status(200).send({ status: "ok" });
+      try {
+        await db.appendChatHistory(id, body);
+        logger.info(`Appended messages to chat history ID: ${id}`);
+        res.status(200).send({ status: "ok" });
+      } catch (error) {
+        logger.error(`Failed to append to chat history by ID: ${id}`, error);
+        res.status(500).send(JSON.stringify(error));
+      }
     },
-  ); // append to a chat history
+  );
 
   return router;
 }

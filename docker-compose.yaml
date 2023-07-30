@@ -1,5 +1,27 @@
 version: "3"
 services:
+  mail-gpt-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    volumes:
+      - ./server:/app
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    depends_on:
+      - db
+    env_file: 
+      - ./server/.env
+
+  embeddings-analyzer:
+      build:
+        context: ./analyzer
+        dockerfile: Dockerfile
+      ports:
+        - "${ANALYZER_PORT}:${ANALYZER_PORT}"  # Expose the port the analyzer service listens on
+      environment:
+        VECTOR_SERVICE_PORT: ${ANALYZER_PORT}
+
   db:
     build:
       context: ./database

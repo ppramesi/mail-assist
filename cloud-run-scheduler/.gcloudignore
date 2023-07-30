@@ -1,0 +1,12 @@
+creds/
+assets/
+backups/
+node_modules/
+.env
+.env.*
+.gcloudignore
+.git
+.gitignore
+.versions
+deploy.sh
+deploy_notes

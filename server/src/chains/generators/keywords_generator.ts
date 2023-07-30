@@ -11,28 +11,30 @@ import { z } from "zod";
 import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
 import { stringJoinArrayOrNone } from "../utils/string";
 
-const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to analyze the provided email and extract as much important information as possible from the body of the email. Your answer should be in the form of an array of short sentences that contains important information from the email relevant to the following context.
+const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to analyze the provided email and extract as much important information as possible from the body of the email. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Your answer should be in the form of an array of short sentences that contains important information from the email relevant to the following context.
 
-Context:
-{context}`;
+<context>
+{context}
+</context>`;
 
-const userPrompt = `Email from:
+const userPrompt = `<email-from>
 {from}
-
-Email to:
+</email-from>
+<email-to>
 {to}
-
-Email Cc:
+</email-to>
+<email-cc>
 {cc}
-
-Email Bcc:
+</email-cc>
+<email-bcc>
 {bcc}
-
-Email body:
+</email-bcc>
+<email-body>
 {body}
-
-Delivery date:
-{delivery_date}`;
+</email-body>
+<delivery-date>
+{delivery_date}
+</delivery-date>`;
 
 const keyName = "extracted_info";
 
