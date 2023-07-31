@@ -1,5 +1,19 @@
 version: "3"
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    depends_on:
+      - db
+    env_file: 
+      - ./frontend/.env
+
   mail-gpt-server:
     build:
       context: ./server

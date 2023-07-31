@@ -1,4 +1,6 @@
 import { Email } from "../adapters/base";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 export type Context = Record<string, string>;
 
@@ -119,7 +121,7 @@ export abstract class Database {
 
   abstract insertPotentialReply(data: PotentialReplyEmail): Promise<string>;
 
-  abstract updatePotentialReply(id:string, text: string): Promise<void>;
+  abstract updatePotentialReply(id: string, text: string): Promise<void>;
 
   abstract getPotentialReply(id: string): Promise<PotentialReplyEmail | null>;
 
@@ -145,15 +147,33 @@ export abstract class Database {
   // util methods
   abstract filterNotInDatabase(emails: Email[]): Promise<Email[]>;
 
+  abstract insertUser(email: string, password: string): Promise<void>;
+
   abstract getUserMetakey(email: string): Promise<string>;
 
   abstract getUserSessionKey(email: string): Promise<string>;
 
   abstract setUserSessionKey(email: string, sessionKey: string): Promise<void>;
 
-  abstract getUserBySessionKey(sessionKey: string): Promise<{ email: string; metakey: string; } | null>;
+  abstract getUserBySessionKey(
+    sessionKey: string,
+  ): Promise<{ email: string; metakey: string } | null>;
 
-  abstract setUserAuth(email: string, pass: string, salt: string, metakey: string): Promise<void>;
+  abstract setUserAuth(
+    email: string,
+    pass: string,
+    salt: string,
+    metakey: string,
+  ): Promise<void>;
 
-  abstract getUserAuth(email:string): Promise<{ password: string, salt: string } | null>;
+  abstract getUserAuth(
+    email: string,
+  ): Promise<{ password: string; salt: string } | null>;
+
+  static async hashPasswordAndGenerateStuff(password: string) {
+    const salt = await bcrypt.genSalt(13);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const metakey = crypto.randomBytes(63).toString("base64");
+    return { salt, metakey, password: hashedPassword };
+  }
 }

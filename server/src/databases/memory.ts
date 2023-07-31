@@ -179,7 +179,16 @@ export class InMemoryDatabase extends Database {
     throw new Error("Method not implemented.");
   }
 
-  async setUserAuth(email: string, pass: string, hash: string, metakey: string): Promise<void> {
+  async insertUser(email: string, password: string): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+
+  async setUserAuth(
+    email: string,
+    pass: string,
+    hash: string,
+    metakey: string,
+  ): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
@@ -187,11 +196,15 @@ export class InMemoryDatabase extends Database {
     throw new Error("Method not implemented.");
   }
 
-  async getUserBySessionKey(sessionKey: string): Promise<{ email: string; metakey: string; } | null> {
+  async getUserBySessionKey(
+    sessionKey: string,
+  ): Promise<{ email: string; metakey: string } | null> {
     throw new Error("Method not implemented.");
   }
 
-  async getUserAuth(email: string): Promise<{ password: string; salt: string; }> {
+  async getUserAuth(
+    email: string,
+  ): Promise<{ password: string; salt: string }> {
     throw new Error("Method not implemented.");
   }
 

@@ -32,21 +32,27 @@ export function buildReplyRoutes(db: Database) {
     }
   });
 
-  router.post("/:id", async (req: Request<{ id:string }, {}, { text: string }>, res) => {
-    const { body, params: { id } } = req;
-    try {
-      const replyId = await db.updatePotentialReply(id, body.text);
-      logger.info(
-        `Updated potential reply: ${JSON.stringify(
-          body,
-        )}, reply id: ${replyId}`,
-      );
-      res.status(200).send({ status: "ok", replyId });
-    } catch (error) {
-      logger.error("Failed to update potential reply:", error);
-      res.status(500).send(JSON.stringify(error));
-    }
-  });
+  router.post(
+    "/:id",
+    async (req: Request<{ id: string }, {}, { text: string }>, res) => {
+      const {
+        body,
+        params: { id },
+      } = req;
+      try {
+        const replyId = await db.updatePotentialReply(id, body.text);
+        logger.info(
+          `Updated potential reply: ${JSON.stringify(
+            body,
+          )}, reply id: ${replyId}`,
+        );
+        res.status(200).send({ status: "ok", replyId });
+      } catch (error) {
+        logger.error("Failed to update potential reply:", error);
+        res.status(500).send(JSON.stringify(error));
+      }
+    },
+  );
 
   router.post("/", async (req: Request<{}, {}, PotentialReplyEmail>, res) => {
     const { body } = req;

@@ -9,7 +9,8 @@
   "scripts": {
     "build:protobuf:vector_service": "python3 -m grpc_tools.protoc -I./protos --python_out=./analyzer/vector_grpc --pyi_out=./analyzer/vector_grpc --grpc_python_out=./analyzer/vector_grpc ./protos/vector_services.proto",
     "start:service:analyzer": "python3 ./analyzer/analysis_service.py",
-    "start:server": "yarn workspace server run build & yarn workspace server run start"
+    "start:server": "yarn workspace server run build & yarn workspace server run start",
+    "format": "yarn workspace server run format && yarn workspace frontend run format"
   },
   "description": "do shit with ai",
   "main": "index.js",

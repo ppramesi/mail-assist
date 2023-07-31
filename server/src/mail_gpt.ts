@@ -174,27 +174,33 @@ export class MailGPTAPIServer extends MailGPTServer {
     this.onStartServer = opts.onStartServer;
   }
 
-  buildAuthenticationRoutes(){
+  buildAuthenticationRoutes() {
     this.app.post("/login", async (req, res) => {
-      const { body: { password, email } } = req
-      const authData = await this.database.getUserAuth(email)
-      if(!authData){
-        res.status(403).send({ status: "who are you?" })
+      const {
+        body: { password, email },
+      } = req;
+      const authData = await this.database.getUserAuth(email);
+      if (!authData) {
+        res.status(403).send({ status: "who are you?" });
       }
 
-      const hashed = await bcrypt.hash(password, authData?.salt!)
-      const authenticated = await bcrypt.compare(password, hashed)
-      if(authenticated){
-        const metakey = await this.database.getUserMetakey(email)
-        const sessionKey = jwt.sign({
-          email
-        }, process.env.TOKEN_KEY! + metakey, { expiresIn: "10h" })
+      const hashed = await bcrypt.hash(password, authData?.salt!);
+      const authenticated = await bcrypt.compare(password, hashed);
+      if (authenticated) {
+        const metakey = await this.database.getUserMetakey(email);
+        const sessionKey = jwt.sign(
+          {
+            email,
+          },
+          process.env.TOKEN_KEY! + metakey,
+          { expiresIn: "10h" },
+        );
         await this.database.setUserSessionKey(email, sessionKey);
         res.status(200).send({ session_key: sessionKey });
-      }else{
-        res.status(403).send({ status: "wrong password" })
+      } else {
+        res.status(403).send({ status: "wrong password" });
       }
-    })
+    });
   }
 
   buildMiddlewares(middlewareOpts: MiddlewareOpts) {
@@ -204,8 +210,15 @@ export class MailGPTAPIServer extends MailGPTServer {
   }
 
   buildRoute() {
-    const gptRoutes = express.Router();
+    this.app.post("/register", async (req, res) => {
+      const {
+        body: { password, email },
+      } = req;
+      await this.database.insertUser(email, password);
+      res.status(200).send({ status: "ok" });
+    });
 
+    const gptRoutes = express.Router();
     gptRoutes.get("/process-emails", async (_, res) => {
       try {
         logger.info("Starting to process emails...");
