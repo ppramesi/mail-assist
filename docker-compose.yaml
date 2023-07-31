@@ -28,13 +28,13 @@ services:
       - ./server/.env
 
   embeddings-analyzer:
-      build:
-        context: ./analyzer
-        dockerfile: Dockerfile
-      ports:
-        - "${ANALYZER_PORT}:${ANALYZER_PORT}"  # Expose the port the analyzer service listens on
-      environment:
-        VECTOR_SERVICE_PORT: ${ANALYZER_PORT}
+    build:
+      context: ./analyzer
+      dockerfile: Dockerfile
+    ports:
+      - "${ANALYZER_PORT}:${ANALYZER_PORT}"  # Expose the port the analyzer service listens on
+    environment:
+      VECTOR_SERVICE_PORT: ${ANALYZER_PORT}
 
   db:
     build:
