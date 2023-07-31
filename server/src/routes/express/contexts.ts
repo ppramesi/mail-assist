@@ -62,7 +62,7 @@ export function buildContextRoutes(db: Database) {
     try {
       const context = await db.getContext();
       logger.info(`Fetched the whole context`);
-      res.status(200).send(context);
+      res.status(200).send({ context });
     } catch (error) {
       logger.error("Failed to fetch the whole context:", error);
       res.status(500).send(JSON.stringify(error));

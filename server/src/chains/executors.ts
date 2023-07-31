@@ -139,7 +139,7 @@ export class MainExecutor {
           let deliveryDate = date.toLocaleString();
           const values = {
             body,
-            from: from.text,
+            from: from.join("\n"),
             delivery_date: deliveryDate,
             to,
             cc,

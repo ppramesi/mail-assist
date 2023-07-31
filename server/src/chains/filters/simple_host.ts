@@ -1,13 +1,17 @@
 import { Email } from "../../adapters/base";
 
 export function buildFilterFunction(allowedHosts?: (string | RegExp)[]) {
+  const emailRegex = /<([^>]+)>/;
   return function filterEmailHostname(email: Email) {
     if (allowedHosts) {
       return allowedHosts.some((host) => {
+        const emails = email
+          .from!.map((v) => emailRegex.exec(v))
+          .map((v) => (v ? v[1] : ""));
         if (typeof host === "string") {
-          return email.from!.text.endsWith(host);
+          return emails.some((email) => email.endsWith(host));
         } else {
-          return email.from!.text.match(host) !== null;
+          return emails.some((email) => email.match(host) !== null);
         }
       });
     }

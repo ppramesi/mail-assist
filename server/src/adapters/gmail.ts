@@ -53,8 +53,8 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
                 emails.push({
                   read: false,
                   id: uuid.v4(),
-                  from: mail.from,
-                  to: IMAPGmailAdapter.flattenAddressObjects(mail.to!)!,
+                  from: IMAPGmailAdapter.flattenAddressObjects(mail.from)!,
+                  to: IMAPGmailAdapter.flattenAddressObjects(mail.to)!,
                   cc: IMAPGmailAdapter.flattenAddressObjects(mail.cc),
                   bcc: IMAPGmailAdapter.flattenAddressObjects(mail.bcc),
                   subject: mail.subject,

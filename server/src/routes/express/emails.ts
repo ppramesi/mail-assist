@@ -50,7 +50,7 @@ export function buildEmailRoutes(db: Database) {
     try {
       const email = await db.getEmail(id);
       logger.info(`Fetched email by id: ${id}`);
-      res.status(200).send(email);
+      res.status(200).send({ email });
     } catch (error) {
       logger.error(`Failed to fetch email by id: ${id}`, error);
       res.status(500).send(JSON.stringify(error));
@@ -61,7 +61,7 @@ export function buildEmailRoutes(db: Database) {
     try {
       const emails = await db.getEmails();
       logger.info("Fetched all emails");
-      res.status(200).send(emails);
+      res.status(200).send({ emails });
     } catch (error) {
       logger.error("Failed to fetch all emails:", error);
       res.status(500).send(JSON.stringify(error));

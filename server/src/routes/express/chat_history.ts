@@ -10,7 +10,7 @@ export function buildChatHistoryRoutes(db: Database) {
     try {
       const chatHistory = await db.getChatHistoryByEmail(emailId);
       logger.info(`Fetched chat history by email ID: ${emailId}`);
-      res.status(200).send(chatHistory);
+      res.status(200).send({ chat_history: chatHistory });
     } catch (error) {
       logger.error(
         `Failed to fetch chat history by email ID: ${emailId}`,
@@ -25,7 +25,7 @@ export function buildChatHistoryRoutes(db: Database) {
     try {
       const chatHistory = await db.getChatHistoryByReply(replyId);
       logger.info(`Fetched chat history by reply ID: ${replyId}`);
-      res.status(200).send(chatHistory);
+      res.status(200).send({ chat_history: chatHistory });
     } catch (error) {
       logger.error(
         `Failed to fetch chat history by reply ID: ${replyId}`,
@@ -56,7 +56,7 @@ export function buildChatHistoryRoutes(db: Database) {
     try {
       const chatHistory = await db.getChatHistoryById(id);
       logger.info(`Fetched chat history by ID: ${id}`);
-      res.status(200).send(chatHistory);
+      res.status(200).send({ chat_history: chatHistory });
     } catch (error) {
       logger.error(`Failed to fetch chat history by ID: ${id}`, error);
       res.status(500).send(JSON.stringify(error));
@@ -79,7 +79,7 @@ export function buildChatHistoryRoutes(db: Database) {
     try {
       const chatHistory = await db.getChatHistory();
       logger.info(`Fetched all chat histories`);
-      res.status(200).send(chatHistory);
+      res.status(200).send({ chat_history: chatHistory });
     } catch (error) {
       logger.error("Failed to fetch all chat histories:", error);
       res.status(500).send(JSON.stringify(error));

@@ -27,6 +27,7 @@ export class FakeMailAdapter extends BaseMailAdapter {
       // Now we transform the email into our `Email` format.
       const emailToPush: Email = {
         ...email,
+        from: FakeMailAdapter.flattenAddressObjects(email.from)!,
         to: FakeMailAdapter.flattenAddressObjects(email.to!)!,
         cc: FakeMailAdapter.flattenAddressObjects(email.cc),
         bcc: FakeMailAdapter.flattenAddressObjects(email.bcc),

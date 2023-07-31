@@ -9,7 +9,7 @@ export function buildAllowedHostsRoutes(db: Database) {
     try {
       const allowedHosts = await db.getAllowedHosts();
       logger.info(`Fetched all allowed hosts: ${JSON.stringify(allowedHosts)}`);
-      res.status(200).send(allowedHosts);
+      res.status(200).send({ allowed_hosts: allowedHosts });
     } catch (error) {
       logger.error("Failed to fetch allowed hosts:", error);
       res.status(500).send(JSON.stringify(error));

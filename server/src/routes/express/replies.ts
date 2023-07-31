@@ -10,7 +10,7 @@ export function buildReplyRoutes(db: Database) {
     try {
       const replies = await db.getPotentialRepliesByEmail(emailId);
       logger.info(`Fetched potential replies by email id: ${emailId}`);
-      res.status(200).send(replies);
+      res.status(200).send({ replies });
     } catch (error) {
       logger.error(
         `Failed to fetch potential replies by email id: ${emailId}`,
@@ -25,7 +25,7 @@ export function buildReplyRoutes(db: Database) {
     try {
       const reply = await db.getPotentialReply(id);
       logger.info(`Fetched potential reply by id: ${id}`);
-      res.status(200).send(reply);
+      res.status(200).send({ reply });
     } catch (error) {
       logger.error(`Failed to fetch potential reply by id: ${id}`, error);
       res.status(500).send(JSON.stringify(error));

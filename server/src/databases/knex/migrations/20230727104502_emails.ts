@@ -4,7 +4,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("emails", (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
     table.string("hash").unique();
-    table.string("from");
+    table.specificType("from", "text[]");
     table.specificType("to", "text[]");
     table.specificType("cc", "text[]").nullable();
     table.specificType("bcc", "text[]").nullable();
