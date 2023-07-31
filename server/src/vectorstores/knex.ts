@@ -105,12 +105,11 @@ export class KnexVectorStore extends VectorStore {
     const queryStr = [
       this.knex
         .raw(
-          `SELECT *, embedding <=> ? as "_distance" FROM ${this.tableName}`,
-          [vector],
+          `SELECT *, embedding <=> ${vector}::vector as "_distance" FROM ${this.tableName}`,
         )
         .toString(),
       this.buildSqlFilterStr(filter),
-      this.knex.raw(`ORDER BY "_distance" ASC LIMIT ?;`, [k]).toString(), // might want to add ::vector
+      this.knex.raw(`ORDER BY "_distance" ASC LIMIT ?;`, [k]).toString(),
     ]
       .filter((x) => x != null)
       .join(" ");
