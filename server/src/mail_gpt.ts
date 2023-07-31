@@ -17,6 +17,7 @@ import {
 } from "./routes/express";
 import { buildAuthMiddleware } from "./middlewares/auth";
 import logger from "./logger/bunyan"; // the logger is already imported here
+import { isObject } from "lodash";
 
 export interface MailGPTServerOpts {
   mailAdapter: BaseMailAdapter;
@@ -201,6 +202,50 @@ export class MailGPTAPIServer extends MailGPTServer {
         res.status(403).send({ status: "wrong password" });
       }
     });
+
+    this.app.post("/register", async (req, res) => {
+      const accessToken = req.header("x-access-token");
+
+      if (!process.env.TOKEN_KEY) {
+        logger.error("Token key not set.");
+        res.status(500).send("Token key not set");
+      }
+
+      if (!accessToken) {
+        logger.warn("Unauthorized access attempt detected.");
+        res.status(403).send("Who the fuck are you?");
+      }
+      try {
+        const decoded = jwt.verify(
+          accessToken!,
+          process.env.TOKEN_KEY!,
+        ) as jwt.JwtPayload;
+        if (decoded && isObject(decoded)) {
+          ["password", "email"].forEach((key) => {
+            req.body[key] = decoded[key];
+          });
+          logger.info(
+            `Token successfully verified for user with details: ${JSON.stringify(
+              decoded,
+            )}`,
+          );
+
+          const {
+            body: { password, email },
+          } = req;
+
+          if (password && email) {
+            await this.database.insertUser(email, password);
+            res.status(200).send({ status: "ok" });
+          }
+        }
+        logger.error("JWT Body fucked up: ", JSON.stringify(decoded));
+        res.status(403).send("JWT body fcked up.");
+      } catch (err) {
+        logger.error("Failed to verify token:", err);
+        res.status(403).send("Who the fuck are you?");
+      }
+    });
   }
 
   buildMiddlewares(middlewareOpts: MiddlewareOpts) {
@@ -210,14 +255,6 @@ export class MailGPTAPIServer extends MailGPTServer {
   }
 
   buildRoute() {
-    this.app.post("/register", async (req, res) => {
-      const {
-        body: { password, email },
-      } = req;
-      await this.database.insertUser(email, password);
-      res.status(200).send({ status: "ok" });
-    });
-
     const gptRoutes = express.Router();
     gptRoutes.get("/process-emails", async (_, res) => {
       try {

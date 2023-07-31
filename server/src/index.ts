@@ -57,10 +57,12 @@ const apiServer = new MailGPTAPIServer({
     useAuth,
   },
   onStartServer() {
-    callerScheduler = new CallerScheduler({
-      url: new URL(`http://localhost:${port}/gpt/process-emails`).toString(),
-      useAuth,
-    });
+    if (process.env.WITH_SCHEDULER && process.env.WITH_SCHEDULER === "true") {
+      callerScheduler = new CallerScheduler({
+        url: new URL(`http://localhost:${port}/gpt/process-emails`).toString(),
+        useAuth,
+      });
+    }
   },
 });
 
