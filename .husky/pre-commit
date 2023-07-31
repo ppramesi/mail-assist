@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-yarn workspace server run build && yarn workspace frontend run build && yarn workspace cloud-run-scheduler run build
+yarn run build
