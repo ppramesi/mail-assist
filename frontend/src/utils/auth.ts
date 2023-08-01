@@ -1,5 +1,3 @@
-"use server";
-
 import jwt from "jsonwebtoken";
 
 export function createToken(injectables: Record<string, any> = {}){

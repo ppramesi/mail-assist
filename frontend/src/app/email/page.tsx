@@ -1,5 +1,3 @@
-"use server";
-
 import { fetchWithSessionToken } from "@/utils/server_fetcher";
 import EmailList from "../_components/email-list";
 
