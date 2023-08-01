@@ -1,7 +1,8 @@
-import cookies from "js-cookie"
+import { cookies } from "next/headers";
 
 export function fetchWithSessionToken(url: string, params?: RequestInit){
-  const sessionToken = cookies.get("session_token")
+  const c = cookies();
+  const sessionToken = c.get("session_token")
   let actualParams: RequestInit | undefined;
   if(sessionToken){
     if(params){
@@ -11,7 +12,7 @@ export function fetchWithSessionToken(url: string, params?: RequestInit){
     }
     actualParams.headers = {
       ...actualParams.headers,
-      "x-session-token": sessionToken
+      "x-session-token": sessionToken.value
     }
   }
   return fetch(url, actualParams)

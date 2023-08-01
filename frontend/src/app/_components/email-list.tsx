@@ -1,22 +1,46 @@
-"use server";
+"use client";
 
+import { useState, useEffect } from "react";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
-import { fetchWithSessionToken } from "@/utils/fetcher";
+import { fetchWithSessionToken } from "@/utils/client_fetcher";
 import { Email } from "./types/email";
 import EmailItem from "./email-item";
 
-export default async function EmailList(){
-  const response = await fetchWithSessionToken("/api/emails")
-  const { emails } = (await response.json()) as { emails: Email[] }
+export default function EmailList({ emails }: { emails?: Email[] }){
+  if(emails){
+    return(
+      <Box sx={{ width: "100%" }}>
+        <Stack spacing={2}>
+          {emails?.map((email, idx) => <EmailItem key={idx} email={email}></EmailItem>)}
+        </Stack>
+      </Box>
+    );
+  }
+
+  const [fetchedEmails, setEmails] = useState<Email[]>()
+  const [isLoading, setLoading] = useState<boolean>(true)
+  useEffect(() => {
+    fetchWithSessionToken("/api/emails")
+      .then(res => res.json())
+      .then(data => {
+        const { emails } = data
+        setEmails(fetchedEmails)
+        setLoading(false)
+      })
+  }, [])
 
   return(
     <Box sx={{ width: "100%" }}>
-      <Stack spacing={2}>
-        {emails?.map((email) => {
-          return <EmailItem key={email.hash} email={email}></EmailItem>
-        })}
-      </Stack>
+      { isLoading ? <></> : <>
+        <Stack spacing={2}>
+          {fetchedEmails?.map((email, idx) => {
+          return <>
+              <EmailItem key={idx} email={email}></EmailItem>
+            </>
+          })}
+        </Stack>
+      </> }
     </Box>
   );
 }
