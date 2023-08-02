@@ -1,5 +1,5 @@
 import express, { Request } from "express";
-import { Database } from "../../databases/base.js";
+import { AllowedHost, Database } from "../../databases/base.js";
 import logger from "../../logger/bunyan.js";
 
 export function buildAllowedHostsRoutes(db: Database) {
@@ -16,7 +16,7 @@ export function buildAllowedHostsRoutes(db: Database) {
     }
   }); // get all allowed hosts
 
-  router.post("/", async (req: Request<{}, {}, { hosts: string[] }>, res) => {
+  router.post("/", async (req: Request<{}, {}, { hosts: AllowedHost[] }>, res) => {
     try {
       const { body } = req;
       await db.setAllowedHosts(body.hosts);
@@ -28,7 +28,7 @@ export function buildAllowedHostsRoutes(db: Database) {
     }
   }); // insert allowed hosts
 
-  router.delete("/", async (req: Request<{}, {}, { hosts: string[] }>, res) => {
+  router.delete("/", async (req: Request<{}, {}, { hosts: AllowedHost[] }>, res) => {
     try {
       const { body } = req;
       await db.deleteAllowedHosts(body.hosts);

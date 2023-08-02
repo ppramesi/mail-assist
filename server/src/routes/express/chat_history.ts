@@ -1,5 +1,5 @@
 import express, { Request } from "express";
-import { Database, RawChatHistory, Message } from "../../databases/base.js";
+import { Database, ChatHistory, Message } from "../../databases/base.js";
 import logger from "../../logger/bunyan.js";
 
 export function buildChatHistoryRoutes(db: Database) {
@@ -63,7 +63,7 @@ export function buildChatHistoryRoutes(db: Database) {
     }
   });
 
-  router.post("/", async (req: Request<{}, {}, RawChatHistory>, res) => {
+  router.post("/", async (req: Request<{}, {}, ChatHistory>, res) => {
     const { body } = req;
     try {
       await db.insertChatHistory(body);

@@ -1,6 +1,6 @@
 import express, { Express } from "express";
 import { BaseMailAdapter } from "./adapters/base.js";
-import { Database } from "./databases/base.js";
+import { AllowedHost, Database } from "./databases/base.js";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { MainExecutor, MainExecutorOpts } from "./chains/executors.js";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
@@ -25,7 +25,7 @@ export interface MailGPTServerOpts {
   database: Database;
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
-  allowedHosts?: string[];
+  allowedHosts?: AllowedHost[];
   scheduler?: CallerScheduler;
 }
 

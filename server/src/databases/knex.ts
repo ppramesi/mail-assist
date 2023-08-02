@@ -2,11 +2,12 @@ import _ from "lodash";
 import { Email } from "../adapters/base.js";
 import {
   AIMessage,
+  AllowedHost,
   Context,
   Database,
   HumanMessage,
   PotentialReplyEmail,
-  RawChatHistory,
+  ChatHistory,
 } from "./base.js";
 import Knex, { Knex as KnexT } from "knex";
 
@@ -134,18 +135,18 @@ export class KnexDatabase extends Database {
     });
   }
 
-  async getAllowedHosts(): Promise<string[] | null> {
+  async getAllowedHosts(): Promise<AllowedHost[] | null> {
     return this.db("allowed_hosts")
       .select("*")
-      .then((v) => (v.length > 0 ? v.map(({ host }) => host) : null));
+      .then((v) => (v.length > 0 ? v.map((host) => ({ host: host.host, type: host.type })) : null));
   }
 
-  async setAllowedHosts(hosts: string[]): Promise<void> {
-    await this.db("allowed_hosts").insert(hosts.map((host) => ({ host })));
+  async setAllowedHosts(hosts: AllowedHost[]): Promise<void> {
+    await this.db("allowed_hosts").insert(hosts.map((host) => ({ host: host.host, type: host.type })));
   }
 
-  async deleteAllowedHosts(hosts: string[]): Promise<void> {
-    await this.db("allowed_hosts").whereIn("host", hosts).delete();
+  async deleteAllowedHosts(hosts: AllowedHost[]): Promise<void> {
+    await this.db("allowed_hosts").whereIn("host", hosts.map(host => host.host)).delete();
   }
 
   async insertPotentialReply(data: PotentialReplyEmail): Promise<string> {
@@ -178,13 +179,13 @@ export class KnexDatabase extends Database {
       .then((v) => (v.length > 0 ? v : null));
   }
 
-  getChatHistory(): Promise<RawChatHistory[] | null> {
+  getChatHistory(): Promise<ChatHistory[] | null> {
     return this.db("chat_history")
       .select("*")
       .then((v) => (v.length > 0 ? v : null));
   }
 
-  async insertChatHistory(chatHistory: RawChatHistory): Promise<string> {
+  async insertChatHistory(chatHistory: ChatHistory): Promise<string> {
     return this.db("chat_history")
       .insert(chatHistory)
       .returning("id")
@@ -214,21 +215,21 @@ export class KnexDatabase extends Database {
     );
   }
 
-  async getChatHistoryById(id: string): Promise<RawChatHistory> {
+  async getChatHistoryById(id: string): Promise<ChatHistory> {
     return this.db("chat_history")
       .where("id", id)
       .first()
       .then((v) => v || null);
   }
 
-  async getChatHistoryByEmail(emailId: string): Promise<RawChatHistory> {
+  async getChatHistoryByEmail(emailId: string): Promise<ChatHistory> {
     return this.db("chat_history")
       .where("email_id", emailId)
       .first()
       .then((v) => v || null);
   }
 
-  async getChatHistoryByReply(replyId: string): Promise<RawChatHistory> {
+  async getChatHistoryByReply(replyId: string): Promise<ChatHistory> {
     return this.db("chat_history")
       .where("reply_id", replyId)
       .first()

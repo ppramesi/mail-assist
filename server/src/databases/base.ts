@@ -17,12 +17,17 @@ export type HumanMessage = Message & {
   type: "human";
 };
 
-export type RawChatHistory = {
+export type ChatHistory = {
   id: string;
   email_id: string;
   reply_id: string;
   chat_messages: (AIMessage | HumanMessage)[];
 };
+
+export type AllowedHost = {
+  host: string;
+  type: "string" | "regex";
+}
 
 export interface PotentialReplyEmail extends Email {
   process_status: "potential_reply";
@@ -115,11 +120,11 @@ export abstract class Database {
     value: string,
   ): Promise<void>;
 
-  abstract getAllowedHosts(): Promise<string[] | null>;
+  abstract getAllowedHosts(): Promise<AllowedHost[] | null>;
 
-  abstract setAllowedHosts(hosts: string[]): Promise<void>;
+  abstract setAllowedHosts(hosts: AllowedHost[]): Promise<void>;
 
-  abstract deleteAllowedHosts(hosts: string[]): Promise<void>;
+  abstract deleteAllowedHosts(hosts: AllowedHost[]): Promise<void>;
 
   abstract insertPotentialReply(data: PotentialReplyEmail): Promise<string>;
 
@@ -131,20 +136,20 @@ export abstract class Database {
     emailId: string,
   ): Promise<PotentialReplyEmail[] | null>;
 
-  abstract insertChatHistory(chatHistory: RawChatHistory): Promise<string>; // returns id
+  abstract insertChatHistory(chatHistory: ChatHistory): Promise<string>; // returns id
 
-  abstract getChatHistory(): Promise<RawChatHistory[] | null>;
+  abstract getChatHistory(): Promise<ChatHistory[] | null>;
 
   abstract appendChatHistory(
     id: string,
     messages: (AIMessage | HumanMessage)[],
   ): Promise<void>;
 
-  abstract getChatHistoryById(id: string): Promise<RawChatHistory>;
+  abstract getChatHistoryById(id: string): Promise<ChatHistory>;
 
-  abstract getChatHistoryByEmail(emailId: string): Promise<RawChatHistory>;
+  abstract getChatHistoryByEmail(emailId: string): Promise<ChatHistory>;
 
-  abstract getChatHistoryByReply(replyId: string): Promise<RawChatHistory>;
+  abstract getChatHistoryByReply(replyId: string): Promise<ChatHistory>;
 
   // util methods
   abstract filterNotInDatabase(emails: Email[]): Promise<Email[]>;

@@ -4,17 +4,18 @@ import {
   Context,
   AIMessage,
   HumanMessage,
-  RawChatHistory,
+  ChatHistory,
   PotentialReplyEmail,
+  AllowedHost,
 } from "./base.js";
 import * as uuid from "uuid";
 
 export class InMemoryDatabase extends Database {
   private emails: Email[];
   private context: Record<string, string>;
-  private allowedHosts: string[];
+  private allowedHosts: AllowedHost[];
   private potentialReply: PotentialReplyEmail[];
-  private chatHistory: RawChatHistory[];
+  private chatHistory: ChatHistory[];
 
   constructor() {
     super();
@@ -88,15 +89,15 @@ export class InMemoryDatabase extends Database {
     throw new Error("Method not implemented.");
   }
 
-  async getAllowedHosts(): Promise<string[] | null> {
+  async getAllowedHosts(): Promise<AllowedHost[] | null> {
     return Promise.resolve([...this.allowedHosts]);
   }
 
-  async deleteAllowedHosts(_hosts: string[]): Promise<void> {
+  async deleteAllowedHosts(_hosts: AllowedHost[]): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  async setAllowedHosts(hosts: string[]): Promise<void> {
+  async setAllowedHosts(hosts: AllowedHost[]): Promise<void> {
     this.allowedHosts = hosts;
     return Promise.resolve();
   }
@@ -137,7 +138,7 @@ export class InMemoryDatabase extends Database {
     throw new Error("Method not implemented.");
   }
 
-  async insertChatHistory(chatHistory: RawChatHistory): Promise<string> {
+  async insertChatHistory(chatHistory: ChatHistory): Promise<string> {
     if (!chatHistory.id) {
       chatHistory.id = uuid.v4();
     }
@@ -155,11 +156,11 @@ export class InMemoryDatabase extends Database {
     messages.forEach((m) => chatHistory.chat_messages.push(m));
   }
 
-  async getChatHistory(): Promise<RawChatHistory[] | null> {
+  async getChatHistory(): Promise<ChatHistory[] | null> {
     return Promise.resolve(this.chatHistory);
   }
 
-  async getEmailChatHistory(potentialReplyId: string): Promise<RawChatHistory> {
+  async getEmailChatHistory(potentialReplyId: string): Promise<ChatHistory> {
     return Promise.resolve(
       this.chatHistory.find(
         (chatHistory) => chatHistory.reply_id === potentialReplyId,
@@ -167,15 +168,15 @@ export class InMemoryDatabase extends Database {
     );
   }
 
-  async getChatHistoryById(_id: string): Promise<RawChatHistory> {
+  async getChatHistoryById(_id: string): Promise<ChatHistory> {
     throw new Error("Method not implemented.");
   }
 
-  async getChatHistoryByEmail(_emailId: string): Promise<RawChatHistory> {
+  async getChatHistoryByEmail(_emailId: string): Promise<ChatHistory> {
     throw new Error("Method not implemented.");
   }
 
-  async getChatHistoryByReply(_replyId: string): Promise<RawChatHistory> {
+  async getChatHistoryByReply(_replyId: string): Promise<ChatHistory> {
     throw new Error("Method not implemented.");
   }
 

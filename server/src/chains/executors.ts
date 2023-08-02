@@ -9,9 +9,10 @@ import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Callbacks } from "langchain/callbacks";
 import { ChainValues } from "langchain/schema";
 import { Email } from "../adapters/base.js";
+import { AllowedHost } from "../databases/base.js";
 
 export type MainExecutorOpts = {
-  allowedHosts?: string[];
+  allowedHosts?: AllowedHost[];
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
 };
@@ -71,7 +72,7 @@ export class MainExecutor {
     // this.db = opts.db;
   }
 
-  setAllowedHosts(allowedHosts: string[]) {
+  setAllowedHosts(allowedHosts: AllowedHost[]) {
     this.hostsFilter = buildFilterFunction(allowedHosts);
   }
 

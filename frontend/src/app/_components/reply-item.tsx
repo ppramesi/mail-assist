@@ -6,12 +6,13 @@ import { useEffect, useState } from "react"
 import { ChatHistory } from "./types/chat-history";
 import ChatBox from "./chat-box";
 import { isNil } from "lodash";
+import { fetchWithSessionToken } from "@/utils/client_fetcher";
 
 export default function ReplyItem({ reply }: { reply: PotentialReplyEmail }) {
   const [chatHistory, setChatHistory] = useState<ChatHistory>()
 
   useEffect(() => {
-    fetch(`/api/chat-history/email/${reply.email_id}`)
+    fetchWithSessionToken(`/api/chat-history/email/${reply.email_id}`)
       .then(res => res.json())
       .then(data => {
         const { chat_history: myChatHistory } = data
