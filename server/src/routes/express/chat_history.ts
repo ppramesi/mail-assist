@@ -1,6 +1,6 @@
 import express, { Request } from "express";
-import { Database, RawChatHistory, Message } from "../../databases/base";
-import logger from "../../logger/bunyan";
+import { Database, RawChatHistory, Message } from "../../databases/base.js";
+import logger from "../../logger/bunyan.js";
 
 export function buildChatHistoryRoutes(db: Database) {
   const router = express.Router();
@@ -75,7 +75,7 @@ export function buildChatHistoryRoutes(db: Database) {
     }
   });
 
-  router.get("/", async (req, res) => {
+  router.get("/", async (_, res) => {
     try {
       const chatHistory = await db.getChatHistory();
       logger.info(`Fetched all chat histories`);

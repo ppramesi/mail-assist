@@ -1,4 +1,4 @@
-import { Email } from "../adapters/base";
+import { Email } from "../adapters/base.js";
 import {
   Database,
   Context,
@@ -6,7 +6,7 @@ import {
   HumanMessage,
   RawChatHistory,
   PotentialReplyEmail,
-} from "./base";
+} from "./base.js";
 import * as uuid from "uuid";
 
 export class InMemoryDatabase extends Database {
@@ -80,7 +80,11 @@ export class InMemoryDatabase extends Database {
     return Promise.resolve(this.context[key]);
   }
 
-  async setContextValue(id: string, key: string, value: string): Promise<void> {
+  async setContextValue(
+    _id: string,
+    _key: string,
+    _value: string,
+  ): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
@@ -88,7 +92,7 @@ export class InMemoryDatabase extends Database {
     return Promise.resolve([...this.allowedHosts]);
   }
 
-  async deleteAllowedHosts(hosts: string[]): Promise<void> {
+  async deleteAllowedHosts(_hosts: string[]): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
@@ -117,7 +121,7 @@ export class InMemoryDatabase extends Database {
     return Promise.resolve(data.id);
   }
 
-  async updatePotentialReply(id: string, text: string): Promise<void> {
+  async updatePotentialReply(_id: string, _text: string): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
@@ -128,7 +132,7 @@ export class InMemoryDatabase extends Database {
   }
 
   async getPotentialRepliesByEmail(
-    emailId: string,
+    _emailId: string,
   ): Promise<PotentialReplyEmail[] | null> {
     throw new Error("Method not implemented.");
   }
@@ -163,56 +167,56 @@ export class InMemoryDatabase extends Database {
     );
   }
 
-  async getChatHistoryById(id: string): Promise<RawChatHistory> {
+  async getChatHistoryById(_id: string): Promise<RawChatHistory> {
     throw new Error("Method not implemented.");
   }
 
-  async getChatHistoryByEmail(emailId: string): Promise<RawChatHistory> {
+  async getChatHistoryByEmail(_emailId: string): Promise<RawChatHistory> {
     throw new Error("Method not implemented.");
   }
 
-  async getChatHistoryByReply(replyId: string): Promise<RawChatHistory> {
+  async getChatHistoryByReply(_replyId: string): Promise<RawChatHistory> {
     throw new Error("Method not implemented.");
   }
 
-  async getUserMetakey(email: string): Promise<string> {
+  async getUserMetakey(_email: string): Promise<string> {
     throw new Error("Method not implemented.");
   }
 
-  async getUserSessionKey(email: string): Promise<string> {
+  async getUserSessionKey(_email: string): Promise<string> {
     throw new Error("Method not implemented.");
   }
 
-  async insertUser(email: string, password: string): Promise<void> {
+  async insertUser(_email: string, _password: string): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
   async setUserAuth(
-    email: string,
-    pass: string,
-    hash: string,
-    metakey: string,
+    _email: string,
+    _pass: string,
+    _hash: string,
+    _metakey: string,
   ): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  async setUserSessionKey(email: string, sessionKey: string): Promise<void> {
+  async setUserSessionKey(_email: string, _sessionKey: string): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
   async getUserBySessionKey(
-    sessionKey: string,
+    _sessionKey: string,
   ): Promise<{ email: string; metakey: string } | null> {
     throw new Error("Method not implemented.");
   }
 
   async getUserAuth(
-    email: string,
+    _email: string,
   ): Promise<{ password: string; salt: string }> {
     throw new Error("Method not implemented.");
   }
 
-  filterNotInDatabase(emails: Email[]): Promise<Email[]> {
+  filterNotInDatabase(_emails: Email[]): Promise<Email[]> {
     throw new Error("Method not implemented.");
   }
 }

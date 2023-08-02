@@ -1,6 +1,6 @@
 import express, { Request } from "express";
-import { Database, Context } from "../../databases/base";
-import logger from "../../logger/bunyan";
+import { Database, Context } from "../../databases/base.js";
+import logger from "../../logger/bunyan.js";
 
 export function buildContextRoutes(db: Database) {
   const router = express.Router();
@@ -58,7 +58,7 @@ export function buildContextRoutes(db: Database) {
     }
   });
 
-  router.get("/", async (req, res) => {
+  router.get("/", async (_, res) => {
     try {
       const context = await db.getContext();
       logger.info(`Fetched the whole context`);

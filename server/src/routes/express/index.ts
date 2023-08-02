@@ -1,5 +1,5 @@
-export { buildAllowedHostsRoutes } from "./allowed_hosts";
-export { buildChatHistoryRoutes } from "./chat_history";
-export { buildContextRoutes } from "./contexts";
-export { buildEmailRoutes } from "./emails";
-export { buildReplyRoutes } from "./replies";
+export { buildAllowedHostsRoutes } from "./allowed_hosts.js";
+export { buildChatHistoryRoutes } from "./chat_history.js";
+export { buildContextRoutes } from "./contexts.js";
+export { buildEmailRoutes } from "./emails.js";
+export { buildReplyRoutes } from "./replies.js";

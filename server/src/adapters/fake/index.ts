@@ -1,13 +1,11 @@
-import { promises as fs } from "fs";
-import path from "path";
-import { Email, BaseMailAdapter, SearchContext } from "../base";
+import { Email, BaseMailAdapter, SearchContext } from "../base.js";
 import * as uuid from "uuid";
 import {
   TEST_EMAILS_1,
   TEST_EMAILS_2,
   TEST_EMAILS_3,
   TEST_EMAILS_4,
-} from "./emails/fake_emails";
+} from "./emails/fake_emails.js";
 
 const testEmails = [TEST_EMAILS_1, TEST_EMAILS_2, TEST_EMAILS_3, TEST_EMAILS_4];
 
@@ -17,7 +15,6 @@ export class FakeMailAdapter extends BaseMailAdapter {
 
   constructor() {
     super({});
-    this.loadEmails();
   }
 
   private async loadEmails() {
@@ -32,7 +29,7 @@ export class FakeMailAdapter extends BaseMailAdapter {
         cc: FakeMailAdapter.flattenAddressObjects(email.cc),
         bcc: FakeMailAdapter.flattenAddressObjects(email.bcc),
         hash: FakeMailAdapter.hashText(email.text ?? ""),
-        id: email.messageId ?? uuid.v4(),
+        id: uuid.v4(),
         read: false, // we assume all emails are unread at the beginning
       };
       this.emails.push(emailToPush);
@@ -45,6 +42,7 @@ export class FakeMailAdapter extends BaseMailAdapter {
   }
 
   async fetch(): Promise<Email[]> {
+    await this.loadEmails();
     return this.emails;
   }
 

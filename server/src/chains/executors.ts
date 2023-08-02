@@ -1,14 +1,14 @@
-import { buildFilterFunction } from "./filters/simple_host";
+import { buildFilterFunction } from "./filters/simple_host.js";
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { EmailRelevancyEvaluator } from "./evaluators/relevancy";
-import { IntentionsGenerator } from "./generators/intentions_generator";
-import { KeywordsGenerator } from "./generators/keywords_generator";
-import { ReplyGenerator } from "./generators/replier";
-import { EmailSummarizer } from "./generators/summarizer";
+import { EmailRelevancyEvaluator } from "./evaluators/relevancy.js";
+import { IntentionsGenerator } from "./generators/intentions_generator.js";
+import { KeywordsGenerator } from "./generators/keywords_generator.js";
+import { ReplyGenerator } from "./generators/replier.js";
+import { EmailSummarizer } from "./generators/summarizer.js";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Callbacks } from "langchain/callbacks";
 import { ChainValues } from "langchain/schema";
-import { Email } from "../adapters/base";
+import { Email } from "../adapters/base.js";
 
 export type MainExecutorOpts = {
   allowedHosts?: string[];

@@ -1,6 +1,6 @@
 import express, { Request } from "express";
-import { Database, PotentialReplyEmail } from "../../databases/base";
-import logger from "../../logger/bunyan";
+import { Database, PotentialReplyEmail } from "../../databases/base.js";
+import logger from "../../logger/bunyan.js";
 
 export function buildReplyRoutes(db: Database) {
   const router = express.Router();

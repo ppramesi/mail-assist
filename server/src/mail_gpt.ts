@@ -1,23 +1,24 @@
 import express, { Express } from "express";
-import { BaseMailAdapter } from "./adapters/base";
-import { Database } from "./databases/base";
+import { BaseMailAdapter } from "./adapters/base.js";
+import { Database } from "./databases/base.js";
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { MainExecutor, MainExecutorOpts } from "./chains/executors";
+import { MainExecutor, MainExecutorOpts } from "./chains/executors.js";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Document } from "langchain/document";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { ConversationalEmailEvaluator } from "./chains/user_evaluation";
+import { ConversationalEmailEvaluator } from "./chains/user_evaluation.js";
 import {
   buildAllowedHostsRoutes,
   buildChatHistoryRoutes,
   buildContextRoutes,
   buildEmailRoutes,
   buildReplyRoutes,
-} from "./routes/express";
-import { buildAuthMiddleware } from "./middlewares/auth";
-import logger from "./logger/bunyan"; // the logger is already imported here
-import { isObject } from "lodash";
+} from "./routes/express/index.js";
+import { buildAuthMiddleware } from "./middlewares/auth.js";
+import logger from "./logger/bunyan.js"; // the logger is already imported here
+import _ from "lodash";
+import { CallerScheduler } from "./scheduler/caller.js";
 
 export interface MailGPTServerOpts {
   mailAdapter: BaseMailAdapter;
@@ -25,6 +26,7 @@ export interface MailGPTServerOpts {
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
   allowedHosts?: string[];
+  scheduler?: CallerScheduler;
 }
 
 export type MiddlewareOpts = {
@@ -44,11 +46,13 @@ export abstract class MailGPTServer {
   conversator: ConversationalEmailEvaluator;
   retriever: VectorStoreRetriever;
   context?: Record<string, string>;
+  scheduler?: CallerScheduler;
   constructor(opts: MailGPTServerOpts) {
+    this.scheduler = opts.scheduler;
     this.database = opts.database;
     this.database.connect();
     this.mailAdapter = opts.mailAdapter;
-    this.mailAdapter.connect();
+    // this.mailAdapter.connect();
     this.conversator = new ConversationalEmailEvaluator({
       llm: opts.llm,
       db: opts.database,
@@ -102,7 +106,8 @@ export abstract class MailGPTServer {
   }
 
   async processEmails() {
-    const lastEmail = await this.database.getLatestEmail()
+    logger.info("Starting to process emails");
+    const lastEmail = await this.database.getLatestEmail();
     const [emails, context] = await Promise.all([
       this.mailAdapter.fetch(lastEmail?.date),
       this.getContext(),
@@ -221,7 +226,7 @@ export class MailGPTAPIServer extends MailGPTServer {
           accessToken!,
           process.env.TOKEN_KEY!,
         ) as jwt.JwtPayload;
-        if (decoded && isObject(decoded)) {
+        if (decoded && _.isObject(decoded)) {
           ["password", "email"].forEach((key) => {
             req.body[key] = decoded[key];
           });

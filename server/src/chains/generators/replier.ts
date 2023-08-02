@@ -8,7 +8,7 @@ import {
 } from "langchain/prompts";
 import { ChainValues } from "langchain/schema";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
-import { stringJoinArrayOrNone } from "../utils/string";
+import { stringJoinArrayOrNone } from "../utils/string.js";
 
 export interface ReplyGeneratorOpts {
   llm: ChatOpenAI;

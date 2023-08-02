@@ -1,4 +1,4 @@
-import { Email } from "../../adapters/base";
+import { Email } from "../../adapters/base.js";
 
 export function buildFilterFunction(allowedHosts?: (string | RegExp)[]) {
   const emailRegex = /<([^>]+)>/;

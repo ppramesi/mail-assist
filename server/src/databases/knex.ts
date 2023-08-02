@@ -1,5 +1,5 @@
-import { isNil, isObject, pick } from "lodash";
-import { Email } from "../adapters/base";
+import _ from "lodash";
+import { Email } from "../adapters/base.js";
 import {
   AIMessage,
   Context,
@@ -7,15 +7,15 @@ import {
   HumanMessage,
   PotentialReplyEmail,
   RawChatHistory,
-} from "./base";
+} from "./base.js";
 import Knex, { Knex as KnexT } from "knex";
 
 export class KnexDatabase extends Database {
   private db: KnexT;
   constructor(configOrInstance: KnexT.Config | KnexT) {
     super();
-    if (isObject(configOrInstance)) {
-      this.db = Knex(configOrInstance);
+    if (!_.isFunction(configOrInstance) && _.isObject(configOrInstance)) {
+      this.db = Knex.knex(configOrInstance);
     } else {
       this.db = configOrInstance;
     }
@@ -30,9 +30,9 @@ export class KnexDatabase extends Database {
   }
 
   async insertEmail(email: Email): Promise<void> {
-    if (isNil(email.date)) return;
+    if (_.isNil(email.date)) return;
     await this.db("emails")
-      .insert(pick(email, this.emailKeys))
+      .insert(_.pick(email, this.emailKeys))
       .onConflict("hash")
       .ignore();
   }
@@ -40,9 +40,9 @@ export class KnexDatabase extends Database {
   async insertEmails(emails: Email[]): Promise<void> {
     const emailsNotInDb = await this.filterNotInDatabase(emails);
     const procEmails = emailsNotInDb
-      .filter((e) => !isNil(e.date))
+      .filter((e) => !_.isNil(e.date))
       .map((email) => {
-        return pick(email, this.emailKeys);
+        return _.pick(email, this.emailKeys);
       });
 
     await this.db("emails").insert(procEmails).onConflict("hash").ignore();
@@ -50,7 +50,7 @@ export class KnexDatabase extends Database {
 
   async filterNotInDatabase(emails: Email[]) {
     const oldestEmailDate = emails
-      .filter((e) => !isNil(e.date))
+      .filter((e) => !_.isNil(e.date))
       .reduce((oldestDate, currentEmail) => {
         return currentEmail.date! < oldestDate!
           ? currentEmail.date
@@ -84,7 +84,7 @@ export class KnexDatabase extends Database {
 
   async getLatestEmail(): Promise<Email | null> {
     return this.db("emails")
-      .orderBy('date', 'desc')
+      .orderBy("date", "desc")
       .first()
       .then((v) => v || null);
   }

@@ -1,4 +1,4 @@
-import { Email } from "../adapters/base";
+import { Email } from "../adapters/base.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 

@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import { isObject } from "lodash";
-import logger from "../logger/bunyan";
-import { Database } from "../databases/base";
+import _ from "lodash";
+import logger from "../logger/bunyan.js";
+import { Database } from "../databases/base.js";
 
 export function buildAuthMiddleware(database: Database) {
   return async function authMiddleware(
@@ -28,7 +28,7 @@ export function buildAuthMiddleware(database: Database) {
           accessToken,
           process.env.TOKEN_KEY!,
         ) as jwt.JwtPayload;
-        if (decoded && isObject(decoded)) {
+        if (decoded && _.isObject(decoded)) {
           Object.entries(decoded).forEach(([key, value]) => {
             req.body[key] = value;
           });

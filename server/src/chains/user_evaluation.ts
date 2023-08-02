@@ -1,6 +1,6 @@
 import { LLMChainInput, LLMChain } from "langchain/chains";
 // import { BaseMemory } from "langchain/memory";
-import { Database, AIMessage, HumanMessage } from "../databases/base";
+import { Database, AIMessage, HumanMessage } from "../databases/base.js";
 import { ChainValues } from "langchain/schema";
 import {
   AIMessagePromptTemplate,
@@ -9,7 +9,7 @@ import {
   SystemMessagePromptTemplate,
 } from "langchain/prompts";
 import { CallbackManagerForChainRun } from "langchain/callbacks";
-import cloneDeep from "lodash/cloneDeep";
+import _ from "lodash";
 
 const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. You were tasked with writing a reply given the email's body, and have written a reply for the given email in the past. The user has an input and would like you to change something in the reply. You answer should only be the email's text and nothing else.
 
@@ -56,7 +56,7 @@ export class ConversationalEmailEvaluator extends LLMChain {
       const { chat_messages: chatMessages, id } =
         await this.db.getChatHistoryByReply(this.replyId);
       this.conversationId = id;
-      this.chatMessages = cloneDeep(chatMessages);
+      this.chatMessages = _.cloneDeep(chatMessages);
     }
     const templates = this.chatMessages.map((message) => {
       if (message.type === "ai") {
@@ -93,7 +93,10 @@ export class ConversationalEmailEvaluator extends LLMChain {
     const result = await super._call(values, runManager);
     const aiInput: AIMessage = { type: "ai", text: result.text };
     this.chatMessages.push(aiInput);
-    await this.db.appendChatHistory(this.conversationId!, [humanInput, aiInput])
+    await this.db.appendChatHistory(this.conversationId!, [
+      humanInput,
+      aiInput,
+    ]);
 
     return result;
   }

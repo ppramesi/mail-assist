@@ -1,12 +1,12 @@
 import Knex from "knex";
-import { IMAPGmailAdapter } from "./adapters/gmail";
-import { KnexDatabase } from "./databases/knex";
-import { MailGPTAPIServer } from "./mail_gpt";
-import { KnexVectorStore } from "./vectorstores/knex";
-import { OpenAIEmbeddings } from "langchain/embeddings";
+import { IMAPGmailAdapter } from "./adapters/gmail.js";
+import { KnexDatabase } from "./databases/knex.js";
+import { MailGPTAPIServer } from "./mail_gpt.js";
+import { KnexVectorStore } from "./vectorstores/knex.js";
+import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import dotenv from "dotenv";
-import { CallerScheduler } from "./scheduler/caller";
+import { CallerScheduler } from "./scheduler/caller.js";
 dotenv.config();
 
 if (!process.env.GMAIL_USER || !process.env.GMAIL_PASSWORD) {
@@ -26,14 +26,14 @@ const mailAdapter = new IMAPGmailAdapter({
   },
 });
 
-const knex = Knex({
-  client: "pg",
+const knex = Knex.knex({
+  client: "postgresql",
   connection: {
     host: process.env.POSTGRES_HOST,
     port: parseInt(process.env.POSTGRES_PORT!),
     user: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DATABASE,
+    database: process.env.POSTGRES_DB,
   },
 });
 
@@ -43,7 +43,7 @@ const retriever = new KnexVectorStore(new OpenAIEmbeddings(), {
   tableName: "summary_embeddings",
 }).asRetriever(3);
 
-let callerScheduler: CallerScheduler;
+let callerScheduler: CallerScheduler | undefined;
 let port = parseInt(process.env.SERVER_PORT ?? "42069");
 let useAuth = process.env.USE_AUTH ? process.env.USE_AUTH === "true" : true;
 
@@ -56,6 +56,7 @@ const apiServer = new MailGPTAPIServer({
   middlewareOpts: {
     useAuth,
   },
+  scheduler: callerScheduler,
   onStartServer() {
     if (process.env.WITH_SCHEDULER && process.env.WITH_SCHEDULER === "true") {
       callerScheduler = new CallerScheduler({

@@ -1,11 +1,11 @@
 import express, { Request } from "express";
-import { Database } from "../../databases/base";
-import logger from "../../logger/bunyan";
+import { Database } from "../../databases/base.js";
+import logger from "../../logger/bunyan.js";
 
 export function buildAllowedHostsRoutes(db: Database) {
   const router = express.Router();
 
-  router.get("/", async (req, res) => {
+  router.get("/", async (_, res) => {
     try {
       const allowedHosts = await db.getAllowedHosts();
       logger.info(`Fetched all allowed hosts: ${JSON.stringify(allowedHosts)}`);

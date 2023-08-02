@@ -44,11 +44,11 @@ export interface DateRange {
 }
 
 export abstract class BaseMailAdapter {
-  declare AuthType: {[k: string]: any};
+  declare AuthType: { [k: string]: any };
   abstract connected: boolean;
   constructor(public opts?: FetchOpts) {}
   abstract connect(auth?: this["AuthType"]): Promise<void>;
-  abstract fetch(afterDate?: Date): Promise<Email[]>; // where `Email` is a class or interface you define
+  abstract fetch(afterDate?: Date, auth?: this["AuthType"]): Promise<Email[]>; // where `Email` is a class or interface you define
   abstract disconnect(): Promise<void>;
 
   static hashText(text: string) {

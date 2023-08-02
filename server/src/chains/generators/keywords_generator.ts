@@ -1,5 +1,5 @@
 import { LLMChain } from "langchain/chains";
-import { CallbackManagerForChainRun, Callbacks } from "langchain/callbacks";
+import { CallbackManagerForChainRun } from "langchain/callbacks";
 import { ChainValues } from "langchain/schema";
 import {
   ChatPromptTemplate,
@@ -9,7 +9,7 @@ import {
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { z } from "zod";
 import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
-import { stringJoinArrayOrNone } from "../utils/string";
+import { stringJoinArrayOrNone } from "../utils/string.js";
 
 const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to analyze the provided email and extract as much important information as possible from the body of the email. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Your answer should be in the form of an array of short sentences that contains important information from the email relevant to the following context.
 

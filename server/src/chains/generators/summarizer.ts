@@ -1,4 +1,4 @@
-import { CallbackManagerForChainRun, Callbacks } from "langchain/callbacks";
+import { CallbackManagerForChainRun } from "langchain/callbacks";
 import {
   BaseChain,
   ChainInputs,
@@ -13,7 +13,7 @@ import {
 } from "langchain/prompts";
 import { ChainValues } from "langchain/schema";
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { stringJoinArrayOrNone } from "../utils/string";
+import { stringJoinArrayOrNone } from "../utils/string.js";
 
 export interface EmailSummarizerOpts extends ChainInputs {
   llm: ChatOpenAI;

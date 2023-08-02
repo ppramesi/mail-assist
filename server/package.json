@@ -5,6 +5,7 @@
 	"main": "./dist/index.js",
 	"author": "Priya X. Pramesi",
 	"license": "MIT",
+	"type": "module",
 	"scripts": {
 		"format": "prettier --write \"src\"",
 		"build": "tsc",

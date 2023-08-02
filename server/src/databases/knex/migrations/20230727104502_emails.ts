@@ -8,8 +8,8 @@ export async function up(knex: Knex): Promise<void> {
     table.specificType("to", "text[]");
     table.specificType("cc", "text[]").nullable();
     table.specificType("bcc", "text[]").nullable();
-    table.string("subject");
-    table.string("text");
+    table.string("subject", 1023);
+    table.text("text");
     table.date("date");
     table.boolean("read");
     table.string("summary").nullable();

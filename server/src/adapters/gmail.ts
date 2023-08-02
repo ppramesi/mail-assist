@@ -1,8 +1,9 @@
 import Imap from "imap";
 import { simpleParser } from "mailparser";
-import { Email, IMAPAuth, IMAPMailAdapter } from "./base";
+import { Email, IMAPAuth, IMAPMailAdapter } from "./base.js";
 import * as uuid from "uuid";
 import { Source } from "mailparser";
+import _ from "lodash";
 
 export class IMAPGmailAdapter extends IMAPMailAdapter {
   declare AuthType: IMAPAuth;
@@ -15,7 +16,7 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
   }
 
   async connect(auth?: this["AuthType"]): Promise<void> {
-    if(auth){
+    if (auth) {
       this.client = new Imap(auth);
     }
     await new Promise<void>((resolve, reject) => {
@@ -28,23 +29,25 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
     });
   }
 
-  async fetch(afterDate?: Date): Promise<Email[]> {
-    if (!this.connected) {
-      throw new Error("Not connected");
+  async fetch(afterDate?: Date, auth?: this["AuthType"]): Promise<Email[]> {
+    if (!this.connected || !_.isNil(auth)) {
+      await this.connect(auth);
     }
     let formattedDate: string;
-    if(afterDate){
+    if (afterDate) {
       formattedDate = afterDate.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
       });
-    }else{
-      formattedDate = new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 7).toLocaleDateString("en-US", {
+    } else {
+      formattedDate = new Date(
+        new Date().getTime() - 1000 * 60 * 60 * 24 * 7,
+      ).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
-      })
+      });
     }
 
     return new Promise((resolve, reject) => {

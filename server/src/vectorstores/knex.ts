@@ -1,7 +1,7 @@
-import { VectorStore } from "langchain/vectorstores";
-import { Embeddings } from "langchain/embeddings";
+import { VectorStore } from "langchain/vectorstores/base";
+import { Embeddings } from "langchain/embeddings/base";
 import { Document } from "langchain/document";
-import Knex, { Knex as KnexType } from "knex";
+import { Knex as KnexType } from "knex";
 
 export interface KnexVectorStoreArgs {
   knex: KnexType;
@@ -55,7 +55,7 @@ export class KnexVectorStore extends VectorStore {
   async addVectors(
     vectors: number[][],
     documents: Document<Record<string, any>>[],
-    options?: { [x: string]: any } | undefined,
+    _options?: { [x: string]: any } | undefined,
   ): Promise<void> {
     await this.ensureTableInDatabase();
     const rows = vectors.map((embedding, idx) => {
@@ -73,7 +73,7 @@ export class KnexVectorStore extends VectorStore {
 
   async addDocuments(
     documents: Document<Record<string, any>>[],
-    options?: { [x: string]: any } | undefined,
+    _options?: { [x: string]: any } | undefined,
   ): Promise<void | string[]> {
     const texts = documents.map(({ pageContent }) => pageContent);
     return this.addVectors(

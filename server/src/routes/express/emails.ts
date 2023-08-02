@@ -1,7 +1,7 @@
 import express, { Request } from "express";
-import { Database } from "../../databases/base";
-import { Email } from "../../adapters/base";
-import logger from "../../logger/bunyan";
+import { Database } from "../../databases/base.js";
+import { Email } from "../../adapters/base.js";
+import logger from "../../logger/bunyan.js";
 
 export function buildEmailRoutes(db: Database) {
   const router = express.Router();
@@ -57,7 +57,7 @@ export function buildEmailRoutes(db: Database) {
     }
   });
 
-  router.get("/", async (req, res) => {
+  router.get("/", async (_, res) => {
     try {
       const emails = await db.getEmails();
       logger.info("Fetched all emails");

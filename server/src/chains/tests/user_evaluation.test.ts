@@ -1,6 +1,6 @@
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { InMemoryDatabase } from "../../databases/memory";
-import { ConversationalEmailEvaluator } from "../user_evaluation";
+import { InMemoryDatabase } from "../../databases/memory.js";
+import { ConversationalEmailEvaluator } from "../user_evaluation.js";
 
 (async () => {
   const db = new InMemoryDatabase();
@@ -60,7 +60,7 @@ Thank you for your hard work!
 Best,
 John Person`;
 
-  const k1 = await evaluator.call({
+  const _k1 = await evaluator.call({
     replyId: "test",
     context: Object.entries(contextObj)
       .map(([key, value]) => `${key}: ${value}`)
@@ -70,7 +70,7 @@ John Person`;
     input: "Could you make it more detailed for me?",
   });
 
-  const k2 = await evaluator.call({
+  const _k2 = await evaluator.call({
     context: Object.entries(contextObj)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n"),
@@ -80,7 +80,7 @@ John Person`;
       "Oh wait I'm Indonesian, could you translate it to Indonesian for me?",
   });
 
-  const k3 = await evaluator.call({
+  const _k3 = await evaluator.call({
     context: Object.entries(contextObj)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n"),
@@ -88,6 +88,6 @@ John Person`;
     intention: "Clarify requirements",
     input: "Oh wait John Person is German, could you translate it for me?",
   });
-
+  console.log({ _k1, _k2, _k3 });
   console.log(await db.getChatHistoryByEmail("test"));
 })();
