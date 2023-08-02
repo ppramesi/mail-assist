@@ -1,3 +1,5 @@
-export default async function Summary(){
+"use client";
+
+export default function Summary(){
   
 }

@@ -58,6 +58,10 @@ export class InMemoryDatabase extends Database {
     return Promise.resolve(email || null);
   }
 
+  async getLatestEmail(): Promise<Email | null> {
+    throw new Error("Method not implemented.");
+  }
+
   async insertContext(context: Context): Promise<string[] | null> {
     // Push the new email onto the end of the array.
     this.context = {

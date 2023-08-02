@@ -86,19 +86,15 @@ export class ConversationalEmailEvaluator extends LLMChain {
     if (!this.replyId) {
       throw new Error("Please set the potential reply id!");
     }
-    if (!this.promptBuilt) {
-      await this.buildPrompt(true);
-    }
+    await this.buildPrompt(true);
     const { input } = values;
     const humanInput: HumanMessage = { type: "human", text: input };
     this.chatMessages.push(humanInput);
     const result = await super._call(values, runManager);
     const aiInput: AIMessage = { type: "ai", text: result.text };
     this.chatMessages.push(aiInput);
-    await Promise.all([
-      this.db.appendChatHistory(this.conversationId!, [humanInput, aiInput]),
-      this.buildPrompt(false),
-    ]);
+    await this.db.appendChatHistory(this.conversationId!, [humanInput, aiInput])
+
     return result;
   }
 }

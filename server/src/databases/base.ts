@@ -78,6 +78,8 @@ export abstract class Database {
    */
   abstract getEmail(id: string): Promise<Email | null>;
 
+  abstract getLatestEmail(): Promise<Email | null>;
+
   /**
    * updates an email's status and summary (if exists)
    * @param id

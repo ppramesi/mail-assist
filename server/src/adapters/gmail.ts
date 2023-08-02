@@ -5,6 +5,7 @@ import * as uuid from "uuid";
 import { Source } from "mailparser";
 
 export class IMAPGmailAdapter extends IMAPMailAdapter {
+  declare AuthType: IMAPAuth;
   client: Imap;
   connected: boolean = false;
 
@@ -13,7 +14,10 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
     this.client = new Imap(auth);
   }
 
-  async connect(): Promise<void> {
+  async connect(auth?: this["AuthType"]): Promise<void> {
+    if(auth){
+      this.client = new Imap(auth);
+    }
     await new Promise<void>((resolve, reject) => {
       this.client.once("ready", () => {
         this.connected = true;
@@ -24,16 +28,24 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
     });
   }
 
-  async fetch(afterDate: Date): Promise<Email[]> {
+  async fetch(afterDate?: Date): Promise<Email[]> {
     if (!this.connected) {
       throw new Error("Not connected");
     }
-
-    const formattedDate = afterDate.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    let formattedDate: string;
+    if(afterDate){
+      formattedDate = afterDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }else{
+      formattedDate = new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 7).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    }
 
     return new Promise((resolve, reject) => {
       this.client.openBox("INBOX", true, () => {

@@ -12,8 +12,8 @@ export async function up(knex: Knex): Promise<void> {
     table.string("text");
     table.date("date");
     table.boolean("read");
-    table.string("summary");
-    table.string("status");
+    table.string("summary").nullable();
+    table.string("status").nullable();
   });
 }
 

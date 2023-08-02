@@ -82,6 +82,13 @@ export class KnexDatabase extends Database {
       .then((v) => v || null);
   }
 
+  async getLatestEmail(): Promise<Email | null> {
+    return this.db("emails")
+      .orderBy('date', 'desc')
+      .first()
+      .then((v) => v || null);
+  }
+
   async updateEmailProcessedData(
     id: string,
     status: string,

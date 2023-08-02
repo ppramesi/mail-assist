@@ -102,8 +102,9 @@ export abstract class MailGPTServer {
   }
 
   async processEmails() {
+    const lastEmail = await this.database.getLatestEmail()
     const [emails, context] = await Promise.all([
-      this.mailAdapter.fetch(),
+      this.mailAdapter.fetch(lastEmail?.date),
       this.getContext(),
     ]);
     await this.database.insertEmails(emails);
