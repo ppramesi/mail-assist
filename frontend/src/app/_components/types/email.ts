@@ -1,7 +1,7 @@
-import type { ParsedMail } from "mailparser"
-
-export interface Email
-  extends Pick<ParsedMail, "subject" | "text" | "date"> {
+export interface Email{
+  subject: string;
+  text: string;
+  date: Date;
   id: string;
   read: boolean;
   hash: string;

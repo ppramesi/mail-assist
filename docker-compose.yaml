@@ -6,11 +6,11 @@ services:
       dockerfile: Dockerfile
       target: runner
     volumes:
-      - ./frontend:/app
+      - ./frontend:/app/src
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
-    depends_on:
-      - db
+    # depends_on:
+    #   - db
     env_file: 
       - ./frontend/.env
 
@@ -19,7 +19,7 @@ services:
       context: ./server
       dockerfile: Dockerfile
     volumes:
-      - ./server:/app
+      - ./server:/app/src
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
     depends_on:
