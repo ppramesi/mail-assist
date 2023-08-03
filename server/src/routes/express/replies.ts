@@ -11,12 +11,14 @@ export function buildReplyRoutes(db: Database) {
       const replies = await db.getPotentialRepliesByEmail(emailId);
       logger.info(`Fetched potential replies by email id: ${emailId}`);
       res.status(200).send({ replies });
+      return;
     } catch (error) {
       logger.error(
         `Failed to fetch potential replies by email id: ${emailId}`,
         error,
       );
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 
@@ -26,9 +28,11 @@ export function buildReplyRoutes(db: Database) {
       const reply = await db.getPotentialReply(id);
       logger.info(`Fetched potential reply by id: ${id}`);
       res.status(200).send({ reply });
+      return;
     } catch (error) {
       logger.error(`Failed to fetch potential reply by id: ${id}`, error);
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 
@@ -47,9 +51,11 @@ export function buildReplyRoutes(db: Database) {
           )}, reply id: ${replyId}`,
         );
         res.status(200).send({ status: "ok", replyId });
+        return;
       } catch (error) {
         logger.error("Failed to update potential reply:", error);
         res.status(500).send(JSON.stringify(error));
+        return;
       }
     },
   );
@@ -64,9 +70,11 @@ export function buildReplyRoutes(db: Database) {
         )}, reply id: ${replyId}`,
       );
       res.status(200).send({ status: "ok", replyId });
+      return;
     } catch (error) {
       logger.error("Failed to insert potential reply:", error);
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 

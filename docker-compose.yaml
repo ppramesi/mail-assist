@@ -9,10 +9,13 @@ services:
       - ./frontend:/app/src
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
-    # depends_on:
-    #   - db
+    depends_on:
+      - server
     env_file: 
       - ./frontend/.env
+    environment:
+      - MAIL_GPT_SERVER_URL=http://server:${SERVER_PORT}
+      - TOKEN_KEY=${TOKEN_KEY}
 
   server:
     build:
@@ -26,6 +29,9 @@ services:
       - db
     env_file: 
       - ./server/.env
+    environment:
+      - POSTGRES_HOST=db
+      - TOKEN_KEY=${TOKEN_KEY}
 
   embeddings-analyzer:
     build:
@@ -34,7 +40,8 @@ services:
     ports:
       - "${ANALYZER_PORT}:${ANALYZER_PORT}"  # Expose the port the analyzer service listens on
     environment:
-      VECTOR_SERVICE_PORT: ${ANALYZER_PORT}
+      - VECTOR_SERVICE_PORT=${ANALYZER_PORT}
+      - TOKEN_KEY=${TOKEN_KEY}
 
   db:
     build:
@@ -55,6 +62,8 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
       PGADMIN_LISTEN_PORT: ${PGADMIN_PORT}
+    depends_on:
+      - db
     ports:
       - "${PGADMIN_PORT}:${PGADMIN_PORT}"
 

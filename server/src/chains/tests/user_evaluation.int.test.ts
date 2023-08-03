@@ -1,31 +1,21 @@
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { InMemoryDatabase } from "../../databases/memory.js";
 import { ConversationalEmailEvaluator } from "../user_evaluation.js";
+import Knex from "knex";
+import { KnexDatabase } from "../../databases/knex.js";
 
 (async () => {
-  const db = new InMemoryDatabase();
-  db.insertChatHistory({
-    id: "test",
-    email_id: "test",
-    reply_id: "test",
-    chat_messages: [
-      {
-        type: "ai",
-        text: `Dear John,
-    
-Thanks for the detailed task. I have a few questions before I can start working on these endpoints.
-  
-1. For the "/users" endpoint, what fields should the POST method accept for creating a new user?
-2. For the "/products" endpoint, are there any specific requirements for the data format?
-3. Regarding the "/orders" endpoint, is there any particular flow that should be followed when creating or deleting an order?
-
-I would also appreciate it if you could provide any existing API documentation or sample data that I could use for reference.
-  
-Thanks,
-Jim Testing`,
-      },
-    ],
+  const knex = Knex.knex({
+    client: "postgresql",
+    connection: {
+      host: process.env.POSTGRES_HOST,
+      port: parseInt(process.env.POSTGRES_PORT!),
+      user: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
+      database: process.env.POSTGRES_DB,
+    },
   });
+  
+  const db = new KnexDatabase(knex);
 
   const llm = new ChatOpenAI();
 

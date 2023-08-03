@@ -1,19 +1,25 @@
 import { cookies } from "next/headers";
 
-export function fetchWithSessionToken(url: string, params?: RequestInit){
+export function fetchWithSessionToken(url: string, params?: RequestInit) {
   const c = cookies();
-  const sessionToken = c.get("session_token")
+  const sessionToken = c.get("session_token");
   let actualParams: RequestInit | undefined;
-  if(sessionToken){
-    if(params){
-      actualParams = params
-    }else{
-      actualParams = {}
+  if (sessionToken) {
+    if (params) {
+      actualParams = params;
+    } else {
+      actualParams = {};
     }
     actualParams.headers = {
       ...actualParams.headers,
-      "x-session-token": sessionToken.value
-    }
+      "x-session-token": sessionToken.value,
+    };
   }
-  return fetch(url, actualParams)
+  if (actualParams?.method && actualParams.method.toLowerCase() == "post") {
+    actualParams.headers = {
+      ...actualParams.headers,
+      "Content-Type": "application/json",
+    };
+  }
+  return fetch(url, actualParams);
 }

@@ -25,9 +25,10 @@ export type ChatHistory = {
 };
 
 export type AllowedHost = {
+  id?: string;
   host: string;
   type: "string" | "regex";
-}
+};
 
 export interface PotentialReplyEmail extends Email {
   process_status: "potential_reply";
@@ -108,6 +109,8 @@ export abstract class Database {
    */
   abstract getContext(): Promise<Context | null>;
 
+  abstract deleteContext(id: string): Promise<void>;
+
   /**
    * Fetches a specific context from the database.
    * @param id The id of the context to fetch.
@@ -124,7 +127,7 @@ export abstract class Database {
 
   abstract setAllowedHosts(hosts: AllowedHost[]): Promise<void>;
 
-  abstract deleteAllowedHosts(hosts: AllowedHost[]): Promise<void>;
+  abstract deleteAllowedHost(id: string): Promise<void>;
 
   abstract insertPotentialReply(data: PotentialReplyEmail): Promise<string>;
 

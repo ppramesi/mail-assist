@@ -1,5 +1,3 @@
-import type { Email } from "./email"
-
 export interface PotentialReplyEmail {
   intention: string;
   reply_text: string;

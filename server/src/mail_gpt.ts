@@ -21,6 +21,7 @@ import _ from "lodash";
 import { CallerScheduler } from "./scheduler/caller.js";
 
 export interface MailGPTServerOpts {
+  onStartServer?: (instance?: MailGPTServer) => void;
   mailAdapter: BaseMailAdapter;
   database: Database;
   llm: ChatOpenAI;
@@ -35,11 +36,11 @@ export type MiddlewareOpts = {
 
 export interface MailGPTAPIServerOpts extends MailGPTServerOpts {
   port?: number;
-  onStartServer?: () => void;
   middlewareOpts?: MiddlewareOpts;
 }
 
 export abstract class MailGPTServer {
+  onStartServer?: (instance?: MailGPTServer) => void;
   mailAdapter: BaseMailAdapter;
   database: Database;
   executor: MainExecutor;
@@ -69,6 +70,7 @@ export abstract class MailGPTServer {
       this.setAllowedHosts();
     }
     this.retriever = opts.retriever;
+    this.onStartServer = opts.onStartServer;
   }
 
   abstract startServer(): Promise<void>;
@@ -163,11 +165,12 @@ export abstract class MailGPTServer {
 }
 
 export class MailGPTGRPCServer extends MailGPTServer {
-  async startServer(): Promise<void> {}
+  async startServer(): Promise<void> {
+    this.onStartServer?.(this);
+  }
 }
 
 export class MailGPTAPIServer extends MailGPTServer {
-  onStartServer?: () => void;
   port: number;
   app: Express;
   constructor(opts: MailGPTAPIServerOpts) {
@@ -178,17 +181,20 @@ export class MailGPTAPIServer extends MailGPTServer {
     this.buildAuthenticationRoutes();
     this.buildMiddlewares(opts.middlewareOpts ?? {});
     this.buildRoute();
-    this.onStartServer = opts.onStartServer;
   }
 
   buildAuthenticationRoutes() {
     this.app.post("/login", async (req, res) => {
-      const {
-        body: { password, email },
-      } = req;
+      const { body } = req;
+      const { password, email } = body;
+      if (_.isNil(password) || _.isNil(email)) {
+        res.status(403).send({ status: "bad request?" });
+        return;
+      }
       const authData = await this.database.getUserAuth(email);
       if (!authData) {
         res.status(403).send({ status: "who are you?" });
+        return;
       }
 
       const hashed = await bcrypt.hash(password, authData?.salt!);
@@ -204,8 +210,10 @@ export class MailGPTAPIServer extends MailGPTServer {
         );
         await this.database.setUserSessionKey(email, sessionKey);
         res.status(200).send({ session_key: sessionKey });
+        return;
       } else {
         res.status(403).send({ status: "wrong password" });
+        return;
       }
     });
 
@@ -215,11 +223,13 @@ export class MailGPTAPIServer extends MailGPTServer {
       if (!process.env.TOKEN_KEY) {
         logger.error("Token key not set.");
         res.status(500).send("Token key not set");
+        return;
       }
 
       if (!accessToken) {
         logger.warn("Unauthorized access attempt detected.");
         res.status(403).send("Who the fuck are you?");
+        return;
       }
       try {
         const decoded = jwt.verify(
@@ -243,13 +253,16 @@ export class MailGPTAPIServer extends MailGPTServer {
           if (password && email) {
             await this.database.insertUser(email, password);
             res.status(200).send({ status: "ok" });
+            return;
           }
         }
         logger.error("JWT Body fucked up: ", JSON.stringify(decoded));
         res.status(403).send("JWT body fcked up.");
+        return;
       } catch (err) {
         logger.error("Failed to verify token:", err);
         res.status(403).send("Who the fuck are you?");
+        return;
       }
     });
   }
@@ -267,9 +280,11 @@ export class MailGPTAPIServer extends MailGPTServer {
         logger.info("Starting to process emails...");
         await this.processEmails();
         res.status(200).send({ status: "ok" });
+        return;
       } catch (error) {
         logger.error("Error while processing emails:", error);
         res.status(500).send(error);
+        return;
       }
     });
 
@@ -279,12 +294,14 @@ export class MailGPTAPIServer extends MailGPTServer {
         logger.info(`Starting to evaluate email with id: ${emailId}`);
         const newReplyEmail = await this.evaluateEmail(input, emailId, replyId);
         res.status(200).send({ new_reply_email: newReplyEmail });
+        return;
       } catch (error) {
         logger.error(
           `Error while evaluating email with id: ${emailId}:`,
           error,
         );
         res.status(500).send(error);
+        return;
       }
     });
 
@@ -303,6 +320,6 @@ export class MailGPTAPIServer extends MailGPTServer {
         resolve();
       });
     });
-    this.onStartServer?.();
+    this.onStartServer?.(this);
   }
 }

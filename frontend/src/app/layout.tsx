@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
-import './globals.css'
-import Cookies from 'js-cookie';
-import { useEffect } from 'react';
-import isNil from 'lodash/isNil';
+import { useRouter } from "next/navigation";
+import "./globals.css";
+import Cookies from "js-cookie";
+import { useEffect } from "react";
+import isNil from "lodash/isNil";
 // import type { Metadata } from 'next'
 // import { Inter } from 'next/font/google'
 
@@ -18,20 +18,20 @@ import isNil from 'lodash/isNil';
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const sessionKey = Cookies.get("session_key")
+  const sessionKey = Cookies.get("session_key");
   const router = useRouter();
 
   useEffect(() => {
-    if(isNil(sessionKey)){
-      router.push("/login")
+    if (isNil(sessionKey)) {
+      router.push("/login");
     }
-  }, [])
+  }, []);
 
   return (
     <html lang="en">
       <body>{children}</body>
     </html>
-  )
+  );
 }

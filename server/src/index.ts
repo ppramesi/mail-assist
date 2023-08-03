@@ -1,7 +1,7 @@
 import Knex from "knex";
 import { IMAPGmailAdapter } from "./adapters/gmail.js";
 import { KnexDatabase } from "./databases/knex.js";
-import { MailGPTAPIServer } from "./mail_gpt.js";
+import { MailGPTAPIServer, MailGPTServer } from "./mail_gpt.js";
 import { KnexVectorStore } from "./vectorstores/knex.js";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { ChatOpenAI } from "langchain/chat_models/openai";
@@ -57,11 +57,12 @@ const apiServer = new MailGPTAPIServer({
     useAuth,
   },
   scheduler: callerScheduler,
-  onStartServer() {
+  onStartServer(server?: MailGPTServer) {
     if (process.env.WITH_SCHEDULER && process.env.WITH_SCHEDULER === "true") {
       callerScheduler = new CallerScheduler({
         url: new URL(`http://localhost:${port}/gpt/process-emails`).toString(),
         useAuth,
+        server,
       });
     }
   },

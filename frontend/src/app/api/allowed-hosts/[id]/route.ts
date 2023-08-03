@@ -4,11 +4,15 @@ import { NextResponse, NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
-export async function GET(request: NextRequest) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
+    const body = await request.json();
     const axiosRequest = await axios.request({
-      url: buildPath("/gpt/process-emails/"),
-      method: "GET",
+      url: buildPath(`/allowed-hosts/${params.id}`),
+      method: "DELETE",
       headers: {
         "x-session-token": request.headers.get("x-session-token"),
       },

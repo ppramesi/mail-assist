@@ -121,6 +121,10 @@ export class KnexDatabase extends Database {
       );
   }
 
+  async deleteContext(id: string): Promise<void> {
+    await this.db("contexts").where("id", id).delete();
+  }
+
   async getContextValue(key: string): Promise<string | null> {
     return this.db("contexts")
       .where("key", key)
@@ -138,15 +142,21 @@ export class KnexDatabase extends Database {
   async getAllowedHosts(): Promise<AllowedHost[] | null> {
     return this.db("allowed_hosts")
       .select("*")
-      .then((v) => (v.length > 0 ? v.map((host) => ({ host: host.host, type: host.type })) : null));
+      .then((v) =>
+        v.length > 0
+          ? v.map((host) => ({ host: host.host, type: host.type, id: host.id }))
+          : null,
+      );
   }
 
   async setAllowedHosts(hosts: AllowedHost[]): Promise<void> {
-    await this.db("allowed_hosts").insert(hosts.map((host) => ({ host: host.host, type: host.type })));
+    await this.db("allowed_hosts").insert(
+      hosts.map((host) => ({ host: host.host, type: host.type })),
+    );
   }
 
-  async deleteAllowedHosts(hosts: AllowedHost[]): Promise<void> {
-    await this.db("allowed_hosts").whereIn("host", hosts.map(host => host.host)).delete();
+  async deleteAllowedHost(id: string): Promise<void> {
+    await this.db("allowed_hosts").where("id", id).delete();
   }
 
   async insertPotentialReply(data: PotentialReplyEmail): Promise<string> {

@@ -12,7 +12,7 @@ export function buildFilterFunction(allowedHosts?: AllowedHost[]) {
         if (typeof host.type === "string") {
           return emails.some((email) => email.endsWith(host.host));
         } else {
-          const regex = new RegExp(host.host)
+          const regex = new RegExp(host.host);
           return emails.some((email) => email.match(regex) !== null);
         }
       });

@@ -7,6 +7,7 @@ import Snackbar from "@mui/material/Snackbar";
 import { fetchWithSessionToken } from "@/utils/client_fetcher";
 
 interface Context {
+  id?: string;
   key: string;
   value: string;
 }
@@ -17,7 +18,7 @@ export default function SettingsForm() {
 
   const handleInputChange = (
     index: number,
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const values = [...settings];
     if (event.target.name === "key") {
@@ -32,10 +33,30 @@ export default function SettingsForm() {
     setSettings([...settings, { key: "", value: "" }]);
   };
 
-  const handleRemoveFields = (index: number) => {
+  const handleRemoveFields = async (index: number) => {
     const values = [...settings];
     values.splice(index, 1);
     setSettings(values);
+    if (settings[index].id) {
+      try {
+        const response = await fetchWithSessionToken(
+          `/api/contexts/${settings[index].id}`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error("HTTP error " + response.status);
+        }
+
+        // If you expect any response from the server
+        const data = await response.json();
+        console.log(data);
+      } catch (error) {
+        console.error("Request failed: ", error);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +82,7 @@ export default function SettingsForm() {
 
   const handleClose = () => {
     openSnackbar(false);
-  }
+  };
 
   return (
     <>
@@ -105,12 +126,10 @@ export default function SettingsForm() {
           Submit
         </Button>
       </form>
-      <Snackbar
-        open={snackbar}
-        onClose={handleClose}
-        autoHideDuration={5000}
-      >
-        <Alert severity="success" onClose={handleClose} sx={{ width: "100%" }}>We good!!</Alert>
+      <Snackbar open={snackbar} onClose={handleClose} autoHideDuration={5000}>
+        <Alert severity="success" onClose={handleClose} sx={{ width: "100%" }}>
+          We good!!
+        </Alert>
       </Snackbar>
     </>
   );

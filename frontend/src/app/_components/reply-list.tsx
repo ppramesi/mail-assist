@@ -7,32 +7,36 @@ import ReplyItem from "./reply-item";
 import { PotentialReplyEmail } from "./types/reply";
 import { useEffect, useState } from "react";
 import { Email } from "./types/email";
-import { Card, CardContent, Typography } from '@mui/material';
+import { Card, CardContent, Typography } from "@mui/material";
 
-export default function ReplyList({ emailId }: {  emailId: string }){
+export default function ReplyList({ emailId }: { emailId: string }) {
+  const [fetchedReplies, setReplies] = useState<PotentialReplyEmail[]>();
+  const [fetchedEmail, setEmail] = useState<Email>();
+  const [isLoading, setLoading] = useState<boolean>(true);
+  useEffect(() => {
+    Promise.all([
+      fetchWithSessionToken(`/api/emails/id/${emailId}`),
+      fetchWithSessionToken(`/api/replies/email/${emailId}`),
+    ])
+      .then(([resEmail, resReplies]) =>
+        Promise.all([resEmail.json(), resReplies.json()]),
+      )
+      .then(([emailData, repliesData]) => {
+        const { replies } = repliesData;
+        const { email } = emailData;
+        email.date = new Date(email.date ?? new Date());
+        setReplies(replies);
+        setEmail(email);
+        setLoading(false);
+      });
+  }, []);
 
-    const [fetchedReplies, setReplies] = useState<PotentialReplyEmail[]>()
-    const [fetchedEmail, setEmail] = useState<Email>()
-    const [isLoading, setLoading] = useState<boolean>(true)
-    useEffect(() => {
-      Promise.all([
-        fetchWithSessionToken(`/api/emails/id/${emailId}`),
-        fetchWithSessionToken(`/api/replies/email/${emailId}`)
-      ])
-        .then(([resEmail, resReplies]) => Promise.all([resEmail.json(), resReplies.json()]))
-        .then(([emailData, repliesData]) => {
-          const { replies } = repliesData
-          const { email } = emailData
-          email.date = new Date(email.date ?? new Date())
-          setReplies(replies)
-          setEmail(email)
-          setLoading(false)
-        })
-    }, [])
-  
-    return(
-      <Box sx={{ width: "100%" }}>
-        { isLoading ? <></> : <>
+  return (
+    <Box sx={{ width: "100%" }}>
+      {isLoading ? (
+        <></>
+      ) : (
+        <>
           <Card className="mb-4 p-2 bg-gray-100 rounded-md shadow">
             <CardContent>
               <Typography variant="h6" component="div">
@@ -69,11 +73,11 @@ export default function ReplyList({ emailId }: {  emailId: string }){
           </Card>
           <Stack spacing={2}>
             {fetchedReplies?.map((reply, idx) => {
-              return <ReplyItem key={idx} reply={reply}></ReplyItem>
+              return <ReplyItem key={idx} reply={reply}></ReplyItem>;
             })}
           </Stack>
-        </> }
-      </Box>
-    );
-
+        </>
+      )}
+    </Box>
+  );
 }

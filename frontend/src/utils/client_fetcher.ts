@@ -1,18 +1,27 @@
 import cookies from "js-cookie";
 
-export function fetchWithSessionToken(url: string, params?: RequestInit){
-  const sessionToken = cookies.get("session_token")
+export function fetchWithSessionToken(url: string, params?: RequestInit) {
+  const sessionToken = cookies.get("session_token");
   let actualParams: RequestInit | undefined;
-  if(sessionToken){
-    if(params){
-      actualParams = params
-    }else{
-      actualParams = {}
+  if (sessionToken) {
+    if (params) {
+      actualParams = params;
+    } else {
+      actualParams = {};
     }
     actualParams.headers = {
       ...actualParams.headers,
-      "x-session-token": sessionToken
-    }
+      "x-session-token": sessionToken,
+    };
   }
-  return fetch(url, actualParams)
+  if (
+    actualParams?.method &&
+    ["post", "put"].includes(actualParams.method.toLowerCase())
+  ) {
+    actualParams.headers = {
+      ...actualParams.headers,
+      "Content-Type": "application/json",
+    };
+  }
+  return fetch(url, actualParams);
 }

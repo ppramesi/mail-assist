@@ -11,12 +11,14 @@ export function buildContextRoutes(db: Database) {
       const value = await db.getContextValue(key);
       logger.info(`Fetched specific context value by key: ${key}`);
       res.status(200).send({ [key]: value });
+      return;
     } catch (error) {
       logger.error(
         `Failed to fetch specific context value by key: ${key}`,
         error,
       );
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 
@@ -34,15 +36,31 @@ export function buildContextRoutes(db: Database) {
           `Set single context key-value pair, ID: ${id}, key: ${key}, value: ${value}`,
         );
         res.status(200).send({ status: "ok" });
+        return;
       } catch (error) {
         logger.error(
           `Failed to set single context key-value pair, ID: ${id}, key: ${key}`,
           error,
         );
         res.status(500).send(JSON.stringify(error));
+        return;
       }
     },
   );
+
+  router.delete("/:id", async (req: Request<{ id: string }>, res) => {
+    const { id } = req.params;
+    try {
+      await db.deleteContext(id);
+      logger.info(`Deleted context by ID: ${id}`);
+      res.status(200).send({ status: "ok" });
+      return;
+    } catch (error) {
+      logger.error(`Failed to delete context by ID: ${id}`, error);
+      res.status(500).send(JSON.stringify(error));
+      return;
+    }
+  });
 
   router.post("/", async (req: Request<{}, {}, Context>, res) => {
     const { body } = req;
@@ -52,9 +70,11 @@ export function buildContextRoutes(db: Database) {
         `Set multiple context key-value pairs: ${JSON.stringify(body)}`,
       );
       res.status(200).send({ status: "ok" });
+      return;
     } catch (error) {
       logger.error("Failed to set multiple context key-value pairs:", error);
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 
@@ -63,9 +83,11 @@ export function buildContextRoutes(db: Database) {
       const context = await db.getContext();
       logger.info(`Fetched the whole context`);
       res.status(200).send({ context });
+      return;
     } catch (error) {
       logger.error("Failed to fetch the whole context:", error);
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 

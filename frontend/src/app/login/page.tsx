@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import cookies from "js-cookie"
+import cookies from "js-cookie";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 
-export default function Login(){
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [snackbar, openSnackbar] = useState<boolean>(false);
@@ -19,24 +19,26 @@ export default function Login(){
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      if(res.ok === false){
-        throw new Error("Not ok!")
+      if (res.ok === false) {
+        throw new Error("Not ok!");
       }
-      const { session_key: sessionKey } = await res.json()
-      if(!sessionKey){
-        throw new Error("Session undefined")
+      const { session_key: sessionKey } = await res.json();
+      if (!sessionKey) {
+        throw new Error("Session undefined");
       }
-      cookies.set("session_key", sessionKey, { expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 10) });
+      cookies.set("session_key", sessionKey, {
+        expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 10),
+      });
       router.push("/");
     } catch (error) {
-      openSnackbar(true)
+      openSnackbar(true);
       cookies.remove("session_key");
     }
-  }
+  };
 
   const handleClose = () => {
     openSnackbar(false);
-  }
+  };
   return (
     <>
       <div className="flex items-center justify-center h-screen bg-gray-200">
@@ -62,18 +64,21 @@ export default function Login(){
               />
             </div>
             <div>
-              <button type="submit" className="px-4 py-2 w-full bg-blue-500 text-white rounded-md">Log in</button>
+              <button
+                type="submit"
+                className="px-4 py-2 w-full bg-blue-500 text-white rounded-md"
+              >
+                Log in
+              </button>
             </div>
           </form>
         </div>
       </div>
-      <Snackbar
-        open={snackbar}
-        onClose={handleClose}
-        autoHideDuration={5000}
-      >
-        <Alert severity="error" onClose={handleClose} sx={{ width: "100%" }}>Something bad happened!!</Alert>
+      <Snackbar open={snackbar} onClose={handleClose} autoHideDuration={5000}>
+        <Alert severity="error" onClose={handleClose} sx={{ width: "100%" }}>
+          Something bad happened!!
+        </Alert>
       </Snackbar>
     </>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-export interface Email{
+export interface Email {
   subject: string;
   text: string;
   date: Date;

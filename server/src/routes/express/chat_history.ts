@@ -11,12 +11,14 @@ export function buildChatHistoryRoutes(db: Database) {
       const chatHistory = await db.getChatHistoryByEmail(emailId);
       logger.info(`Fetched chat history by email ID: ${emailId}`);
       res.status(200).send({ chat_history: chatHistory });
+      return;
     } catch (error) {
       logger.error(
         `Failed to fetch chat history by email ID: ${emailId}`,
         error,
       );
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 
@@ -26,12 +28,14 @@ export function buildChatHistoryRoutes(db: Database) {
       const chatHistory = await db.getChatHistoryByReply(replyId);
       logger.info(`Fetched chat history by reply ID: ${replyId}`);
       res.status(200).send({ chat_history: chatHistory });
+      return;
     } catch (error) {
       logger.error(
         `Failed to fetch chat history by reply ID: ${replyId}`,
         error,
       );
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 
@@ -44,9 +48,11 @@ export function buildChatHistoryRoutes(db: Database) {
         await db.appendChatHistory(id, body.chat);
         logger.info(`Appended messages to chat history ID: ${id}`);
         res.status(200).send({ status: "ok" });
+        return;
       } catch (error) {
         logger.error(`Failed to append to chat history by ID: ${id}`, error);
         res.status(500).send(JSON.stringify(error));
+        return;
       }
     },
   );
@@ -57,9 +63,11 @@ export function buildChatHistoryRoutes(db: Database) {
       const chatHistory = await db.getChatHistoryById(id);
       logger.info(`Fetched chat history by ID: ${id}`);
       res.status(200).send({ chat_history: chatHistory });
+      return;
     } catch (error) {
       logger.error(`Failed to fetch chat history by ID: ${id}`, error);
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 
@@ -69,9 +77,11 @@ export function buildChatHistoryRoutes(db: Database) {
       await db.insertChatHistory(body);
       logger.info(`Inserted new chat history: ${JSON.stringify(body)}`);
       res.status(200).send({ status: "ok" });
+      return;
     } catch (error) {
       logger.error("Failed to insert chat history:", error);
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 
@@ -80,9 +90,11 @@ export function buildChatHistoryRoutes(db: Database) {
       const chatHistory = await db.getChatHistory();
       logger.info(`Fetched all chat histories`);
       res.status(200).send({ chat_history: chatHistory });
+      return;
     } catch (error) {
       logger.error("Failed to fetch all chat histories:", error);
       res.status(500).send(JSON.stringify(error));
+      return;
     }
   });
 
