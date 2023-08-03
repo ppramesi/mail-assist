@@ -14,7 +14,7 @@ import { KnexDatabase } from "../../databases/knex.js";
       database: process.env.POSTGRES_DB,
     },
   });
-  
+
   const db = new KnexDatabase(knex);
 
   const llm = new ChatOpenAI();

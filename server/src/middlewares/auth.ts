@@ -25,7 +25,7 @@ export function buildAuthMiddleware(database: Database) {
       return;
     }
     if (accessToken) {
-      logger.info({ accessToken })
+      logger.info({ accessToken });
       try {
         const decoded = jwt.verify(
           accessToken,
@@ -48,7 +48,7 @@ export function buildAuthMiddleware(database: Database) {
         return;
       }
     } else if (sessionToken) {
-      logger.info({ sessionToken })
+      logger.info({ sessionToken });
       const user = await database.getUserBySessionKey(sessionToken);
       if (!user) {
         logger.error("Failed to find session token:");
@@ -58,7 +58,12 @@ export function buildAuthMiddleware(database: Database) {
 
       try {
         const { email, metakey } = user!;
-        logger.info({ type: "auth", email, metakey, token: process.env.TOKEN_KEY! })
+        logger.info({
+          type: "auth",
+          email,
+          metakey,
+          token: process.env.TOKEN_KEY!,
+        });
         const decoded = jwt.verify(
           sessionToken,
           process.env.TOKEN_KEY! + metakey,
