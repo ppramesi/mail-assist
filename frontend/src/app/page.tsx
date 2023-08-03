@@ -9,10 +9,10 @@ import { useState } from "react";
 
 export default function Home() {
   const [loggedIn, isLoggedIn] = useState<boolean>(false);
-  const sessionKey = cookies.get("session_key");
   // const router = useRouter();
 
   useEffect(() => {
+    const sessionKey = cookies.get("session_key");
     if (!isNil(sessionKey)) {
       isLoggedIn(true);
     }

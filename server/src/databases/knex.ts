@@ -265,7 +265,7 @@ export class KnexDatabase extends Database {
       .where("email", email)
       .returning("metakey")
       .first()
-      .then((v) => v || null);
+      .then((v) => v.metakey || null);
   }
 
   async getUserSessionKey(email: string): Promise<string> {

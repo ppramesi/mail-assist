@@ -32,8 +32,10 @@ services:
     environment:
       - POSTGRES_HOST=db
       - TOKEN_KEY=${TOKEN_KEY}
+      - ANALYZER_HOST=analyzer
+      - ANALYZER_PORT=${ANALYZER_PORT}
 
-  embeddings-analyzer:
+  analyzer:
     build:
       context: ./analyzer
       dockerfile: Dockerfile

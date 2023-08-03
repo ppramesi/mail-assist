@@ -15,7 +15,7 @@ export default function EmailList() {
       .then((res) => res.json())
       .then((data) => {
         const { emails } = data;
-        setEmails(fetchedEmails);
+        setEmails(emails);
         setLoading(false);
       });
   }, []);
@@ -23,19 +23,11 @@ export default function EmailList() {
   return (
     <Box sx={{ width: "100%" }}>
       {isLoading ? (
-        <></>
+        <div>loading</div>
       ) : (
-        <>
-          <Stack spacing={2}>
-            {fetchedEmails?.map((email, idx) => {
-              return (
-                <>
-                  <EmailItem key={idx} email={email}></EmailItem>
-                </>
-              );
-            })}
-          </Stack>
-        </>
+        <Stack spacing={2}>
+          {fetchedEmails?.map((email, idx) => <EmailItem key={idx} email={email}></EmailItem>)}
+        </Stack>
       )}
     </Box>
   );

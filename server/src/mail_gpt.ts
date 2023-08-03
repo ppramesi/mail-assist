@@ -201,6 +201,7 @@ export class MailGPTAPIServer extends MailGPTServer {
       const authenticated = await bcrypt.compare(password, hashed);
       if (authenticated) {
         const metakey = await this.database.getUserMetakey(email);
+        logger.info({ type: "login", email, token: process.env.TOKEN_KEY!, metakey })
         const sessionKey = jwt.sign(
           {
             email,
