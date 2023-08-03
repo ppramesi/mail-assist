@@ -74,8 +74,8 @@ export abstract class MailGPTServer {
 
   async getAllowedHostsFilter(hostsParam: AllowedHost[] = []) {
     const hosts = await this.database.getAllowedHosts();
-    if (hosts) {
-      return buildFilterFunction([...hosts, ...hostsParam]);
+    if (hosts || hostsParam) {
+      return buildFilterFunction([...(hosts ?? []), ...hostsParam]);
     }
     return null;
   }
