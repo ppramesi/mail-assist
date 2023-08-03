@@ -10,6 +10,7 @@
 		"format": "prettier --write \"src\"",
 		"build": "tsc",
 		"start": "node ./dist/index.js",
+		"auth:create:user": "node ./helpers/register_user_knex.cjs",
 		"knex:migrate:latest": "node --loader ts-node/esm ./node_modules/.bin/knex migrate:latest",
 		"knex:migrate:rollback": "node --loader ts-node/esm ./node_modules/.bin/knex migrate:rollback --all"
 	},

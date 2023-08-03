@@ -19,6 +19,7 @@ import { buildAuthMiddleware } from "./middlewares/auth.js";
 import logger from "./logger/bunyan.js"; // the logger is already imported here
 import _ from "lodash";
 import { CallerScheduler } from "./scheduler/caller.js";
+import { buildFilterFunction } from "./chains/filters/simple_host.js";
 
 export interface MailGPTServerOpts {
   onStartServer?: (instance?: MailGPTServer) => void;
@@ -40,6 +41,7 @@ export interface MailGPTAPIServerOpts extends MailGPTServerOpts {
 }
 
 export abstract class MailGPTServer {
+  allowedHosts: AllowedHost[] = [];
   onStartServer?: (instance?: MailGPTServer) => void;
   mailAdapter: BaseMailAdapter;
   database: Database;
@@ -62,24 +64,20 @@ export abstract class MailGPTServer {
       llm: opts.llm,
       retriever: opts.retriever,
     };
-    if (opts.allowedHosts) {
-      executorOpts.allowedHosts = opts.allowedHosts;
-      this.executor = new MainExecutor(executorOpts);
-    } else {
-      this.executor = new MainExecutor(executorOpts);
-      this.setAllowedHosts();
-    }
+    this.executor = new MainExecutor(executorOpts);
     this.retriever = opts.retriever;
+    this.allowedHosts = opts.allowedHosts || [];
     this.onStartServer = opts.onStartServer;
   }
 
   abstract startServer(): Promise<void>;
 
-  async setAllowedHosts() {
+  async getAllowedHostsFilter(hostsParam: AllowedHost[] = []) {
     const hosts = await this.database.getAllowedHosts();
     if (hosts) {
-      this.executor.setAllowedHosts(hosts);
+      return buildFilterFunction([...hosts, ...hostsParam]);
     }
+    return null;
   }
 
   async getContext(fromDb = false) {
@@ -110,11 +108,14 @@ export abstract class MailGPTServer {
   async processEmails() {
     logger.info("Starting to process emails");
     const lastEmail = await this.database.getLatestEmail();
-    const [emails, context] = await Promise.all([
+    const [emails, context, hostsFilter] = await Promise.all([
       this.mailAdapter.fetch(lastEmail?.date),
       this.getContext(),
+      this.getAllowedHostsFilter(this.allowedHosts),
     ]);
-    const newEmails = await this.database.insertUnseenEmails(emails);
+    const newEmails = await this.database.insertUnseenEmails(
+      emails.filter(hostsFilter ?? (() => true)),
+    );
     this.executor.setContext(context ?? {});
     try {
       const processedEmails = await this.executor.processEmails(newEmails);
