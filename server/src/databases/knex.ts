@@ -39,8 +39,7 @@ export class KnexDatabase extends Database {
   }
 
   async insertEmails(emails: Email[]): Promise<void> {
-    const emailsNotInDb = await this.filterNotInDatabase(emails);
-    const procEmails = emailsNotInDb
+    const procEmails = emails
       .filter((e) => !_.isNil(e.date))
       .map((email) => {
         return _.pick(email, this.emailKeys);
@@ -49,25 +48,23 @@ export class KnexDatabase extends Database {
     await this.db("emails").insert(procEmails).onConflict("hash").ignore();
   }
 
-  async filterNotInDatabase(emails: Email[]) {
-    const oldestEmailDate = emails
+  async insertUnseenEmails(emails: Email[]): Promise<Email[]> {
+    const emailsNotInDb = await this.filterNotInDatabase(emails);
+    const procEmails = emailsNotInDb
       .filter((e) => !_.isNil(e.date))
-      .reduce((oldestDate, currentEmail) => {
-        return currentEmail.date! < oldestDate!
-          ? currentEmail.date
-          : oldestDate;
-      }, emails[0].date);
+      .map((email) => {
+        return _.pick(email, this.emailKeys);
+      });
 
-    const recentDbEmails = await this.db("emails")
-      .where<string>("date", ">", oldestEmailDate!)
-      .select();
+    await this.db("emails").insert(procEmails).onConflict("hash").ignore();
+    return emailsNotInDb;
+  }
 
-    const newEmails = emails.filter(
-      (serverEmail) =>
-        !recentDbEmails.some((dbEmail) => dbEmail.hash === serverEmail.hash),
-    );
-
-    return newEmails;
+  async getEmailsAfterDate(date: Date): Promise<Email[]> {
+    return this.db("emails")
+      .where<string>("date", ">", date)
+      .select()
+      .then((v) => v || []);
   }
 
   async getEmails(): Promise<Email[] | null> {

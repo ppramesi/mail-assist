@@ -19,6 +19,7 @@ export class CallerScheduler {
   job: Job;
   server?: MailGPTServer;
   constructor(opts: CallerSchedulerOpts) {
+    logger.info("Initializing scheduler");
     this.server = opts.server;
     let procFunction: () => Promise<void>;
     if (this.server) {
@@ -74,6 +75,7 @@ export class CallerScheduler {
     this.paused = false;
     const rule = opts.schedule ?? { rule: "0 9-21/2 * * *" };
     this.job = schedule.scheduleJob(rule, procFunction);
+    procFunction();
     logger.info(`Job scheduled with rule: ${JSON.stringify(rule)}`);
   }
 

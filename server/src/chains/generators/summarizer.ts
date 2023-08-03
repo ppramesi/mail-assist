@@ -1,11 +1,12 @@
 import { CallbackManagerForChainRun } from "langchain/callbacks";
 import {
-  BaseChain,
+  // BaseChain,
   ChainInputs,
-  StuffDocumentsChain,
+  LLMChain,
+  // StuffDocumentsChain,
   StuffDocumentsChainInput,
 } from "langchain/chains";
-import { loadSummarizationChain } from "langchain/chains";
+// import { loadSummarizationChain } from "langchain/chains";
 import {
   ChatPromptTemplate,
   HumanMessagePromptTemplate,
@@ -20,7 +21,7 @@ export interface EmailSummarizerOpts extends ChainInputs {
   summarizerOpts?: StuffDocumentsChainInput;
 }
 
-const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to summarize the email's body, given the context below. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Please make the summary as short as possible.
+const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to summarize the email's body, given the context below. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Please answer with nothing but the summary and make it as short as possible.
 
 <context>
 {context}
@@ -62,38 +63,23 @@ const buildPrompt = () =>
     ],
   });
 
-export class EmailSummarizer extends BaseChain {
+export class EmailSummarizer extends LLMChain {
   context?: Record<string, string>;
-  stufferChain: StuffDocumentsChain;
+  // stufferChain: StuffDocumentsChain;
 
   constructor(opts: EmailSummarizerOpts) {
-    super(opts);
-    const { summarizerOpts } = opts;
-    this.stufferChain = loadSummarizationChain(opts.llm, {
-      ...summarizerOpts,
-      type: "stuff",
-      prompt: buildPrompt(),
-    }) as StuffDocumentsChain;
+    super({ llm: opts.llm, prompt: buildPrompt() });
   }
 
   setContext(newContext: Record<string, string>) {
     this.context = newContext;
   }
 
-  get inputKeys(): string[] {
-    return this.stufferChain.outputKeys;
-  }
-
-  get outputKeys(): string[] {
-    return this.stufferChain.inputKeys;
-  }
-
-  _chainType(): string {
-    return "summarizer_chain";
-  }
-
   async _call(
-    values: ChainValues,
+    values: ChainValues &
+      this["llm"]["CallOptions"] & {
+        newContext?: Record<string, string>;
+      },
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
     if (!this.context) throw new Error("Context not set");
@@ -103,9 +89,39 @@ export class EmailSummarizer extends BaseChain {
     let context: string = Object.entries(this.context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
-    return this.stufferChain.call(
-      { ...rest, context, cc, bcc },
-      runManager?.getChild(),
-    );
+    return super._call({ ...rest, context, cc, bcc }, runManager);
   }
+
+  // setContext(newContext: Record<string, string>) {
+  //   this.context = newContext;
+  // }
+
+  // get inputKeys(): string[] {
+  //   return this.stufferChain.outputKeys;
+  // }
+
+  // get outputKeys(): string[] {
+  //   return this.stufferChain.inputKeys;
+  // }
+
+  // _chainType(): string {
+  //   return "summarizer_chain";
+  // }
+
+  // async _call(
+  //   values: ChainValues,
+  //   runManager?: CallbackManagerForChainRun | undefined,
+  // ): Promise<ChainValues> {
+  //   if (!this.context) throw new Error("Context not set");
+  //   let { cc, bcc, ...rest } = values;
+  //   cc = stringJoinArrayOrNone(cc);
+  //   bcc = stringJoinArrayOrNone(bcc);
+  //   let context: string = Object.entries(this.context)
+  //     .map(([key, value]) => `${key}: ${value}`)
+  //     .join("\n");
+  //   return super._call(
+  //     { ...rest, context, cc, bcc },
+  //     runManager,
+  //   );
+  // }
 }

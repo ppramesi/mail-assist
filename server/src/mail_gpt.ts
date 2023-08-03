@@ -114,53 +114,97 @@ export abstract class MailGPTServer {
       this.mailAdapter.fetch(lastEmail?.date),
       this.getContext(),
     ]);
-    await this.database.insertEmails(emails);
+    const newEmails = await this.database.insertUnseenEmails(emails);
     this.executor.setContext(context ?? {});
-    const processedEmails = await this.executor.processEmails(emails);
-    const processedPromises = processedEmails.map((emailOrReply) => {
-      switch (emailOrReply.process_status) {
-        case "empty": {
-          return this.database.updateEmailProcessedData(
-            emailOrReply.id,
-            "empty",
-          );
+    try {
+      const processedEmails = await this.executor.processEmails(newEmails);
+      const processedPromises = processedEmails.map(async (emailOrReply) => {
+        switch (emailOrReply.process_status) {
+          case "empty": {
+            try {
+              const result = await this.database.updateEmailProcessedData(
+                emailOrReply.id,
+                "empty",
+              );
+              logger.info("Empty email: ", emailOrReply.id, emailOrReply.hash);
+              return result;
+            } catch (error) {
+              logger.error(error);
+              return Promise.resolve();
+            }
+          }
+          case "irrelevant": {
+            try {
+              const result = await this.database.updateEmailProcessedData(
+                emailOrReply.id,
+                "irrelevant",
+              );
+              logger.info(
+                "Irrelevant email: ",
+                emailOrReply.id,
+                emailOrReply.hash,
+              );
+              return result;
+            } catch (error) {
+              logger.error(error);
+              return Promise.resolve();
+            }
+          }
+          case "summarized": {
+            try {
+              const { id, text, from, date } = emailOrReply;
+              const result = await Promise.all([
+                this.database.updateEmailProcessedData(
+                  emailOrReply.id,
+                  "summarized",
+                  emailOrReply.summary,
+                ),
+                this.retriever.addDocuments([
+                  new Document({
+                    pageContent: emailOrReply.summary,
+                    metadata: {
+                      id,
+                      text,
+                      from,
+                      date: date?.toLocaleString(),
+                    },
+                  }),
+                ]),
+              ]);
+              logger.info(
+                "Summarized email: ",
+                emailOrReply.id,
+                emailOrReply.hash,
+              );
+              return result;
+            } catch (error) {
+              logger.error(error);
+              return Promise.resolve();
+            }
+          }
+          case "potential_reply": {
+            try {
+              const result = await this.database.insertPotentialReply({
+                ...emailOrReply,
+              });
+              logger.info(
+                "Potential reply: ",
+                emailOrReply.id,
+                emailOrReply.hash,
+              );
+              return result;
+            } catch (error) {
+              logger.error(error);
+              return Promise.resolve();
+            }
+          }
         }
-        case "irrelevant": {
-          return this.database.updateEmailProcessedData(
-            emailOrReply.id,
-            "irrelevant",
-          );
-        }
-        case "summarized": {
-          const { id, text, from, date } = emailOrReply;
-          return Promise.all([
-            this.database.updateEmailProcessedData(
-              emailOrReply.id,
-              "summarized",
-              emailOrReply.summary,
-            ),
-            this.retriever.addDocuments([
-              new Document({
-                pageContent: emailOrReply.summary,
-                metadata: {
-                  id,
-                  text,
-                  from,
-                  date: date?.toLocaleString(),
-                },
-              }),
-            ]),
-          ]);
-        }
-        case "potential_reply": {
-          return this.database.insertPotentialReply({
-            ...emailOrReply,
-          });
-          break;
-        }
-      }
-    });
-    return Promise.all(processedPromises);
+      });
+      return Promise.all(processedPromises);
+    } catch (error) {
+      logger.error(error);
+      return Promise.resolve();
+    }
   }
 }
 
@@ -201,12 +245,6 @@ export class MailGPTAPIServer extends MailGPTServer {
       const authenticated = await bcrypt.compare(password, hashed);
       if (authenticated) {
         const metakey = await this.database.getUserMetakey(email);
-        logger.info({
-          type: "login",
-          email,
-          token: process.env.TOKEN_KEY!,
-          metakey,
-        });
         const sessionKey = jwt.sign(
           {
             email,

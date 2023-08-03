@@ -105,7 +105,8 @@ export class KnexVectorStore extends VectorStore {
     const queryStr = [
       this.knex
         .raw(
-          `SELECT *, embedding <=> ${vector}::vector as "_distance" FROM ${this.tableName}`,
+          `SELECT *, embedding <=> ?::vector as "_distance" FROM ${this.tableName}`,
+          [vector],
         )
         .toString(),
       this.buildSqlFilterStr(filter),

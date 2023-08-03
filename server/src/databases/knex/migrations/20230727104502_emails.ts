@@ -12,7 +12,7 @@ export async function up(knex: Knex): Promise<void> {
     table.text("text");
     table.date("date");
     table.boolean("read");
-    table.string("summary").nullable();
+    table.text("summary").nullable();
     table.string("status").nullable();
   });
 }

@@ -25,11 +25,17 @@ export default function EmailList() {
       {isLoading ? (
         <div>loading</div>
       ) : (
-        <Stack spacing={2}>
-          {fetchedEmails?.map((email, idx) => (
-            <EmailItem key={idx} email={email}></EmailItem>
-          ))}
-        </Stack>
+        <>
+          {fetchedEmails && fetchedEmails.length > 0 ? (
+            <Stack spacing={2}>
+              {fetchedEmails?.map((email, idx) => (
+                <EmailItem key={idx} email={email}></EmailItem>
+              ))}
+            </Stack>
+          ) : (
+            <h1>No Emails</h1>
+          )}
+        </>
       )}
     </Box>
   );

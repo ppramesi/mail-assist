@@ -10,6 +10,7 @@ import { Callbacks } from "langchain/callbacks";
 import { ChainValues } from "langchain/schema";
 import { Email } from "../adapters/base.js";
 import { AllowedHost } from "../databases/base.js";
+import logger from "../logger/bunyan.js";
 
 export type MainExecutorOpts = {
   allowedHosts?: AllowedHost[];
@@ -85,7 +86,7 @@ export class MainExecutor {
     this.summarizer.setContext(this.context);
   }
 
-  async summarizeAndSaveToVectorDB(values: ChainValues, callbacks?: Callbacks) {
+  async summarize(values: ChainValues, callbacks?: Callbacks) {
     const { text: summary } = await this.summarizer.call(values, callbacks);
     return summary;
   }
@@ -146,19 +147,20 @@ export class MainExecutor {
             cc,
             bcc,
           };
-          const { is_relevant: isRelevant } = await this.relevancyChain.call(
+          const { decision } = await this.relevancyChain.call(
             values,
             callbacks,
           );
-          if (isRelevant === "none") {
+          logger.info(`Decision: ${decision}`);
+          if (decision === "none") {
             const irrelevantEmail: IrrelevantEmail = {
               process_status: "irrelevant",
               ...email,
             };
             return Promise.resolve([irrelevantEmail]);
           }
-          const summarizePromise = this.summarizeAndSaveToVectorDB(values);
-          if (isRelevant === "reply") {
+          const summarizePromise = this.summarize(values);
+          if (decision === "reply") {
             const fetchSummariesPromise = this.vectorStoreFetchSummaries(
               values,
               callbacks,

@@ -1,6 +1,7 @@
 import { Email } from "../adapters/base.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import _ from "lodash";
 
 export type Context = Record<string, string>;
 
@@ -67,11 +68,35 @@ export abstract class Database {
    */
   abstract insertEmail(email: Email): Promise<void>;
 
+  abstract insertEmails(emails: Email[]): Promise<void>;
+
   /**
    * Inserts an email into the database.
+   * Returns emails that were not in the database
    * @param email The email data to insert.
    */
-  abstract insertEmails(emails: Email[]): Promise<void>;
+  abstract insertUnseenEmails(emails: Email[]): Promise<Email[]>;
+
+  abstract getEmailsAfterDate(date: Date): Promise<Email[]>;
+
+  async filterNotInDatabase(emails: Email[]) {
+    const oldestEmailDate = emails
+      .filter((e) => !_.isNil(e.date))
+      .reduce((oldestDate, currentEmail) => {
+        return currentEmail.date! < oldestDate!
+          ? currentEmail.date
+          : oldestDate;
+      }, emails[0].date);
+
+    const recentDbEmails = await this.getEmailsAfterDate(oldestEmailDate!);
+
+    const newEmails = emails.filter(
+      (serverEmail) =>
+        !recentDbEmails.some((dbEmail) => dbEmail.hash === serverEmail.hash),
+    );
+
+    return newEmails;
+  }
 
   /**
    * Fetches all emails from the database.
@@ -153,9 +178,6 @@ export abstract class Database {
   abstract getChatHistoryByEmail(emailId: string): Promise<ChatHistory>;
 
   abstract getChatHistoryByReply(replyId: string): Promise<ChatHistory>;
-
-  // util methods
-  abstract filterNotInDatabase(emails: Email[]): Promise<Email[]>;
 
   abstract insertUser(email: string, password: string): Promise<void>;
 

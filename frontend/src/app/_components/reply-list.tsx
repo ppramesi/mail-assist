@@ -71,11 +71,17 @@ export default function ReplyList({ emailId }: { emailId: string }) {
               </Typography>
             </CardContent>
           </Card>
-          <Stack spacing={2}>
-            {fetchedReplies?.map((reply, idx) => {
-              return <ReplyItem key={idx} reply={reply}></ReplyItem>;
-            })}
-          </Stack>
+          <>
+            {fetchedReplies && fetchedReplies.length > 0 ? (
+              <Stack spacing={2}>
+                {fetchedReplies?.map((reply, idx) => {
+                  return <ReplyItem key={idx} reply={reply}></ReplyItem>;
+                })}
+              </Stack>
+            ) : (
+              <h1>No Emails</h1>
+            )}
+          </>
         </>
       )}
     </Box>

@@ -8,6 +8,7 @@ import {
 } from "langchain/prompts";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
 import { stringJoinArrayOrNone } from "../utils/string.js";
 
@@ -79,7 +80,7 @@ export class IntentionsGenerator extends LLMChain<any, ChatOpenAI> {
           {
             name: functionName,
             description: `Output formatter. Should always be used to format your response to the user.`,
-            parameters: outputSchema,
+            parameters: zodToJsonSchema(outputSchema),
           },
         ],
         function_call: {
