@@ -1,7 +1,7 @@
 import express, { Request } from "express";
 import { Database } from "../../databases/base.js";
-import { Email } from "../../adapters/base.js";
 import logger from "../../logger/bunyan.js";
+import { Email } from "../../schema/index.js";
 
 export function buildEmailRoutes(db: Database) {
   const router = express.Router();

@@ -11,7 +11,11 @@ import { TextField } from "@mui/material";
 import { Button } from "@mui/material";
 import { fetchWithSessionToken } from "@/utils/client_fetcher";
 
-export default function ChatBox({ chatHistory }: { chatHistory: ChatHistory }) {
+export default function ChatBoxStream({
+  chatHistory,
+}: {
+  chatHistory: ChatHistory;
+}) {
   const [allMessages, setAllMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
@@ -23,7 +27,7 @@ export default function ChatBox({ chatHistory }: { chatHistory: ChatHistory }) {
     };
 
     setAllMessages([...allMessages, humanMessage]);
-    fetchWithSessionToken("/api/gpt/evaluate-email/", {
+    fetchWithSessionToken("/api/gpt/evaluate-email/stream/", {
       method: "POST",
       body: JSON.stringify({
         input: newMessage,
@@ -31,22 +35,32 @@ export default function ChatBox({ chatHistory }: { chatHistory: ChatHistory }) {
         email_id: chatHistory.email_id,
       }),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        const { output } = data;
-        const aiMessage: AIMessage = {
+      .then((res) => res.body?.getReader())
+      .then(async (reader) => {
+        const currentAiMessage: AIMessage = {
           timestamp: Date.now(),
           type: "ai",
-          text: output,
+          text: "",
         };
-
-        setAllMessages([...allMessages, aiMessage]);
+        const tempAllMessages: Message[] = [...allMessages];
+        setAllMessages([...tempAllMessages, currentAiMessage]);
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader?.read();
+            if (done) {
+              break;
+            }
+            currentAiMessage.text += value;
+            setAllMessages([...tempAllMessages, currentAiMessage]);
+          }
+        }
         setNewMessage("");
       });
   };
 
   const handleEnter = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" && e.shiftKey === false) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
       handleSend();
     }
   };

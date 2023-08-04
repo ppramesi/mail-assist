@@ -2,7 +2,6 @@ import Cookies from "js-cookie";
 
 export function fetchWithSessionToken(url: string, params?: RequestInit) {
   const sessionToken = Cookies.get("session_key");
-  console.log({ sessionToken });
   let actualParams: RequestInit | undefined;
   if (sessionToken) {
     if (params) {

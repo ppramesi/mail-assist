@@ -8,7 +8,7 @@ import {
   HumanMessagePromptTemplate,
   SystemMessagePromptTemplate,
 } from "langchain/prompts";
-import { CallbackManagerForChainRun } from "langchain/callbacks";
+import { CallbackManagerForChainRun, Callbacks } from "langchain/callbacks";
 import _ from "lodash";
 
 const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. You were tasked with writing a reply given the email's body, and have written a reply for the given email in the past. The user has an input and would like you to change something in the reply. You answer should only be the email's text and nothing else.
@@ -27,11 +27,56 @@ export interface ConversationalEmailEvaluatorOpts
   db: Database;
 }
 
+export class IterableReadableStream<T> extends ReadableStream<T> {
+  public reader: ReadableStreamDefaultReader<T>;
+
+  ensureReader() {
+    if (!this.reader) {
+      this.reader = this.getReader();
+    }
+  }
+
+  async next() {
+    this.ensureReader();
+    try {
+      const result = await this.reader.read();
+      if (result.done) this.reader.releaseLock(); // release lock when stream becomes closed
+      return result;
+    } catch (e) {
+      this.reader.releaseLock(); // release lock when stream becomes errored
+      throw e;
+    }
+  }
+
+  async return() {
+    this.ensureReader();
+    const cancelPromise = this.reader.cancel(); // cancel first, but don't await yet
+    this.reader.releaseLock(); // release lock first
+    await cancelPromise; // now await it
+    return { done: true, value: undefined };
+  }
+
+  [Symbol.asyncIterator]() {
+    return this;
+  }
+
+  static fromAsyncGenerator<T>(generator: AsyncGenerator<T>) {
+    return new IterableReadableStream<T>({
+      async pull(controller) {
+        const { value, done } = await generator.next();
+        if (done) {
+          controller.close();
+        } else if (value) {
+          controller.enqueue(value);
+        }
+      },
+    });
+  }
+}
+
 export class ConversationalEmailEvaluator extends LLMChain {
   db: Database;
-  chatMessages: (AIMessage | HumanMessage)[];
   replyId?: string;
-  conversationId?: string;
   promptBuilt = false;
 
   constructor(opts: ConversationalEmailEvaluatorOpts) {
@@ -45,20 +90,10 @@ export class ConversationalEmailEvaluator extends LLMChain {
     });
 
     this.db = opts.db;
-    this.chatMessages = [];
   }
 
-  async buildPrompt(fetch: boolean = true) {
-    if (!this.replyId) {
-      throw new Error("Please set the potential reply id!");
-    }
-    if (fetch || !this.conversationId) {
-      const { chat_messages: chatMessages, id } =
-        await this.db.getChatHistoryByReply(this.replyId);
-      this.conversationId = id;
-      this.chatMessages = _.cloneDeep(chatMessages);
-    }
-    const templates = this.chatMessages.map((message) => {
+  buildPrompt(messages: (AIMessage | HumanMessage)[]) {
+    const templates = messages.map((message) => {
       if (message.type === "ai") {
         return AIMessagePromptTemplate.fromTemplate(message.text);
       } else {
@@ -74,30 +109,39 @@ export class ConversationalEmailEvaluator extends LLMChain {
       ],
       inputVariables: ["body", "intention", "context", "input"],
     });
-    this.promptBuilt = true;
   }
 
   async _call(
-    aValues: ChainValues & this["llm"]["CallOptions"],
+    aValues: ChainValues &
+      this["llm"]["CallOptions"] & {
+        chat_messages: (AIMessage | HumanMessage)[];
+      },
     runManager?: CallbackManagerForChainRun | undefined,
   ): Promise<ChainValues> {
-    const { replyId, ...values } = aValues;
-    this.replyId = replyId;
-    if (!this.replyId) {
-      throw new Error("Please set the potential reply id!");
-    }
-    await this.buildPrompt(true);
-    const { input } = values;
-    const humanInput: HumanMessage = { type: "human", text: input };
-    this.chatMessages.push(humanInput);
+    const { chat_messages: chatMessages, ...values } = aValues;
+    this.buildPrompt(chatMessages);
     const result = await super._call(values, runManager);
-    const aiInput: AIMessage = { type: "ai", text: result.text };
-    this.chatMessages.push(aiInput);
-    await this.db.appendChatHistory(this.conversationId!, [
-      humanInput,
-      aiInput,
-    ]);
 
     return result;
+  }
+
+  buildToStream(
+    aValues: ChainValues &
+      this["llm"]["CallOptions"] & {
+        chat_messages: (AIMessage | HumanMessage)[];
+      },
+    callbacks?: Callbacks,
+  ) {
+    const { chat_messages: chatMessages, ...values } = aValues;
+    this.buildPrompt(chatMessages);
+    const chain = this.prompt.pipe<string>(this.llm);
+    return async function* () {
+      const results = await chain.stream(values, {
+        callbacks,
+      });
+      for await (const result of results) {
+        yield result;
+      }
+    };
   }
 }

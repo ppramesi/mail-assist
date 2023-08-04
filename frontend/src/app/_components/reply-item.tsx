@@ -1,8 +1,8 @@
 "use client";
 
 import { PotentialReplyEmail } from "./types/reply";
-import { Card, CardContent, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Button, Card, CardContent, Typography } from "@mui/material";
+import { useState } from "react";
 import { ChatHistory } from "./types/chat-history";
 import ChatBox from "./chat-box";
 import { isNil } from "lodash";
@@ -10,15 +10,43 @@ import { fetchWithSessionToken } from "@/utils/client_fetcher";
 
 export default function ReplyItem({ reply }: { reply: PotentialReplyEmail }) {
   const [chatHistory, setChatHistory] = useState<ChatHistory>();
+  const [showChat, setShowChat] = useState<boolean>(false);
+  const [requestOnce, setRequestOnce] = useState<boolean>(false);
 
-  useEffect(() => {
-    fetchWithSessionToken(`/api/chat-history/email/${reply.email_id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        const { chat_history: myChatHistory } = data;
-        setChatHistory(myChatHistory);
-      });
-  }, [reply]);
+  const handleShowChat = () => {
+    if (!requestOnce) {
+      fetchWithSessionToken(`/api/chat-history/email/${reply.email_id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const { chat_history: myChatHistory } = data;
+          if (myChatHistory) {
+            setChatHistory(myChatHistory);
+          } else {
+            const emptyChatHistory: ChatHistory = {
+              id: "",
+              email_id: reply.email_id,
+              reply_id: reply.id,
+              chat_messages: [
+                {
+                  timestamp: Date.now(),
+                  type: "ai",
+                  text: reply.reply_text,
+                },
+              ],
+            };
+            setChatHistory(emptyChatHistory);
+          }
+          setShowChat(true);
+        });
+      setRequestOnce(true);
+    } else {
+      setShowChat(true);
+    }
+  };
+
+  const handleHideChat = () => {
+    setShowChat(false);
+  };
 
   return (
     <Card className="mb-4 p-2 bg-gray-100 rounded-md shadow">
@@ -41,8 +69,13 @@ export default function ReplyItem({ reply }: { reply: PotentialReplyEmail }) {
         <Typography className="pl-2" variant="body2">
           {reply.reply_text}
         </Typography>
+        {showChat ? (
+          <Button onClick={handleHideChat}>Hide Chat</Button>
+        ) : (
+          <Button onClick={handleShowChat}>Show Chat</Button>
+        )}
       </CardContent>
-      {!isNil(chatHistory) ? (
+      {!isNil(chatHistory) && showChat ? (
         <ChatBox chatHistory={chatHistory}></ChatBox>
       ) : (
         <></>

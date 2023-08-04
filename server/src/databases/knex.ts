@@ -1,5 +1,4 @@
 import _ from "lodash";
-import { Email } from "../adapters/base.js";
 import {
   AIMessage,
   AllowedHost,
@@ -10,6 +9,7 @@ import {
   ChatHistory,
 } from "./base.js";
 import Knex, { Knex as KnexT } from "knex";
+import { Email } from "../schema/index.js";
 
 export class KnexDatabase extends Database {
   private db: KnexT;
@@ -49,6 +49,7 @@ export class KnexDatabase extends Database {
   }
 
   async insertUnseenEmails(emails: Email[]): Promise<Email[]> {
+    if (emails.length === 0) return [];
     const emailsNotInDb = await this.filterNotInDatabase(emails);
     const procEmails = emailsNotInDb
       .filter((e) => !_.isNil(e.date))

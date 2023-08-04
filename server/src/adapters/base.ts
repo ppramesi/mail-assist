@@ -1,47 +1,8 @@
-import { simpleParser, ParsedMail, AddressObject } from "mailparser";
+import { simpleParser, AddressObject } from "mailparser";
 import crypto from "crypto";
+import { Email, SearchContext } from "../schema/index.js";
 
 export type FetchOpts = {};
-
-export interface EmailAddress {
-  name: string;
-  address: string;
-}
-
-export interface Email extends Pick<ParsedMail, "subject" | "text" | "date"> {
-  id: string;
-  read: boolean;
-  hash: string;
-  from: string[];
-  to: string[];
-  cc?: string[];
-  bcc?: string[];
-  status?: string;
-  summary?: string;
-}
-
-export interface EmailAttachment {
-  id: string;
-  filename: string;
-  contentType: string;
-  size: number;
-  data: Buffer; // or other type suitable for storing binary data
-}
-
-export interface SearchContext {
-  from?: string;
-  to?: string;
-  subject?: string;
-  body?: string;
-  dateRange?: DateRange;
-  hasAttachments?: boolean;
-  read?: boolean;
-}
-
-export interface DateRange {
-  from: Date;
-  to: Date;
-}
 
 export abstract class BaseMailAdapter {
   declare AuthType: { [k: string]: any };

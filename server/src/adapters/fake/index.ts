@@ -1,4 +1,4 @@
-import { Email, BaseMailAdapter, SearchContext } from "../base.js";
+import { BaseMailAdapter } from "../base.js";
 import * as uuid from "uuid";
 import {
   TEST_EMAILS_1,
@@ -6,6 +6,7 @@ import {
   TEST_EMAILS_3,
   TEST_EMAILS_4,
 } from "./emails/fake_emails.js";
+import { Email, SearchContext } from "../../schema/index.js";
 
 const testEmails = [TEST_EMAILS_1, TEST_EMAILS_2, TEST_EMAILS_3, TEST_EMAILS_4];
 

@@ -52,7 +52,10 @@ const apiServer = new MailGPTAPIServer({
   database: dbInstance,
   retriever,
   mailAdapter,
-  llm: new ChatOpenAI(),
+  llm: new ChatOpenAI({
+    modelName: "gpt-4",
+    maxConcurrency: 5,
+  }),
   middlewareOpts: {
     useAuth,
   },

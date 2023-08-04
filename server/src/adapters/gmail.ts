@@ -1,9 +1,10 @@
 import Imap from "imap";
 import { simpleParser } from "mailparser";
-import { Email, IMAPAuth, IMAPMailAdapter } from "./base.js";
+import { IMAPAuth, IMAPMailAdapter } from "./base.js";
 import * as uuid from "uuid";
 import { Source } from "mailparser";
 import _ from "lodash";
+import { Email } from "../schema/index.js";
 
 export class IMAPGmailAdapter extends IMAPMailAdapter {
   declare AuthType: IMAPAuth;
@@ -73,7 +74,9 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
                   cc: IMAPGmailAdapter.flattenAddressObjects(mail.cc),
                   bcc: IMAPGmailAdapter.flattenAddressObjects(mail.bcc),
                   subject: mail.subject,
-                  date: mail.date,
+                  date:
+                    mail?.date ??
+                    new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
                   text: mail.text,
                   hash: IMAPGmailAdapter.hashText(mail.text ?? ""),
                 });

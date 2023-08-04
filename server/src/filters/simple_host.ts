@@ -1,5 +1,5 @@
-import { Email } from "../../adapters/base.js";
-import { AllowedHost } from "../../databases/base.js";
+import { AllowedHost } from "../databases/base.js";
+import { Email } from "../schema/index.js";
 
 export function buildFilterFunction(allowedHosts?: AllowedHost[]) {
   const emailRegex = /<([^>]+)>/;
@@ -18,6 +18,6 @@ export function buildFilterFunction(allowedHosts?: AllowedHost[]) {
       });
     }
 
-    return true;
+    return false;
   };
 }

@@ -7,40 +7,20 @@ import { EmailSummarizer } from "./generators/summarizer.js";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Callbacks } from "langchain/callbacks";
 import { ChainValues } from "langchain/schema";
-import { Email } from "../adapters/base.js";
 import logger from "../logger/bunyan.js";
+import {
+  Email,
+  EmptyEmail,
+  IrrelevantEmail,
+  PotentialReplyEmail,
+  ProcessedEmail,
+  SummarizedEmail,
+} from "../schema/index.js";
 
 export type MainExecutorOpts = {
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
 };
-
-export interface EmptyEmail extends Email {
-  process_status: "empty";
-}
-
-export interface IrrelevantEmail extends Email {
-  process_status: "irrelevant";
-}
-
-export interface SummarizedEmail extends Email {
-  process_status: "summarized";
-  summary: string;
-}
-
-export interface PotentialReplyEmail extends Email {
-  process_status: "potential_reply";
-  intention: string;
-  reply_text: string;
-  email_id: string;
-  summary: string;
-}
-
-export type ProcessedEmail =
-  | EmptyEmail
-  | IrrelevantEmail
-  | SummarizedEmail
-  | PotentialReplyEmail;
 
 export class MainExecutor {
   relevancyChain: EmailRelevancyEvaluator;

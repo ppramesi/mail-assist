@@ -51,8 +51,8 @@ export default function SettingsForm() {
         }
 
         // If you expect any response from the server
-        const data = await response.json();
-        console.log(data);
+        // const data = await response.json();
+        // console.log(data);
       } catch (error) {
         console.error("Request failed: ", error);
       }
@@ -73,8 +73,8 @@ export default function SettingsForm() {
       }
 
       // If you expect any response from the server
-      const data = await response.json();
-      console.log(data);
+      // const data = await response.json();
+      // console.log(data);
     } catch (error) {
       console.error("Request failed: ", error);
     }

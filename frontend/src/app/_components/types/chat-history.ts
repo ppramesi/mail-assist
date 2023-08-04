@@ -1,4 +1,5 @@
 export type Message = {
+  timestamp: number;
   type: "ai" | "human";
   text: string;
 };

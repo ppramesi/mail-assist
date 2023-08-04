@@ -20,7 +20,7 @@ Respond with one of the following actions:
 'save': Although the user doesn't need to reply, the email carries enough importance to be stored in the database.
 'none': The user doesn't need to reply, and the email shouldn't be stored in the database.
 
-For instances where the email is a promotional, scam or spam email, your response should consistently be 'none'. However, if the email is pertinent to the context information below, your response should at least be 'save'. But, if the email is of utmost importance that warrants a response from the user's standpoint (for instance, if the email explicitly mentions the user's name or email address, or when the user's feedback is sought), you should respond with 'reply'. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags.
+For instances where the email is a promotional, scam or spam email, your response should consistently be 'none'. If the username of the sender is noreply, and it's not relevant to our context, you should answer 'none'. However, if the email is pertinent to the context information below, your response should at least be 'save'. But, if the email is of utmost importance that warrants a response from the user's standpoint (for instance, if the email explicitly mentions the user's name or email address, or when the user's feedback is sought), you should respond with 'reply'. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags.
 
 <context>
 {context}

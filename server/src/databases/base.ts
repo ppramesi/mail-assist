@@ -1,11 +1,12 @@
-import { Email } from "../adapters/base.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import _ from "lodash";
+import { Email } from "../schema/index.js";
 
 export type Context = Record<string, string>;
 
 export type Message = {
+  timestamp: number;
   type: "ai" | "human";
   text: string;
 };
@@ -164,7 +165,9 @@ export abstract class Database {
     emailId: string,
   ): Promise<PotentialReplyEmail[] | null>;
 
-  abstract insertChatHistory(chatHistory: ChatHistory): Promise<string>; // returns id
+  abstract insertChatHistory(
+    chatHistory: Omit<ChatHistory, "id">,
+  ): Promise<string>; // returns id
 
   abstract getChatHistory(): Promise<ChatHistory[] | null>;
 
@@ -173,11 +176,11 @@ export abstract class Database {
     messages: (AIMessage | HumanMessage)[],
   ): Promise<void>;
 
-  abstract getChatHistoryById(id: string): Promise<ChatHistory>;
+  abstract getChatHistoryById(id: string): Promise<ChatHistory | null>;
 
-  abstract getChatHistoryByEmail(emailId: string): Promise<ChatHistory>;
+  abstract getChatHistoryByEmail(emailId: string): Promise<ChatHistory | null>;
 
-  abstract getChatHistoryByReply(replyId: string): Promise<ChatHistory>;
+  abstract getChatHistoryByReply(replyId: string): Promise<ChatHistory | null>;
 
   abstract insertUser(email: string, password: string): Promise<void>;
 

@@ -1,12 +1,18 @@
 import express, { Express } from "express";
 import { BaseMailAdapter } from "./adapters/base.js";
-import { AllowedHost, Database } from "./databases/base.js";
+import {
+  AIMessage,
+  AllowedHost,
+  Database,
+  HumanMessage,
+} from "./databases/base.js";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { MainExecutor, MainExecutorOpts } from "./chains/executors.js";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Document } from "langchain/document";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import * as uuid from "uuid";
 import { ConversationalEmailEvaluator } from "./chains/user_evaluation.js";
 import {
   buildAllowedHostsRoutes,
@@ -19,7 +25,7 @@ import { buildAuthMiddleware } from "./middlewares/auth.js";
 import logger from "./logger/bunyan.js"; // the logger is already imported here
 import _ from "lodash";
 import { CallerScheduler } from "./scheduler/caller.js";
-import { buildFilterFunction } from "./chains/filters/simple_host.js";
+import { buildFilterFunction } from "./filters/simple_host.js";
 
 export interface MailGPTServerOpts {
   onStartServer?: (instance?: MailGPTServer) => void;
@@ -86,21 +92,110 @@ export abstract class MailGPTServer {
       : this.database.getContext();
   }
 
-  async evaluateEmail(input: string, emailId: string, replyId: string) {
-    const [email, reply, context] = await Promise.all([
+  async *streamEvaluateEmail(input: string, emailId: string, replyId: string) {
+    let [email, reply, context, chatHistory] = await Promise.all([
       this.database.getEmail(emailId),
       this.database.getPotentialReply(replyId),
       this.getContext(),
+      this.database.getChatHistoryByReply(replyId),
     ]);
     if (!email || !reply) {
-      throw new Error("Email or reply not found!");
+      throw new Error("Email, reply or conversation not found!");
     }
-    const { text: newPotentialEmail } = await this.conversator.call({
-      context,
+
+    if (!chatHistory) {
+      chatHistory = {
+        id: uuid.v4(),
+        email_id: emailId,
+        reply_id: replyId,
+        chat_messages: [
+          { type: "ai", text: reply.reply_text!, timestamp: Date.now() },
+        ],
+      };
+      await this.database.insertChatHistory(chatHistory);
+    }
+
+    const humanInput: HumanMessage = {
+      type: "human",
+      text: input,
+      timestamp: Date.now(),
+    };
+
+    const streamFunction = this.conversator.buildToStream({
+      context: context
+        ? Object.entries(context).map(([key, value]) => `${key}: ${value}`)
+        : "",
+      chat_messages: chatHistory.chat_messages,
       body: email.text,
       intention: reply.intention,
       input,
     });
+
+    let newPotentialEmail = "";
+    for await (const result of streamFunction()) {
+      newPotentialEmail += result ?? "";
+      yield result;
+    }
+
+    const aiInput: AIMessage = {
+      type: "ai",
+      text: newPotentialEmail,
+      timestamp: Date.now() + 1,
+    };
+    await this.database.appendChatHistory(chatHistory.id, [
+      humanInput,
+      aiInput,
+    ]);
+  }
+
+  async evaluateEmail(input: string, emailId: string, replyId: string) {
+    let [email, reply, context, chatHistory] = await Promise.all([
+      this.database.getEmail(emailId),
+      this.database.getPotentialReply(replyId),
+      this.getContext(),
+      this.database.getChatHistoryByReply(replyId),
+    ]);
+    if (!email || !reply) {
+      throw new Error("Email, reply or conversation not found!");
+    }
+
+    if (!chatHistory) {
+      chatHistory = {
+        id: uuid.v4(),
+        email_id: emailId,
+        reply_id: replyId,
+        chat_messages: [
+          { type: "ai", text: reply.reply_text!, timestamp: Date.now() },
+        ],
+      };
+      await this.database.insertChatHistory(chatHistory);
+    }
+
+    const humanInput: HumanMessage = {
+      type: "human",
+      text: input,
+      timestamp: Date.now(),
+    };
+
+    const { text: newPotentialEmail } = await this.conversator.call({
+      context: context
+        ? Object.entries(context).map(([key, value]) => `${key}: ${value}`)
+        : "",
+      chat_messages: chatHistory.chat_messages,
+      body: email.text,
+      intention: reply.intention,
+      input,
+    });
+
+    const aiInput: AIMessage = {
+      type: "ai",
+      text: newPotentialEmail,
+      timestamp: Date.now() + 1,
+    };
+    await this.database.appendChatHistory(chatHistory.id, [
+      humanInput,
+      aiInput,
+    ]);
 
     return newPotentialEmail;
   }
@@ -113,9 +208,8 @@ export abstract class MailGPTServer {
       this.getContext(),
       this.getAllowedHostsFilter(this.allowedHosts),
     ]);
-    const newEmails = await this.database.insertUnseenEmails(
-      emails.filter(hostsFilter ?? (() => true)),
-    );
+    const filteredEmails = emails.filter(hostsFilter ?? (() => false));
+    const newEmails = await this.database.insertUnseenEmails(filteredEmails);
     this.executor.setContext(context ?? {});
     try {
       const processedEmails = await this.executor.processEmails(newEmails);
@@ -343,6 +437,34 @@ export class MailGPTAPIServer extends MailGPTServer {
       } catch (error) {
         logger.error(
           `Error while evaluating email with id: ${emailId}:`,
+          error,
+        );
+        res.status(500).send(error);
+        return;
+      }
+    });
+
+    gptRoutes.post("/stream/evaluate-email", async (req, res) => {
+      const { input, email_id: emailId, reply_id: replyId } = req.body;
+      try {
+        logger.info(`Starting to stream evaluate email with id: ${emailId}`);
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/plain");
+        const evaluatorStream = this.streamEvaluateEmail(
+          input,
+          emailId,
+          replyId,
+        );
+        for await (const chunk of evaluatorStream) {
+          if (chunk) {
+            res.write(chunk);
+          }
+        }
+        res.end();
+        return;
+      } catch (error) {
+        logger.error(
+          `Error while stream evaluating email with id: ${emailId}:`,
           error,
         );
         res.status(500).send(error);
