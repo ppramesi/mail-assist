@@ -1,20 +1,46 @@
 import express, { Request } from "express";
-import { Database, PotentialReplyEmail } from "../../databases/base.js";
+import { Database } from "../../databases/base.js";
 import logger from "../../logger/bunyan.js";
+import { PolicyResult, ReplyEmail } from "../../schema/index.js";
+import { Authorization } from "../../authorization/base.js";
 
-export function buildReplyRoutes(db: Database) {
+export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
   const router = express.Router();
+  router.use(async (req, res, next) => {
+    if(authorizer){
+      const { body, params } = req
+      const { user_id: userId } = body
+      if(userId){
+        const policies = await authorizer.getReplyEmailPolicies(userId, { body, params })
+        body.policies = policies;
+        next()
+      }else{
+        logger.error("Failed emails request: Unauthorized empty user")
+        res.status(403).send({ error: "Failed emails request: Unauthorized empty user" })
+        return
+      }
+    }else{
+      next()
+    }
+  })
 
   router.get("/email/:emailId", async (req, res) => {
     const { emailId } = req.params;
     try {
-      const replies = await db.getPotentialRepliesByEmail(emailId);
-      logger.info(`Fetched potential replies by email id: ${emailId}`);
+      const { body: { policies } } = req
+      if(!policies.readAllowed){
+        logger.error("Failed to get replies: Unauthorized!");
+        res.status(500).send(JSON.stringify({ error: "Failed to get chat history by replies: Unauthorized!" }));
+        return;
+      }
+
+      const replies = await db.getReplyEmailsByEmail(emailId);
+      logger.info(`Fetched reply emails by email id: ${emailId}`);
       res.status(200).send({ replies });
       return;
     } catch (error) {
       logger.error(
-        `Failed to fetch potential replies by email id: ${emailId}`,
+        `Failed to fetch reply emails by email id: ${emailId}`,
         error,
       );
       res.status(500).send(JSON.stringify(error));
@@ -25,12 +51,18 @@ export function buildReplyRoutes(db: Database) {
   router.get("/:id", async (req, res) => {
     const { id } = req.params;
     try {
-      const reply = await db.getPotentialReply(id);
-      logger.info(`Fetched potential reply by id: ${id}`);
+      const { body: { policies } } = req
+      if(!policies.readAllowed){
+        logger.error("Failed to get replies: Unauthorized!");
+        res.status(500).send(JSON.stringify({ error: "Failed to get chat history by replies: Unauthorized!" }));
+        return;
+      }
+      const reply = await db.getReplyEmail(id);
+      logger.info(`Fetched reply email by id: ${id}`);
       res.status(200).send({ reply });
       return;
     } catch (error) {
-      logger.error(`Failed to fetch potential reply by id: ${id}`, error);
+      logger.error(`Failed to fetch reply email by id: ${id}`, error);
       res.status(500).send(JSON.stringify(error));
       return;
     }
@@ -38,41 +70,53 @@ export function buildReplyRoutes(db: Database) {
 
   router.post(
     "/:id",
-    async (req: Request<{ id: string }, {}, { text: string }>, res) => {
+    async (req: Request<{ id: string }, {}, { text: string, policies: PolicyResult }>, res) => {
       const {
         body,
         params: { id },
       } = req;
       try {
-        const replyId = await db.updatePotentialReply(id, body.text);
+        const { body: { policies } } = req
+        if(!policies.updateAllowed){
+          logger.error("Failed to get replies: Unauthorized!");
+          res.status(500).send(JSON.stringify({ error: "Failed to get chat history by replies: Unauthorized!" }));
+          return;
+        }
+        const replyId = await db.updateReplyEmail(id, body.text);
         logger.info(
-          `Updated potential reply: ${JSON.stringify(
+          `Updated reply email: ${JSON.stringify(
             body,
           )}, reply id: ${replyId}`,
         );
         res.status(200).send({ status: "ok", replyId });
         return;
       } catch (error) {
-        logger.error("Failed to update potential reply:", error);
+        logger.error("Failed to update reply email:", error);
         res.status(500).send(JSON.stringify(error));
         return;
       }
     },
   );
 
-  router.post("/", async (req: Request<{}, {}, PotentialReplyEmail>, res) => {
+  router.post("/", async (req: Request<{}, {}, { replies: ReplyEmail, policies: PolicyResult }>, res) => {
     const { body } = req;
     try {
-      const replyId = await db.insertPotentialReply(body);
+      const { body: { policies, replies } } = req
+      if(!policies.createAllAllowed){
+        logger.error("Failed to get replies: Unauthorized!");
+        res.status(500).send(JSON.stringify({ error: "Failed to get chat history by replies: Unauthorized!" }));
+        return;
+      }
+      const replyId = await db.insertReplyEmail(replies);
       logger.info(
-        `Inserted potential reply: ${JSON.stringify(
+        `Inserted reply email: ${JSON.stringify(
           body,
         )}, reply id: ${replyId}`,
       );
       res.status(200).send({ status: "ok", replyId });
       return;
     } catch (error) {
-      logger.error("Failed to insert potential reply:", error);
+      logger.error("Failed to insert reply email:", error);
       res.status(500).send(JSON.stringify(error));
       return;
     }

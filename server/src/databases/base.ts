@@ -1,44 +1,7 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import _ from "lodash";
-import { Email } from "../schema/index.js";
-
-export type Context = Record<string, string>;
-
-export type Message = {
-  timestamp: number;
-  type: "ai" | "human";
-  text: string;
-};
-
-export type AIMessage = Message & {
-  type: "ai";
-};
-
-export type HumanMessage = Message & {
-  type: "human";
-};
-
-export type ChatHistory = {
-  id: string;
-  email_id: string;
-  reply_id: string;
-  chat_messages: (AIMessage | HumanMessage)[];
-};
-
-export type AllowedHost = {
-  id?: string;
-  host: string;
-  type: "string" | "regex";
-};
-
-export interface PotentialReplyEmail extends Email {
-  process_status: "potential_reply";
-  intention: string;
-  reply_text: string;
-  email_id: string;
-  summary: string;
-}
+import { AIMessage, AllowedHost, ChatHistory, Context, Email, HumanMessage, ReplyEmail } from "../schema/index.js";
 
 export abstract class Database {
   protected emailKeys = [
@@ -102,7 +65,7 @@ export abstract class Database {
   /**
    * Fetches all emails from the database.
    */
-  abstract getEmails(): Promise<Email[] | null>;
+  abstract getEmails(userId?: string): Promise<Email[] | null>;
 
   /**
    * Fetches a specific email from the database.
@@ -133,7 +96,7 @@ export abstract class Database {
   /**
    * Fetches all context from the database.
    */
-  abstract getContext(): Promise<Context | null>;
+  abstract getContext(userId?: string): Promise<Context | null>;
 
   abstract deleteContext(id: string): Promise<void>;
 
@@ -143,33 +106,39 @@ export abstract class Database {
    */
   abstract getContextValue(key: string): Promise<string | null>;
 
+  abstract getContextById(id: string): Promise<Context | null>;
+
+  abstract getContextsByUser(email: string): Promise<Context | null>;
+
   abstract setContextValue(
     id: string,
     key: string,
     value: string,
   ): Promise<void>;
 
-  abstract getAllowedHosts(): Promise<AllowedHost[] | null>;
+  abstract getAllowedHosts(userId?: string): Promise<AllowedHost[] | null>;
 
-  abstract setAllowedHosts(hosts: AllowedHost[]): Promise<void>;
+  abstract createAllowedHosts(hosts: AllowedHost[]): Promise<void>;
+
+  abstract updateAllowedHost(hostId: string, host: Omit<AllowedHost, "id">): Promise<void>;
 
   abstract deleteAllowedHost(id: string): Promise<void>;
 
-  abstract insertPotentialReply(data: PotentialReplyEmail): Promise<string>;
+  abstract insertReplyEmail(data: ReplyEmail): Promise<string>;
 
-  abstract updatePotentialReply(id: string, text: string): Promise<void>;
+  abstract updateReplyEmail(id: string, text: string): Promise<void>;
 
-  abstract getPotentialReply(id: string): Promise<PotentialReplyEmail | null>;
+  abstract getReplyEmail(id: string): Promise<ReplyEmail | null>;
 
-  abstract getPotentialRepliesByEmail(
+  abstract getReplyEmailsByEmail(
     emailId: string,
-  ): Promise<PotentialReplyEmail[] | null>;
+  ): Promise<ReplyEmail[] | null>;
 
   abstract insertChatHistory(
     chatHistory: Omit<ChatHistory, "id">,
   ): Promise<string>; // returns id
 
-  abstract getChatHistory(): Promise<ChatHistory[] | null>;
+  abstract getChatHistory(userId?: string): Promise<ChatHistory[] | null>;
 
   abstract appendChatHistory(
     id: string,
@@ -183,6 +152,8 @@ export abstract class Database {
   abstract getChatHistoryByReply(replyId: string): Promise<ChatHistory | null>;
 
   abstract insertUser(email: string, password: string): Promise<void>;
+
+  abstract getUserByEmail(email: string): Promise<{ email: string, id: string, metakey: string } | null>
 
   abstract getUserMetakey(email: string): Promise<string>;
 

@@ -1,4 +1,4 @@
-export interface PotentialReplyEmail {
+export interface ReplyEmail {
   id: string;
   intention: string;
   reply_text: string;

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
         "x-session-token": request.headers.get("x-session-token"),
       },
-      data: contexts,
+      data: { context: contexts },
     });
     return NextResponse.json(axiosRequest.data);
   } catch (error) {

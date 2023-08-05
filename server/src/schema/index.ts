@@ -25,8 +25,8 @@ export interface SummarizedEmail extends Email {
   summary: string;
 }
 
-export interface PotentialReplyEmail extends Email {
-  process_status: "potential_reply";
+export interface ReplyEmail extends Email {
+  process_status: "reply_email";
   intention: string;
   reply_text: string;
   email_id: string;
@@ -37,7 +37,7 @@ export type ProcessedEmail =
   | EmptyEmail
   | IrrelevantEmail
   | SummarizedEmail
-  | PotentialReplyEmail;
+  | ReplyEmail;
 
 export interface EmailAddress {
   name: string;
@@ -96,10 +96,27 @@ export type AllowedHost = {
   type: "string" | "regex";
 };
 
-export interface PotentialReplyEmail extends Email {
-  process_status: "potential_reply";
+export interface ReplyEmail extends Email {
+  process_status: "reply_email";
   intention: string;
   reply_text: string;
   email_id: string;
   summary: string;
+}
+
+export type PolicyResult = {
+  createAllowed: boolean;
+  readAllowed: boolean;
+  updateAllowed: boolean;
+  deleteAllowed: boolean;
+
+  createAllAllowed: boolean;
+  readAllAllowed: boolean;
+  updateAllAllowed: boolean;
+  deleteAllAllowed: boolean;
+}
+
+export type PolicyContext = {
+  params?: Record<string, any>;
+  body?: Record<string, any>;
 }

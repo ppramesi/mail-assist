@@ -1,15 +1,9 @@
 import _ from "lodash";
 import {
-  AIMessage,
-  AllowedHost,
-  Context,
   Database,
-  HumanMessage,
-  PotentialReplyEmail,
-  ChatHistory,
 } from "./base.js";
 import Knex, { Knex as KnexT } from "knex";
-import { Email } from "../schema/index.js";
+import { AIMessage, AllowedHost, ChatHistory, Context, Email, HumanMessage, ReplyEmail } from "../schema/index.js";
 
 export class KnexDatabase extends Database {
   private db: KnexT;
@@ -68,10 +62,17 @@ export class KnexDatabase extends Database {
       .then((v) => v || []);
   }
 
-  async getEmails(): Promise<Email[] | null> {
-    return this.db("emails")
-      .select("*")
-      .then((v) => (v.length > 0 ? v : null));
+  async getEmails(userId?: string): Promise<Email[] | null> {
+    if(userId){
+      return this.db("emails")
+        .where({ user_id: userId })
+        .select("*")
+        .then((v) => (v.length > 0 ? v : null));
+    }else{
+      return this.db("emails")
+        .select("*")
+        .then((v) => (v.length > 0 ? v : null));
+    }
   }
 
   async getEmail(id: string): Promise<Email | null> {
@@ -109,14 +110,25 @@ export class KnexDatabase extends Database {
       .then((v) => (v.length > 0 ? v : null));
   }
 
-  async getContext(): Promise<Context | null> {
-    return this.db("contexts")
-      .select("*")
-      .then((v) =>
-        v.length > 0
-          ? v.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {})
-          : null,
-      );
+  async getContext(userId?: string): Promise<Context | null> {
+    if(userId){
+      return this.db("contexts")
+        .where({ user_id: userId })
+        .select("*")
+        .then((v) =>
+          v.length > 0
+            ? v.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {})
+            : null,
+        );
+    }else{
+      return this.db("contexts")
+        .select("*")
+        .then((v) =>
+          v.length > 0
+            ? v.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {})
+            : null,
+        );
+    }
   }
 
   async deleteContext(id: string): Promise<void> {
@@ -130,6 +142,21 @@ export class KnexDatabase extends Database {
       .then((v) => v?.value || null);
   }
 
+  async getContextById(id: string): Promise<Context | null> {
+    return this.db("contexts")
+      .where("id", id)
+      .first()
+      .then((v) => v ?? null);
+  }
+
+  async getContextsByUser(email: string): Promise<Context | null> {
+    return this.db('contexts')
+      .join('users', 'contexts.user_id', 'users.id')
+      .where('users.email', email)
+      .select('contexts.*')
+      .then(contexts => contexts.length > 0 ? contexts.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {}) : null);
+  }
+
   async setContextValue(id: string, key: string, value: string): Promise<void> {
     await this.db("context").where("id", id).update({
       key,
@@ -137,60 +164,84 @@ export class KnexDatabase extends Database {
     });
   }
 
-  async getAllowedHosts(): Promise<AllowedHost[] | null> {
-    return this.db("allowed_hosts")
-      .select("*")
-      .then((v) =>
-        v.length > 0
-          ? v.map((host) => ({ host: host.host, type: host.type, id: host.id }))
-          : null,
-      );
+  async getAllowedHosts(userId?: string): Promise<AllowedHost[] | null> {
+    if(userId){
+      return this.db("allowed_hosts")
+        .where({ user_id: userId })
+        .select("*")
+        .then((v) =>
+          v.length > 0
+            ? v.map((host) => ({ host: host.host, type: host.type, id: host.id }))
+            : null,
+        );
+    }else{
+      return this.db("allowed_hosts")
+        .select("*")
+        .then((v) =>
+          v.length > 0
+            ? v.map((host) => ({ host: host.host, type: host.type, id: host.id }))
+            : null,
+        );
+    }
   }
 
-  async setAllowedHosts(hosts: AllowedHost[]): Promise<void> {
+  async createAllowedHosts(hosts: AllowedHost[]): Promise<void> {
     await this.db("allowed_hosts").insert(
       hosts.map((host) => ({ host: host.host, type: host.type })),
     );
+  }
+
+  async updateAllowedHost(hostId: string, host: Omit<AllowedHost, "id">): Promise<void> {
+    await this.db("allowed_hosts")
+      .where({ id: hostId })
+      .update(host)
   }
 
   async deleteAllowedHost(id: string): Promise<void> {
     await this.db("allowed_hosts").where("id", id).delete();
   }
 
-  async insertPotentialReply(data: PotentialReplyEmail): Promise<string> {
+  async insertReplyEmail(data: ReplyEmail): Promise<string> {
     const { intention, reply_text, email_id, summary } = data;
-    return this.db("potential_replies")
+    return this.db("reply_emails")
       .insert({ intention, reply_text, email_id, summary })
       .returning("id")
       .then((ids) => ids[0]);
   }
 
-  async updatePotentialReply(id: string, text: string): Promise<void> {
-    await this.db("potential_replies").where("id", id).update({
+  async updateReplyEmail(id: string, text: string): Promise<void> {
+    await this.db("reply_emails").where("id", id).update({
       reply_text: text,
     });
   }
 
-  async getPotentialReply(id: string): Promise<PotentialReplyEmail> {
-    return this.db("potential_replies")
+  async getReplyEmail(id: string): Promise<ReplyEmail> {
+    return this.db("reply_emails")
       .where("id", id)
       .first()
       .then((v) => v || null);
   }
 
-  async getPotentialRepliesByEmail(
+  async getReplyEmailsByEmail(
     emailId: string,
-  ): Promise<PotentialReplyEmail[] | null> {
-    return this.db("potential_replies")
+  ): Promise<ReplyEmail[] | null> {
+    return this.db("reply_emails")
       .where("email_id", emailId)
       .select("*")
       .then((v) => (v.length > 0 ? v : null));
   }
 
-  getChatHistory(): Promise<ChatHistory[] | null> {
-    return this.db("chat_history")
-      .select("*")
-      .then((v) => (v.length > 0 ? v : null));
+  getChatHistory(userId?: string): Promise<ChatHistory[] | null> {
+    if(userId){
+      return this.db("chat_history")
+        .where({ user_id: userId })
+        .select("*")
+        .then((v) => (v.length > 0 ? v : null));
+    }else{
+      return this.db("chat_history")
+        .select("*")
+        .then((v) => (v.length > 0 ? v : null));
+    }
   }
 
   async insertChatHistory(chatHistory: ChatHistory): Promise<string> {
@@ -256,6 +307,18 @@ export class KnexDatabase extends Database {
       })
       .onConflict("email")
       .merge();
+  }
+
+  async getUserByEmail(email: string): Promise<{ email: string; id: string; metakey: string; } | null> {
+    return this.db("users")
+      .where("email", email)
+      .returning(["email", "id", "metakey"])
+      .first()
+      .then(v => v ? ({
+        email: v.email,
+        id: v.id,
+        metakey: v.metakey
+      }) : null)
   }
 
   async getUserMetakey(email: string): Promise<string> {

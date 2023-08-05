@@ -1,10 +1,7 @@
 import express, { Express } from "express";
 import { BaseMailAdapter } from "./adapters/base.js";
 import {
-  AIMessage,
-  AllowedHost,
   Database,
-  HumanMessage,
 } from "./databases/base.js";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { MainExecutor, MainExecutorOpts } from "./chains/executors.js";
@@ -26,6 +23,8 @@ import logger from "./logger/bunyan.js"; // the logger is already imported here
 import _ from "lodash";
 import { CallerScheduler } from "./scheduler/caller.js";
 import { buildFilterFunction } from "./filters/simple_host.js";
+import { AIMessage, AllowedHost, HumanMessage } from "./schema/index.js";
+import { Authorization } from "./authorization/base.js";
 
 export interface MailGPTServerOpts {
   onStartServer?: (instance?: MailGPTServer) => void;
@@ -35,6 +34,7 @@ export interface MailGPTServerOpts {
   retriever: VectorStoreRetriever;
   allowedHosts?: AllowedHost[];
   scheduler?: CallerScheduler;
+  authorizer?: Authorization;
 }
 
 export type MiddlewareOpts = {
@@ -54,6 +54,7 @@ export abstract class MailGPTServer {
   executor: MainExecutor;
   conversator: ConversationalEmailEvaluator;
   retriever: VectorStoreRetriever;
+  authorizer?: Authorization;
   context?: Record<string, string>;
   scheduler?: CallerScheduler;
   constructor(opts: MailGPTServerOpts) {
@@ -61,6 +62,7 @@ export abstract class MailGPTServer {
     this.database = opts.database;
     this.database.connect();
     this.mailAdapter = opts.mailAdapter;
+    this.authorizer = opts.authorizer;
     // this.mailAdapter.connect();
     this.conversator = new ConversationalEmailEvaluator({
       llm: opts.llm,
@@ -95,7 +97,7 @@ export abstract class MailGPTServer {
   async *streamEvaluateEmail(input: string, emailId: string, replyId: string) {
     let [email, reply, context, chatHistory] = await Promise.all([
       this.database.getEmail(emailId),
-      this.database.getPotentialReply(replyId),
+      this.database.getReplyEmail(replyId),
       this.getContext(),
       this.database.getChatHistoryByReply(replyId),
     ]);
@@ -151,7 +153,7 @@ export abstract class MailGPTServer {
   async evaluateEmail(input: string, emailId: string, replyId: string) {
     let [email, reply, context, chatHistory] = await Promise.all([
       this.database.getEmail(emailId),
-      this.database.getPotentialReply(replyId),
+      this.database.getReplyEmail(replyId),
       this.getContext(),
       this.database.getChatHistoryByReply(replyId),
     ]);
@@ -277,9 +279,9 @@ export abstract class MailGPTServer {
               return Promise.resolve();
             }
           }
-          case "potential_reply": {
+          case "reply_email": {
             try {
-              const result = await this.database.insertPotentialReply({
+              const result = await this.database.insertReplyEmail({
                 ...emailOrReply,
               });
               logger.info(
@@ -339,10 +341,16 @@ export class MailGPTAPIServer extends MailGPTServer {
       const hashed = await bcrypt.hash(password, authData?.salt!);
       const authenticated = await bcrypt.compare(password, hashed);
       if (authenticated) {
-        const metakey = await this.database.getUserMetakey(email);
+        const userData = await this.database.getUserByEmail(email);
+        if(!userData){
+          res.status(403).send({ status: "?????" })
+          return
+        }
+        const { id, metakey } = userData
         const sessionKey = jwt.sign(
           {
             email,
+            user_id: id
           },
           process.env.TOKEN_KEY! + metakey,
           { expiresIn: "10h" },
@@ -473,11 +481,11 @@ export class MailGPTAPIServer extends MailGPTServer {
     });
 
     this.app.use("/gpt", gptRoutes);
-    this.app.use("/allowed-hosts", buildAllowedHostsRoutes(this.database));
-    this.app.use("/chat-history", buildChatHistoryRoutes(this.database));
-    this.app.use("/contexts", buildContextRoutes(this.database));
-    this.app.use("/emails", buildEmailRoutes(this.database));
-    this.app.use("/replies", buildReplyRoutes(this.database));
+    this.app.use("/allowed-hosts", buildAllowedHostsRoutes(this.database, this.authorizer));
+    this.app.use("/chat-history", buildChatHistoryRoutes(this.database, this.authorizer));
+    this.app.use("/contexts", buildContextRoutes(this.database, this.authorizer));
+    this.app.use("/emails", buildEmailRoutes(this.database, this.authorizer));
+    this.app.use("/replies", buildReplyRoutes(this.database, this.authorizer));
   }
 
   async startServer() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { PotentialReplyEmail } from "./types/reply";
+import { ReplyEmail } from "./types/reply";
 import { Button, Card, CardContent, Typography } from "@mui/material";
 import { useState } from "react";
 import { ChatHistory } from "./types/chat-history";
@@ -8,7 +8,7 @@ import ChatBox from "./chat-box";
 import { isNil } from "lodash";
 import { fetchWithSessionToken } from "@/utils/client_fetcher";
 
-export default function ReplyItem({ reply }: { reply: PotentialReplyEmail }) {
+export default function ReplyItem({ reply }: { reply: ReplyEmail }) {
   const [chatHistory, setChatHistory] = useState<ChatHistory>();
   const [showChat, setShowChat] = useState<boolean>(false);
   const [requestOnce, setRequestOnce] = useState<boolean>(false);

@@ -1,6 +1,6 @@
 import { LLMChainInput, LLMChain } from "langchain/chains";
 // import { BaseMemory } from "langchain/memory";
-import { Database, AIMessage, HumanMessage } from "../databases/base.js";
+import { Database } from "../databases/base.js";
 import { ChainValues } from "langchain/schema";
 import {
   AIMessagePromptTemplate,
@@ -10,6 +10,7 @@ import {
 } from "langchain/prompts";
 import { CallbackManagerForChainRun, Callbacks } from "langchain/callbacks";
 import _ from "lodash";
+import { AIMessage, HumanMessage } from "../schema/index.js";
 
 const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. You were tasked with writing a reply given the email's body, and have written a reply for the given email in the past. The user has an input and would like you to change something in the reply. You answer should only be the email's text and nothing else.
 

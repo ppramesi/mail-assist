@@ -12,7 +12,7 @@ import {
   Email,
   EmptyEmail,
   IrrelevantEmail,
-  PotentialReplyEmail,
+  ReplyEmail,
   ProcessedEmail,
   SummarizedEmail,
 } from "../schema/index.js";
@@ -148,12 +148,12 @@ export class MainExecutor {
                 const { id: emailId, ...rest } = email;
                 return {
                   ...rest,
-                  process_status: "potential_reply",
+                  process_status: "reply_email",
                   intention,
                   reply_text: text,
                   email_id: emailId,
                   summary,
-                } as PotentialReplyEmail;
+                } as ReplyEmail;
               }),
             );
             const summarizedEmail: SummarizedEmail = {

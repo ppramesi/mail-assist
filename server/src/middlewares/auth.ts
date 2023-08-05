@@ -60,6 +60,18 @@ export function buildAuthMiddleware(database: Database) {
           sessionToken,
           process.env.TOKEN_KEY! + metakey,
         ) as jwt.JwtPayload;
+
+        if (decoded && _.isObject(decoded)) {
+          Object.entries(decoded).forEach(([key, value]) => {
+            req.body[key] = value;
+          });
+          logger.info(
+            `Token successfully verified for user with details: ${JSON.stringify(
+              decoded,
+            )}`,
+          );
+        }
+
         if (email === decoded.email) {
           next();
         } else {

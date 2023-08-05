@@ -4,13 +4,13 @@ import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import { fetchWithSessionToken } from "@/utils/client_fetcher";
 import ReplyItem from "./reply-item";
-import { PotentialReplyEmail } from "./types/reply";
+import { ReplyEmail } from "./types/reply";
 import { useEffect, useState } from "react";
 import { Email } from "./types/email";
 import { Card, CardContent, Typography } from "@mui/material";
 
 export default function ReplyList({ emailId }: { emailId: string }) {
-  const [fetchedReplies, setReplies] = useState<PotentialReplyEmail[]>();
+  const [fetchedReplies, setReplies] = useState<ReplyEmail[]>();
   const [fetchedEmail, setEmail] = useState<Email>();
   const [isLoading, setLoading] = useState<boolean>(true);
   useEffect(() => {

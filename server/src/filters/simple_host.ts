@@ -1,5 +1,4 @@
-import { AllowedHost } from "../databases/base.js";
-import { Email } from "../schema/index.js";
+import { AllowedHost, Email } from "../schema/index.js";
 
 export function buildFilterFunction(allowedHosts?: AllowedHost[]) {
   const emailRegex = /<([^>]+)>/;
