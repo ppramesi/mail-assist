@@ -152,19 +152,42 @@ export function buildChatHistoryRoutes(
     }
   });
 
-  router.post("/", async (req: Request<{}, {}, ChatHistory>, res) => {
-    const { body } = req;
-    try {
-      await db.insertChatHistory(body);
-      logger.info(`Inserted new chat history: ${JSON.stringify(body)}`);
-      res.status(200).send({ status: "ok" });
-      return;
-    } catch (error) {
-      logger.error("Failed to insert chat history:", error);
-      res.status(500).send(JSON.stringify(error));
-      return;
-    }
-  });
+  router.post(
+    "/",
+    async (
+      req: Request<
+        {},
+        {},
+        { chat_history: ChatHistory; policies: PolicyResult }
+      >,
+      res,
+    ) => {
+      const {
+        body: { chat_history: chatHistory, policies },
+      } = req;
+      try {
+        if (!policies.createAllowed) {
+          logger.error("Failed to create chat history: Unauthorized!");
+          res.status(500).send(
+            JSON.stringify({
+              error: "Failed to create chat history: Unauthorized!",
+            }),
+          );
+          return;
+        }
+        await db.insertChatHistory(chatHistory);
+        logger.info(
+          `Inserted new chat history: ${JSON.stringify(chatHistory)}`,
+        );
+        res.status(200).send({ status: "ok" });
+        return;
+      } catch (error) {
+        logger.error("Failed to insert chat history:", error);
+        res.status(500).send(JSON.stringify(error));
+        return;
+      }
+    },
+  );
 
   router.get("/", async (req, res) => {
     try {

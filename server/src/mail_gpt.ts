@@ -469,18 +469,19 @@ export class MailGPTAPIServer extends MailGPTServer {
     });
 
     gptRoutes.post("/evaluate-email", async (req, res) => {
-      if(this.authorizer){
+      if (this.authorizer) {
         const { body, params } = req;
         const { user_id: userId } = body;
-        const policies = await this.authorizer.getEvaluateEmailPolicies(userId, {
-          body,
-          params,
-          fromAccessToken: body.fromAccessToken,
-        })
-        if(!policies.updateAllowed){
-          logger.error(
-            `Error while evaluating email with id: no authority`
-          );
+        const policies = await this.authorizer.getEvaluateEmailPolicies(
+          userId,
+          {
+            body,
+            params,
+            fromAccessToken: body.fromAccessToken,
+          },
+        );
+        if (!policies.updateAllowed) {
+          logger.error(`Error while evaluating email with id: no authority`);
           res.status(500).send({ error: "no authority" });
           return;
         }

@@ -43,7 +43,7 @@ export abstract class Authorization {
 
   abstract getEvaluateEmailPolicies(
     userId: string,
-    context: PolicyContext
+    context: PolicyContext,
   ): Promise<PolicyResult>;
 
   static buildDefaultPolicy(): PolicyResult {

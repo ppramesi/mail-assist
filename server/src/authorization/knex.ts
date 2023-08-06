@@ -48,9 +48,9 @@ export class KnexAuthorization extends Authorization {
           .then((count) => Number(count[0]["count(*)"]) > 0);
 
         if (exists) {
-          defaultPolicy.readAllowed = exists;
-          defaultPolicy.updateAllowed = exists;
-          defaultPolicy.deleteAllowed = exists;
+          defaultPolicy.readAllowed = true;
+          defaultPolicy.updateAllowed = true;
+          defaultPolicy.deleteAllowed = true;
         }
       }
       return defaultPolicy;
@@ -72,9 +72,9 @@ export class KnexAuthorization extends Authorization {
           .then((count) => Number(count[0]["count(*)"]) > 0);
 
         if (exists) {
-          defaultPolicy.readAllowed = exists;
-          defaultPolicy.updateAllowed = exists;
-          defaultPolicy.deleteAllowed = exists;
+          defaultPolicy.readAllowed = true;
+          defaultPolicy.updateAllowed = true;
+          defaultPolicy.deleteAllowed = true;
         }
       }
 
@@ -97,9 +97,9 @@ export class KnexAuthorization extends Authorization {
           .then((count) => Number(count[0]["count(*)"]) > 0);
 
         if (exists) {
-          defaultPolicy.readAllowed = exists;
-          defaultPolicy.updateAllowed = exists;
-          defaultPolicy.deleteAllowed = exists;
+          defaultPolicy.readAllowed = true;
+          defaultPolicy.updateAllowed = true;
+          defaultPolicy.deleteAllowed = true;
         }
       }
 
@@ -123,9 +123,9 @@ export class KnexAuthorization extends Authorization {
             .then((count) => Number(count[0]["count(*)"]) > 0);
 
           if (exists) {
-            defaultPolicy.readAllowed = exists;
-            defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists;
+            defaultPolicy.readAllowed = true;
+            defaultPolicy.updateAllowed = true;
+            defaultPolicy.deleteAllowed = true;
           }
         } else if (params.emailId) {
           const exists = await this.db("reply_emails")
@@ -134,9 +134,9 @@ export class KnexAuthorization extends Authorization {
             .then((count) => Number(count[0]["count(*)"]) > 0);
 
           if (exists) {
-            defaultPolicy.readAllowed = exists;
-            defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists;
+            defaultPolicy.readAllowed = true;
+            defaultPolicy.updateAllowed = true;
+            defaultPolicy.deleteAllowed = true;
           }
         }
       }
@@ -152,7 +152,7 @@ export class KnexAuthorization extends Authorization {
     return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
       const defaultPolicy = KnexAuthorization.buildDefaultPolicy();
       defaultPolicy.createAllowed = true;
-      const { params } = context;
+      const { params, body } = context;
       if (params) {
         if (params.id) {
           const exists = await this.db("chat_history")
@@ -161,9 +161,9 @@ export class KnexAuthorization extends Authorization {
             .then((count) => Number(count[0]["count(*)"]) > 0);
 
           if (exists) {
-            defaultPolicy.readAllowed = exists;
-            defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists;
+            defaultPolicy.readAllowed = true;
+            defaultPolicy.updateAllowed = true;
+            defaultPolicy.deleteAllowed = true;
           }
         } else if (params.emailId) {
           const exists = await this.db("chat_history")
@@ -172,9 +172,9 @@ export class KnexAuthorization extends Authorization {
             .then((count) => Number(count[0]["count(*)"]) > 0);
 
           if (exists) {
-            defaultPolicy.readAllowed = exists;
-            defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists;
+            defaultPolicy.readAllowed = true;
+            defaultPolicy.updateAllowed = true;
+            defaultPolicy.deleteAllowed = true;
           }
         } else if (params.replyId) {
           const exists = await this.db("chat_history")
@@ -183,11 +183,13 @@ export class KnexAuthorization extends Authorization {
             .then((count) => Number(count[0]["count(*)"]) > 0);
 
           if (exists) {
-            defaultPolicy.readAllowed = exists;
-            defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists;
+            defaultPolicy.readAllowed = true;
+            defaultPolicy.updateAllowed = true;
+            defaultPolicy.deleteAllowed = true;
           }
         }
+      } else if (body && body.user_id) {
+        defaultPolicy.createAllowed = true;
       }
       return defaultPolicy;
     });
@@ -213,24 +215,27 @@ export class KnexAuthorization extends Authorization {
     });
   }
 
-  async getEvaluateEmailPolicies(userId: string, context: PolicyContext): Promise<PolicyResult> {
+  async getEvaluateEmailPolicies(
+    userId: string,
+    context: PolicyContext,
+  ): Promise<PolicyResult> {
     return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
-      const defaultPolicy = KnexAuthorization.buildDefaultPolicy()
-        const { body } = context
-        if(body && body.emailId){
-          const exists = await this.db("chat_history")
-            .where({ id: body.emailId, user_id: userId })
-            .count("*")
-            .then((count) => Number(count[0]["count(*)"]) > 0);
+      const defaultPolicy = KnexAuthorization.buildDefaultPolicy();
+      const { body } = context;
+      if (body && body.emailId) {
+        const exists = await this.db("chat_history")
+          .where({ id: body.emailId, user_id: userId })
+          .count("*")
+          .then((count) => Number(count[0]["count(*)"]) > 0);
 
-          if (exists) {
-            defaultPolicy.readAllowed = exists;
-            defaultPolicy.updateAllowed = exists;
-          }
+        if (exists) {
+          defaultPolicy.readAllowed = true;
+          defaultPolicy.updateAllowed = true;
         }
+      }
 
-        return defaultPolicy;
-    })
+      return defaultPolicy;
+    });
   }
 
   private async checkAdminWrapper(

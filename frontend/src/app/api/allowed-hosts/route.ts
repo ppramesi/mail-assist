@@ -30,7 +30,10 @@ export async function POST(request: NextRequest) {
         "x-session-token": request.headers.get("x-session-token"),
       },
       data: {
-        hosts: body.hosts as string[],
+        hosts: (body.hosts as string[]).map((host) => ({
+          type: "string",
+          host,
+        })),
       },
     });
     return NextResponse.json(axiosRequest.data);

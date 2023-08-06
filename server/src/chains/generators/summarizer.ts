@@ -14,7 +14,7 @@ import {
 } from "langchain/prompts";
 import { ChainValues } from "langchain/schema";
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { stringJoinArrayOrNone } from "../utils/string.js";
+import { stringJoinArrayOrNone } from "../../utils/string.js";
 
 export interface EmailSummarizerOpts extends ChainInputs {
   llm: ChatOpenAI;

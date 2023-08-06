@@ -105,10 +105,10 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
           body: { policies },
         } = req;
         if (!policies.updateAllowed) {
-          logger.error("Failed to get replies: Unauthorized!");
+          logger.error("Failed to update replies: Unauthorized!");
           res.status(500).send(
             JSON.stringify({
-              error: "Failed to get chat history by replies: Unauthorized!",
+              error: "Failed to update by replies: Unauthorized!",
             }),
           );
           return;

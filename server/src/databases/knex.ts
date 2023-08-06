@@ -1,6 +1,6 @@
 import _ from "lodash";
 import Knex, { Knex as KnexT } from "knex";
-import crypto from "crypto";
+import { encrypt, decrypt } from "../utils/crypto.js";
 import { Database } from "./base.js";
 import {
   AIMessage,
@@ -252,7 +252,7 @@ export class KnexDatabase extends Database {
       .then((v) => (v.length > 0 ? v : null));
   }
 
-  getChatHistory(userId?: string): Promise<ChatHistory[] | null> {
+  async getChatHistory(userId?: string): Promise<ChatHistory[] | null> {
     if (userId) {
       return this.db("chat_history")
         .where({ user_id: userId })
@@ -368,13 +368,6 @@ export class KnexDatabase extends Database {
     }
     const { metakey } = user;
     const { email_password: emailPassword, ...settings } = imapSettings;
-    const textEncoder = new TextEncoder();
-    const key = textEncoder.encode(process.env.TOKEN_KEY);
-    const initVector = textEncoder.encode(metakey);
-    const algo = "aes-256-cbc";
-    const cipher = crypto.createCipheriv(algo, key, initVector);
-    let encrypted = cipher.update(emailPassword, "utf-8", "base64");
-    encrypted += cipher.final("base64");
 
     await this.db("users")
       .where({
@@ -382,7 +375,7 @@ export class KnexDatabase extends Database {
       })
       .update({
         ...settings,
-        email_password: encrypted,
+        email_password: encrypt(emailPassword, metakey),
       });
   }
 
@@ -415,16 +408,8 @@ export class KnexDatabase extends Database {
     }
 
     const { metakey, ...rest } = settings;
-    const textEncoder = new TextEncoder();
-    const key = textEncoder.encode(process.env.TOKEN_KEY);
-    const initVector = textEncoder.encode(metakey);
-    const algo = "aes-256-cbc";
-    const cipher = crypto.createDecipheriv(algo, key, initVector);
 
-    let decrypted = cipher.update(rest.email_password, "base64", "utf-8");
-    decrypted += cipher.final("utf-8");
-
-    settings.email_password = decrypted;
+    settings.email_password = decrypt(rest.email_password, metakey);
 
     return settings;
   }

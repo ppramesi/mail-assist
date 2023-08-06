@@ -10,7 +10,7 @@ import { ChatOpenAI } from "langchain/chat_models/openai";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
-import { stringJoinArrayOrNone } from "../utils/string.js";
+import { stringJoinArrayOrNone } from "../../utils/string.js";
 
 const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to generate possible users intentions for email replies, given the context below. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Generate an array of sentences describing possible user reply intentions.
 

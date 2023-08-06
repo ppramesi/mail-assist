@@ -10,7 +10,7 @@ import { ChatOpenAI } from "langchain/chat_models/openai";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
-import { stringJoinArrayOrNone } from "../utils/string.js";
+import { stringJoinArrayOrNone } from "../../utils/string.js";
 
 const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to analyze the provided email and gauge its relevance to the user's ongoing needs. You must decide if a response to this email is needed from the user's standpoint.
 
