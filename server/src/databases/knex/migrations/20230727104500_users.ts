@@ -8,6 +8,11 @@ export async function up(knex: Knex): Promise<void> {
     table.string("password");
     table.string("metakey");
     table.string("session_key").nullable();
+
+    table.string("email_password").nullable();
+    table.string("email_host").nullable();
+    table.string("email_port").nullable();
+    table.jsonb("imap_settings").nullable();
   });
 }
 

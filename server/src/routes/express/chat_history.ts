@@ -4,33 +4,48 @@ import logger from "../../logger/bunyan.js";
 import { ChatHistory, Message, PolicyResult } from "../../schema/index.js";
 import { Authorization } from "../../authorization/base.js";
 
-export function buildChatHistoryRoutes(db: Database, authorizer?: Authorization) {
+export function buildChatHistoryRoutes(
+  db: Database,
+  authorizer?: Authorization,
+) {
   const router = express.Router();
   router.use(async (req, res, next) => {
-    if(authorizer){
-      const { body, params } = req
-      const { user_id: userId } = body
-      if(userId){
-        const policies = await authorizer.getChatHistoryPolicies(userId, { body, params })
+    if (authorizer) {
+      const { body, params } = req;
+      const { user_id: userId } = body;
+      if (userId) {
+        const policies = await authorizer.getChatHistoryPolicies(userId, {
+          body,
+          params,
+          fromAccessToken: body.fromAccessToken,
+        });
         body.policies = policies;
-        next()
-      }else{
-        logger.error("Failed chat history request: Unauthorized empty user")
-        res.status(403).send({ error: "Failed chat history request: Unauthorized empty user" })
-        return
+        next();
+      } else {
+        logger.error("Failed chat history request: Unauthorized empty user");
+        res.status(403).send({
+          error: "Failed chat history request: Unauthorized empty user",
+        });
+        return;
       }
-    }else{
-      next()
+    } else {
+      next();
     }
-  })
+  });
 
   router.get("/email/:emailId", async (req, res) => {
     const { emailId } = req.params;
     try {
-      const { body: { policies } } = req
-      if(!policies.readAllowed){
+      const {
+        body: { policies },
+      } = req;
+      if (!policies.readAllowed) {
         logger.error("Failed to get chat history by email: Unauthorized!");
-        res.status(500).send(JSON.stringify({ error: "Failed to get chat history by email: Unauthorized!" }));
+        res.status(500).send(
+          JSON.stringify({
+            error: "Failed to get chat history by email: Unauthorized!",
+          }),
+        );
         return;
       }
       const chatHistory = await db.getChatHistoryByEmail(emailId);
@@ -50,10 +65,16 @@ export function buildChatHistoryRoutes(db: Database, authorizer?: Authorization)
   router.get("/reply/:replyId", async (req, res) => {
     const { replyId } = req.params;
     try {
-      const { body: { policies } } = req
-      if(!policies.readAllowed){
+      const {
+        body: { policies },
+      } = req;
+      if (!policies.readAllowed) {
         logger.error("Failed to get chat history by reply: Unauthorized!");
-        res.status(500).send(JSON.stringify({ error: "Failed to get chat history by reply: Unauthorized!" }));
+        res.status(500).send(
+          JSON.stringify({
+            error: "Failed to get chat history by reply: Unauthorized!",
+          }),
+        );
         return;
       }
       const chatHistory = await db.getChatHistoryByReply(replyId);
@@ -72,14 +93,25 @@ export function buildChatHistoryRoutes(db: Database, authorizer?: Authorization)
 
   router.put(
     "/:id",
-    async (req: Request<{ id: string }, {}, { chat: Message[], policies: PolicyResult }>, res) => {
+    async (
+      req: Request<
+        { id: string },
+        {},
+        { chat: Message[]; policies: PolicyResult }
+      >,
+      res,
+    ) => {
       const { body } = req;
       const { id } = req.params;
       try {
-        const { body: { policies } } = req
-        if(!policies.updateAllowed){
+        const { policies } = body;
+        if (!policies.updateAllowed) {
           logger.error("Failed to update chat history: Unauthorized!");
-          res.status(500).send(JSON.stringify({ error: "Failed to update chat history: Unauthorized!" }));
+          res.status(500).send(
+            JSON.stringify({
+              error: "Failed to update chat history: Unauthorized!",
+            }),
+          );
           return;
         }
         await db.appendChatHistory(id, body.chat);
@@ -97,10 +129,16 @@ export function buildChatHistoryRoutes(db: Database, authorizer?: Authorization)
   router.get("/:id", async (req, res) => {
     const { id } = req.params;
     try {
-      const { body: { policies } } = req
-      if(!policies.readAllowed){
+      const {
+        body: { policies },
+      } = req;
+      if (!policies.readAllowed) {
         logger.error("Failed to get chat history: Unauthorized!");
-        res.status(500).send(JSON.stringify({ error: "Failed to get chat history: Unauthorized!" }));
+        res.status(500).send(
+          JSON.stringify({
+            error: "Failed to get chat history: Unauthorized!",
+          }),
+        );
         return;
       }
       const chatHistory = await db.getChatHistoryById(id);
@@ -130,10 +168,16 @@ export function buildChatHistoryRoutes(db: Database, authorizer?: Authorization)
 
   router.get("/", async (req, res) => {
     try {
-      const { body: { user_id: userId, policies }} = req;
-      if(!policies.readAllAllowed && !userId){
+      const {
+        body: { user_id: userId, policies },
+      } = req;
+      if (!policies.readAllAllowed && !userId) {
         logger.error("Failed to fetch chat history: Unauthorized!");
-        res.status(500).send(JSON.stringify({ error: "Failed to fetch chat history: Unauthorized!" }));
+        res.status(500).send(
+          JSON.stringify({
+            error: "Failed to fetch chat history: Unauthorized!",
+          }),
+        );
         return;
       }
       const chatHistory = await db.getChatHistory(userId);

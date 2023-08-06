@@ -114,9 +114,10 @@ export type PolicyResult = {
   readAllAllowed: boolean;
   updateAllAllowed: boolean;
   deleteAllAllowed: boolean;
-}
+};
 
 export type PolicyContext = {
   params?: Record<string, any>;
   body?: Record<string, any>;
-}
+  fromAccessToken: boolean;
+};

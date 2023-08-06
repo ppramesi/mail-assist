@@ -8,31 +8,31 @@ import { Email } from "../schema/index.js";
 
 export class IMAPGmailAdapter extends IMAPMailAdapter {
   declare AuthType: IMAPAuth;
-  client: Imap;
+  client?: Imap;
   connected: boolean = false;
 
-  constructor(auth: IMAPAuth, opts?: any) {
-    super(auth, opts);
-    this.client = new Imap(auth);
+  constructor(opts?: any) {
+    super(opts);
   }
 
-  async connect(auth?: this["AuthType"]): Promise<void> {
-    if (auth) {
-      this.client = new Imap(auth);
-    }
+  async connect(auth: this["AuthType"]): Promise<void> {
+    this.client = new Imap(auth);
     await new Promise<void>((resolve, reject) => {
-      this.client.once("ready", () => {
+      this.client!.once("ready", () => {
         this.connected = true;
         resolve();
       });
-      this.client.once("error", reject);
-      this.client.connect();
+      this.client!.once("error", reject);
+      this.client!.connect();
     });
   }
 
-  async fetch(afterDate?: Date, auth?: this["AuthType"]): Promise<Email[]> {
+  async fetch(auth?: this["AuthType"], afterDate?: Date): Promise<Email[]> {
+    if (!this.connected && _.isNil(auth)) {
+      throw new Error("Auth mail adapter not set");
+    }
     if (!this.connected || !_.isNil(auth)) {
-      await this.connect(auth);
+      await this.connect(auth!);
     }
     let formattedDate: string;
     if (afterDate) {
@@ -52,10 +52,10 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
     }
 
     return new Promise((resolve, reject) => {
-      this.client.openBox("INBOX", true, () => {
-        this.client.search([["SINCE", formattedDate]], (err, results) => {
+      this.client!.openBox("INBOX", true, () => {
+        this.client!.search([["SINCE", formattedDate]], (err, results) => {
           if (err) reject(err);
-          var fetch = this.client.fetch(results, {
+          var fetch = this.client!.fetch(results, {
             bodies: "",
             struct: true,
           });

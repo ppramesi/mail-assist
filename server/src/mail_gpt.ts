@@ -1,8 +1,6 @@
 import express, { Express } from "express";
 import { BaseMailAdapter } from "./adapters/base.js";
-import {
-  Database,
-} from "./databases/base.js";
+import { Database } from "./databases/base.js";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { MainExecutor, MainExecutorOpts } from "./chains/executors.js";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
@@ -60,7 +58,6 @@ export abstract class MailGPTServer {
   constructor(opts: MailGPTServerOpts) {
     this.scheduler = opts.scheduler;
     this.database = opts.database;
-    this.database.connect();
     this.mailAdapter = opts.mailAdapter;
     this.authorizer = opts.authorizer;
     // this.mailAdapter.connect();
@@ -202,106 +199,130 @@ export abstract class MailGPTServer {
     return newPotentialEmail;
   }
 
-  async processEmails() {
-    logger.info("Starting to process emails");
-    const lastEmail = await this.database.getLatestEmail();
-    const [emails, context, hostsFilter] = await Promise.all([
-      this.mailAdapter.fetch(lastEmail?.date),
-      this.getContext(),
-      this.getAllowedHostsFilter(this.allowedHosts),
-    ]);
-    const filteredEmails = emails.filter(hostsFilter ?? (() => false));
-    const newEmails = await this.database.insertUnseenEmails(filteredEmails);
-    this.executor.setContext(context ?? {});
-    try {
-      const processedEmails = await this.executor.processEmails(newEmails);
-      const processedPromises = processedEmails.map(async (emailOrReply) => {
-        switch (emailOrReply.process_status) {
-          case "empty": {
-            try {
-              const result = await this.database.updateEmailProcessedData(
-                emailOrReply.id,
-                "empty",
-              );
-              logger.info("Empty email: ", emailOrReply.id, emailOrReply.hash);
-              return result;
-            } catch (error) {
-              logger.error(error);
-              return Promise.resolve();
-            }
-          }
-          case "irrelevant": {
-            try {
-              const result = await this.database.updateEmailProcessedData(
-                emailOrReply.id,
-                "irrelevant",
-              );
-              logger.info(
-                "Irrelevant email: ",
-                emailOrReply.id,
-                emailOrReply.hash,
-              );
-              return result;
-            } catch (error) {
-              logger.error(error);
-              return Promise.resolve();
-            }
-          }
-          case "summarized": {
-            try {
-              const { id, text, from, date } = emailOrReply;
-              const result = await Promise.all([
-                this.database.updateEmailProcessedData(
-                  emailOrReply.id,
-                  "summarized",
-                  emailOrReply.summary,
-                ),
-                this.retriever.addDocuments([
-                  new Document({
-                    pageContent: emailOrReply.summary,
-                    metadata: {
-                      id,
-                      text,
-                      from,
-                      date: date?.toLocaleString(),
-                    },
-                  }),
-                ]),
-              ]);
-              logger.info(
-                "Summarized email: ",
-                emailOrReply.id,
-                emailOrReply.hash,
-              );
-              return result;
-            } catch (error) {
-              logger.error(error);
-              return Promise.resolve();
-            }
-          }
-          case "reply_email": {
-            try {
-              const result = await this.database.insertReplyEmail({
-                ...emailOrReply,
-              });
-              logger.info(
-                "Potential reply: ",
-                emailOrReply.id,
-                emailOrReply.hash,
-              );
-              return result;
-            } catch (error) {
-              logger.error(error);
-              return Promise.resolve();
-            }
-          }
-        }
-      });
-      return Promise.all(processedPromises);
-    } catch (error) {
-      logger.error(error);
-      return Promise.resolve();
+  async processEmails(userId?: string) {
+    const users = [];
+    if (userId) {
+      users.push(userId);
+    } else {
+      const userIds = await this.database
+        .getUsers()
+        .then((u) => u.map((v) => v.id));
+      users.push(...userIds);
     }
+
+    const promises = users.map(async (id) => {
+      const imapSettings = await this.database.getUserImapSettings(id);
+      if (!imapSettings) {
+        throw new Error("User not found");
+      }
+      const { imap_settings, ...rest } = imapSettings;
+      const imapAuth = { ...rest, ...imap_settings };
+      logger.info("Starting to process emails");
+      const lastEmail = await this.database.getLatestEmail();
+      const [emails, context, hostsFilter] = await Promise.all([
+        this.mailAdapter.fetch(imapAuth, lastEmail?.date),
+        this.getContext(),
+        this.getAllowedHostsFilter(this.allowedHosts),
+      ]);
+      const filteredEmails = emails.filter(hostsFilter ?? (() => false));
+      const newEmails = await this.database.insertUnseenEmails(filteredEmails);
+      this.executor.setContext(context ?? {});
+      try {
+        const processedEmails = await this.executor.processEmails(newEmails);
+        const processedPromises = processedEmails.map(async (emailOrReply) => {
+          switch (emailOrReply.process_status) {
+            case "empty": {
+              try {
+                const result = await this.database.updateEmailProcessedData(
+                  emailOrReply.id,
+                  "empty",
+                );
+                logger.info(
+                  "Empty email: ",
+                  emailOrReply.id,
+                  emailOrReply.hash,
+                );
+                return result;
+              } catch (error) {
+                logger.error(error);
+                return Promise.resolve();
+              }
+            }
+            case "irrelevant": {
+              try {
+                const result = await this.database.updateEmailProcessedData(
+                  emailOrReply.id,
+                  "irrelevant",
+                );
+                logger.info(
+                  "Irrelevant email: ",
+                  emailOrReply.id,
+                  emailOrReply.hash,
+                );
+                return result;
+              } catch (error) {
+                logger.error(error);
+                return Promise.resolve();
+              }
+            }
+            case "summarized": {
+              try {
+                const { id, text, from, date } = emailOrReply;
+                const result = await Promise.all([
+                  this.database.updateEmailProcessedData(
+                    emailOrReply.id,
+                    "summarized",
+                    emailOrReply.summary,
+                  ),
+                  this.retriever.addDocuments([
+                    new Document({
+                      pageContent: emailOrReply.summary,
+                      metadata: {
+                        id,
+                        text,
+                        from,
+                        date: date?.toLocaleString(),
+                      },
+                    }),
+                  ]),
+                ]);
+                logger.info(
+                  "Summarized email: ",
+                  emailOrReply.id,
+                  emailOrReply.hash,
+                );
+                return result;
+              } catch (error) {
+                logger.error(error);
+                return Promise.resolve();
+              }
+            }
+            case "reply_email": {
+              try {
+                const result = await this.database.insertReplyEmail({
+                  ...emailOrReply,
+                });
+                logger.info(
+                  "Potential reply: ",
+                  emailOrReply.id,
+                  emailOrReply.hash,
+                );
+                return result;
+              } catch (error) {
+                logger.error(error);
+                return Promise.resolve();
+              }
+            }
+          }
+        });
+        return Promise.all(processedPromises);
+      } catch (error) {
+        logger.error(error);
+        return Promise.resolve();
+      }
+    });
+
+    await Promise.all(promises);
   }
 }
 
@@ -342,15 +363,15 @@ export class MailGPTAPIServer extends MailGPTServer {
       const authenticated = await bcrypt.compare(password, hashed);
       if (authenticated) {
         const userData = await this.database.getUserByEmail(email);
-        if(!userData){
-          res.status(403).send({ status: "?????" })
-          return
+        if (!userData) {
+          res.status(403).send({ status: "?????" });
+          return;
         }
-        const { id, metakey } = userData
+        const { id, metakey } = userData;
         const sessionKey = jwt.sign(
           {
             email,
-            user_id: id
+            user_id: id,
           },
           process.env.TOKEN_KEY! + metakey,
           { expiresIn: "10h" },
@@ -422,10 +443,22 @@ export class MailGPTAPIServer extends MailGPTServer {
 
   buildRoute() {
     const gptRoutes = express.Router();
-    gptRoutes.get("/process-emails", async (_, res) => {
+
+    gptRoutes.get("/process-emails", async (req, res) => {
       try {
         logger.info("Starting to process emails...");
-        await this.processEmails();
+        const {
+          body: { user_id: userId, fromAccessToken },
+        } = req;
+        if (userId) {
+          await this.processEmails(userId);
+        } else if (fromAccessToken) {
+          await this.processEmails();
+        } else {
+          logger.error("Error while processing emails: auth fail");
+          res.status(500).send({ error: "Auth fail" });
+          return;
+        }
         res.status(200).send({ status: "ok" });
         return;
       } catch (error) {
@@ -436,6 +469,22 @@ export class MailGPTAPIServer extends MailGPTServer {
     });
 
     gptRoutes.post("/evaluate-email", async (req, res) => {
+      if(this.authorizer){
+        const { body, params } = req;
+        const { user_id: userId } = body;
+        const policies = await this.authorizer.getEvaluateEmailPolicies(userId, {
+          body,
+          params,
+          fromAccessToken: body.fromAccessToken,
+        })
+        if(!policies.updateAllowed){
+          logger.error(
+            `Error while evaluating email with id: no authority`
+          );
+          res.status(500).send({ error: "no authority" });
+          return;
+        }
+      }
       const { input, email_id: emailId, reply_id: replyId } = req.body;
       try {
         logger.info(`Starting to evaluate email with id: ${emailId}`);
@@ -481,9 +530,18 @@ export class MailGPTAPIServer extends MailGPTServer {
     });
 
     this.app.use("/gpt", gptRoutes);
-    this.app.use("/allowed-hosts", buildAllowedHostsRoutes(this.database, this.authorizer));
-    this.app.use("/chat-history", buildChatHistoryRoutes(this.database, this.authorizer));
-    this.app.use("/contexts", buildContextRoutes(this.database, this.authorizer));
+    this.app.use(
+      "/allowed-hosts",
+      buildAllowedHostsRoutes(this.database, this.authorizer),
+    );
+    this.app.use(
+      "/chat-history",
+      buildChatHistoryRoutes(this.database, this.authorizer),
+    );
+    this.app.use(
+      "/contexts",
+      buildContextRoutes(this.database, this.authorizer),
+    );
     this.app.use("/emails", buildEmailRoutes(this.database, this.authorizer));
     this.app.use("/replies", buildReplyRoutes(this.database, this.authorizer));
   }

@@ -4,32 +4,47 @@ import logger from "../../logger/bunyan.js";
 import { AllowedHost, PolicyResult } from "../../schema/index.js";
 import { Authorization } from "../../authorization/base.js";
 
-export function buildAllowedHostsRoutes(db: Database, authorizer?: Authorization) {
+export function buildAllowedHostsRoutes(
+  db: Database,
+  authorizer?: Authorization,
+) {
   const router = express.Router();
   router.use(async (req, res, next) => {
-    if(authorizer){
-      const { body, params } = req
-      const { user_id: userId } = body
-      if(userId){
-        const policies = await authorizer.getAllowedHostsPolicies(userId, { body, params })
+    if (authorizer) {
+      const { body, params } = req;
+      const { user_id: userId } = body;
+      if (userId) {
+        const policies = await authorizer.getAllowedHostsPolicies(userId, {
+          body,
+          params,
+          fromAccessToken: body.fromAccessToken,
+        });
         body.policies = policies;
-        next()
-      }else{
-        logger.error("Failed allowed hosts request: Unauthorized empty user")
-        res.status(403).send({ error: "Failed allowed hosts request: Unauthorized empty user" })
-        return
+        next();
+      } else {
+        logger.error("Failed allowed hosts request: Unauthorized empty user");
+        res.status(403).send({
+          error: "Failed allowed hosts request: Unauthorized empty user",
+        });
+        return;
       }
-    }else{
-      next()
+    } else {
+      next();
     }
-  })
-  
+  });
+
   router.delete("/:id", async (req, res) => {
     try {
-      const { body: { policies } } = req
-      if(!policies.deleteAllowed){
+      const {
+        body: { policies },
+      } = req;
+      if (!policies.deleteAllowed) {
         logger.error("Failed to delete allowed hosts: Unauthorized!");
-        res.status(500).send(JSON.stringify({ error: "Failed to delete allowed hosts: Unauthorized!" }));
+        res.status(500).send(
+          JSON.stringify({
+            error: "Failed to delete allowed hosts: Unauthorized!",
+          }),
+        );
         return;
       }
       const { id } = req.params;
@@ -43,13 +58,19 @@ export function buildAllowedHostsRoutes(db: Database, authorizer?: Authorization
       return;
     }
   }); // delete allowed hosts
-  
+
   router.post("/:id", async (req, res) => {
     try {
-      const { body: { policies } } = req
-      if(!policies.updateAllowed){
+      const {
+        body: { policies },
+      } = req;
+      if (!policies.updateAllowed) {
         logger.error("Failed to update allowed hosts: Unauthorized!");
-        res.status(500).send(JSON.stringify({ error: "Failed to update allowed hosts: Unauthorized!" }));
+        res.status(500).send(
+          JSON.stringify({
+            error: "Failed to update allowed hosts: Unauthorized!",
+          }),
+        );
         return;
       }
       const { body, params } = req;
@@ -62,16 +83,19 @@ export function buildAllowedHostsRoutes(db: Database, authorizer?: Authorization
       res.status(500).send(JSON.stringify(error));
       return;
     }
-  })
+  });
 
   router.get("/", async (req, res) => {
     try {
       const { body } = req;
-      const { user_id: userId } = body
-      const { body: { policies } } = req
-      if(!policies.readAllAllowed && !userId){
+      const { user_id: userId, policies } = body;
+      if (!policies.readAllAllowed && !userId) {
         logger.error("Failed to fetch allowed hosts: Unauthorized!");
-        res.status(500).send(JSON.stringify({ error: "Failed to fetch allowed hosts: Unauthorized!" }));
+        res.status(500).send(
+          JSON.stringify({
+            error: "Failed to fetch allowed hosts: Unauthorized!",
+          }),
+        );
         return;
       }
       const allowedHosts = await db.getAllowedHosts(userId);
@@ -87,12 +111,25 @@ export function buildAllowedHostsRoutes(db: Database, authorizer?: Authorization
 
   router.post(
     "/",
-    async (req: Request<{}, {}, { hosts: Omit<AllowedHost, "id">[], policies: PolicyResult }>, res) => {
+    async (
+      req: Request<
+        {},
+        {},
+        { hosts: Omit<AllowedHost, "id">[]; policies: PolicyResult }
+      >,
+      res,
+    ) => {
       try {
-        const { body: { policies } } = req
-        if(!policies.createAllowed){
+        const {
+          body: { policies },
+        } = req;
+        if (!policies.createAllowed) {
           logger.error("Failed to set allowed hosts: Unauthorized!");
-          res.status(500).send(JSON.stringify({ error: "Failed to set allowed hosts: Unauthorized!" }));
+          res.status(500).send(
+            JSON.stringify({
+              error: "Failed to set allowed hosts: Unauthorized!",
+            }),
+          );
           return;
         }
         const { body } = req;

@@ -1,7 +1,15 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import _ from "lodash";
-import { AIMessage, AllowedHost, ChatHistory, Context, Email, HumanMessage, ReplyEmail } from "../schema/index.js";
+import {
+  AIMessage,
+  AllowedHost,
+  ChatHistory,
+  Context,
+  Email,
+  HumanMessage,
+  ReplyEmail,
+} from "../schema/index.js";
 
 export abstract class Database {
   protected emailKeys = [
@@ -120,7 +128,10 @@ export abstract class Database {
 
   abstract createAllowedHosts(hosts: AllowedHost[]): Promise<void>;
 
-  abstract updateAllowedHost(hostId: string, host: Omit<AllowedHost, "id">): Promise<void>;
+  abstract updateAllowedHost(
+    hostId: string,
+    host: Omit<AllowedHost, "id">,
+  ): Promise<void>;
 
   abstract deleteAllowedHost(id: string): Promise<void>;
 
@@ -130,9 +141,7 @@ export abstract class Database {
 
   abstract getReplyEmail(id: string): Promise<ReplyEmail | null>;
 
-  abstract getReplyEmailsByEmail(
-    emailId: string,
-  ): Promise<ReplyEmail[] | null>;
+  abstract getReplyEmailsByEmail(emailId: string): Promise<ReplyEmail[] | null>;
 
   abstract insertChatHistory(
     chatHistory: Omit<ChatHistory, "id">,
@@ -153,7 +162,19 @@ export abstract class Database {
 
   abstract insertUser(email: string, password: string): Promise<void>;
 
-  abstract getUserByEmail(email: string): Promise<{ email: string, id: string, metakey: string } | null>
+  abstract getUsers(): Promise<{ id: string; email: string }[]>;
+
+  abstract getUserImapSettings(userId: string): Promise<{
+    email: string;
+    email_password: string;
+    email_host: string;
+    email_port: string;
+    imap_settings?: Record<string, any>;
+  } | null>;
+
+  abstract getUserByEmail(
+    email: string,
+  ): Promise<{ email: string; id: string; metakey: string } | null>;
 
   abstract getUserMetakey(email: string): Promise<string>;
 

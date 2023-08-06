@@ -10,6 +10,7 @@ export function buildAuthMiddleware(database: Database) {
     res: Response,
     next: NextFunction,
   ) {
+    req.body.fromAccessToken = false;
     const accessToken = req.header("x-access-token");
     const sessionToken = req.header("x-session-token");
 
@@ -40,6 +41,7 @@ export function buildAuthMiddleware(database: Database) {
             )}`,
           );
         }
+        req.body.fromAccessToken = true;
         next();
       } catch (err) {
         logger.error("Failed to verify token:", err);

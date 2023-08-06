@@ -1,9 +1,16 @@
 import _ from "lodash";
-import {
-  Database,
-} from "./base.js";
 import Knex, { Knex as KnexT } from "knex";
-import { AIMessage, AllowedHost, ChatHistory, Context, Email, HumanMessage, ReplyEmail } from "../schema/index.js";
+import crypto from "crypto";
+import { Database } from "./base.js";
+import {
+  AIMessage,
+  AllowedHost,
+  ChatHistory,
+  Context,
+  Email,
+  HumanMessage,
+  ReplyEmail,
+} from "../schema/index.js";
 
 export class KnexDatabase extends Database {
   private db: KnexT;
@@ -63,12 +70,12 @@ export class KnexDatabase extends Database {
   }
 
   async getEmails(userId?: string): Promise<Email[] | null> {
-    if(userId){
+    if (userId) {
       return this.db("emails")
         .where({ user_id: userId })
         .select("*")
         .then((v) => (v.length > 0 ? v : null));
-    }else{
+    } else {
       return this.db("emails")
         .select("*")
         .then((v) => (v.length > 0 ? v : null));
@@ -111,7 +118,7 @@ export class KnexDatabase extends Database {
   }
 
   async getContext(userId?: string): Promise<Context | null> {
-    if(userId){
+    if (userId) {
       return this.db("contexts")
         .where({ user_id: userId })
         .select("*")
@@ -120,7 +127,7 @@ export class KnexDatabase extends Database {
             ? v.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {})
             : null,
         );
-    }else{
+    } else {
       return this.db("contexts")
         .select("*")
         .then((v) =>
@@ -150,11 +157,18 @@ export class KnexDatabase extends Database {
   }
 
   async getContextsByUser(email: string): Promise<Context | null> {
-    return this.db('contexts')
-      .join('users', 'contexts.user_id', 'users.id')
-      .where('users.email', email)
-      .select('contexts.*')
-      .then(contexts => contexts.length > 0 ? contexts.reduce((acc, { key, value }) => ({ ...acc, [key]: value }), {}) : null);
+    return this.db("contexts")
+      .join("users", "contexts.user_id", "users.id")
+      .where("users.email", email)
+      .select("contexts.*")
+      .then((contexts) =>
+        contexts.length > 0
+          ? contexts.reduce(
+              (acc, { key, value }) => ({ ...acc, [key]: value }),
+              {},
+            )
+          : null,
+      );
   }
 
   async setContextValue(id: string, key: string, value: string): Promise<void> {
@@ -165,21 +179,29 @@ export class KnexDatabase extends Database {
   }
 
   async getAllowedHosts(userId?: string): Promise<AllowedHost[] | null> {
-    if(userId){
+    if (userId) {
       return this.db("allowed_hosts")
         .where({ user_id: userId })
         .select("*")
         .then((v) =>
           v.length > 0
-            ? v.map((host) => ({ host: host.host, type: host.type, id: host.id }))
+            ? v.map((host) => ({
+                host: host.host,
+                type: host.type,
+                id: host.id,
+              }))
             : null,
         );
-    }else{
+    } else {
       return this.db("allowed_hosts")
         .select("*")
         .then((v) =>
           v.length > 0
-            ? v.map((host) => ({ host: host.host, type: host.type, id: host.id }))
+            ? v.map((host) => ({
+                host: host.host,
+                type: host.type,
+                id: host.id,
+              }))
             : null,
         );
     }
@@ -191,10 +213,11 @@ export class KnexDatabase extends Database {
     );
   }
 
-  async updateAllowedHost(hostId: string, host: Omit<AllowedHost, "id">): Promise<void> {
-    await this.db("allowed_hosts")
-      .where({ id: hostId })
-      .update(host)
+  async updateAllowedHost(
+    hostId: string,
+    host: Omit<AllowedHost, "id">,
+  ): Promise<void> {
+    await this.db("allowed_hosts").where({ id: hostId }).update(host);
   }
 
   async deleteAllowedHost(id: string): Promise<void> {
@@ -222,9 +245,7 @@ export class KnexDatabase extends Database {
       .then((v) => v || null);
   }
 
-  async getReplyEmailsByEmail(
-    emailId: string,
-  ): Promise<ReplyEmail[] | null> {
+  async getReplyEmailsByEmail(emailId: string): Promise<ReplyEmail[] | null> {
     return this.db("reply_emails")
       .where("email_id", emailId)
       .select("*")
@@ -232,12 +253,12 @@ export class KnexDatabase extends Database {
   }
 
   getChatHistory(userId?: string): Promise<ChatHistory[] | null> {
-    if(userId){
+    if (userId) {
       return this.db("chat_history")
         .where({ user_id: userId })
         .select("*")
         .then((v) => (v.length > 0 ? v : null));
-    }else{
+    } else {
       return this.db("chat_history")
         .select("*")
         .then((v) => (v.length > 0 ? v : null));
@@ -295,6 +316,15 @@ export class KnexDatabase extends Database {
       .then((v) => v || null);
   }
 
+  async getUsers(): Promise<{ id: string; email: string }[]> {
+    return this.db("users")
+      .select("email")
+      .select("id")
+      .then((v) => {
+        return v;
+      });
+  }
+
   async insertUser(email: string, rawPassword: string): Promise<void> {
     const { salt, metakey, password } =
       await Database.hashPasswordAndGenerateStuff(rawPassword);
@@ -309,16 +339,112 @@ export class KnexDatabase extends Database {
       .merge();
   }
 
-  async getUserByEmail(email: string): Promise<{ email: string; id: string; metakey: string; } | null> {
+  async setUserImapSettings(
+    userId: string,
+    imapSettings: {
+      email_password: string;
+      email_host: string;
+      email_port: string;
+      imap_settings?: string;
+    },
+  ): Promise<void> {
+    const user = await this.db("users")
+      .where({
+        id: userId,
+      })
+      .returning(["email", "metakey"])
+      .first()
+      .then((v) =>
+        v
+          ? {
+              metakey: v.metakey,
+              email: v.email,
+            }
+          : null,
+      );
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+    const { metakey } = user;
+    const { email_password: emailPassword, ...settings } = imapSettings;
+    const textEncoder = new TextEncoder();
+    const key = textEncoder.encode(process.env.TOKEN_KEY);
+    const initVector = textEncoder.encode(metakey);
+    const algo = "aes-256-cbc";
+    const cipher = crypto.createCipheriv(algo, key, initVector);
+    let encrypted = cipher.update(emailPassword, "utf-8", "base64");
+    encrypted += cipher.final("base64");
+
+    await this.db("users")
+      .where({
+        us: userId,
+      })
+      .update({
+        ...settings,
+        email_password: encrypted,
+      });
+  }
+
+  async getUserImapSettings(userId: string): Promise<{
+    email: string;
+    email_password: string;
+    email_host: string;
+    email_port: string;
+    imap_settings?: Record<string, any>;
+  } | null> {
+    const settings = await this.db("users")
+      .where({ id: userId })
+      .returning("email")
+      .first()
+      .then((v) =>
+        v
+          ? {
+              metakey: v.metakey,
+              email: v.email,
+              email_password: v.email_password,
+              email_host: v.email_host,
+              email_port: v.email_port,
+              imap_settings: v.imap_settings,
+            }
+          : null,
+      );
+
+    if (!settings) {
+      return null;
+    }
+
+    const { metakey, ...rest } = settings;
+    const textEncoder = new TextEncoder();
+    const key = textEncoder.encode(process.env.TOKEN_KEY);
+    const initVector = textEncoder.encode(metakey);
+    const algo = "aes-256-cbc";
+    const cipher = crypto.createDecipheriv(algo, key, initVector);
+
+    let decrypted = cipher.update(rest.email_password, "base64", "utf-8");
+    decrypted += cipher.final("utf-8");
+
+    settings.email_password = decrypted;
+
+    return settings;
+  }
+
+  async getUserByEmail(
+    email: string,
+  ): Promise<{ email: string; id: string; metakey: string } | null> {
     return this.db("users")
       .where("email", email)
       .returning(["email", "id", "metakey"])
       .first()
-      .then(v => v ? ({
-        email: v.email,
-        id: v.id,
-        metakey: v.metakey
-      }) : null)
+      .then((v) =>
+        v
+          ? {
+              email: v.email,
+              id: v.id,
+              metakey: v.metakey,
+            }
+          : null,
+      );
   }
 
   async getUserMetakey(email: string): Promise<string> {

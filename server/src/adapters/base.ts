@@ -9,7 +9,7 @@ export abstract class BaseMailAdapter {
   abstract connected: boolean;
   constructor(public opts?: FetchOpts) {}
   abstract connect(auth?: this["AuthType"]): Promise<void>;
-  abstract fetch(afterDate?: Date, auth?: this["AuthType"]): Promise<Email[]>; // where `Email` is a class or interface you define
+  abstract fetch(auth?: this["AuthType"], afterDate?: Date): Promise<Email[]>; // where `Email` is a class or interface you define
   abstract disconnect(): Promise<void>;
 
   static hashText(text: string) {

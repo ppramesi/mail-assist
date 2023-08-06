@@ -1,7 +1,5 @@
 import _ from "lodash";
-import {
-  Authorization,
-} from "./base.js";
+import { Authorization } from "./base.js";
 import Knex, { Knex as KnexT } from "knex";
 import { PolicyContext, PolicyResult } from "../schema/index.js";
 
@@ -16,8 +14,11 @@ export class KnexAuthorization extends Authorization {
     }
   }
 
-  async getUserPolicies(userId: string, _context: PolicyContext): Promise<PolicyResult> {
-    return this.checkAdminWrapper(userId, async () => {
+  async getUserPolicies(
+    userId: string,
+    context: PolicyContext,
+  ): Promise<PolicyResult> {
+    return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
       return {
         createAllowed: true,
         readAllowed: true,
@@ -28,55 +29,64 @@ export class KnexAuthorization extends Authorization {
         readAllAllowed: false, // maybe change later for admin
         updateAllAllowed: false, // maybe change later for admin
         deleteAllAllowed: false, // maybe change later for admin
-      }
-    })
+      };
+    });
   }
 
-  async getEmailPolicies(userId: string, context: PolicyContext): Promise<PolicyResult> {
-    return this.checkAdminWrapper(userId, async () => {
-      const defaultPolicy = KnexAuthorization.buildDefaultPolicy()
-      const { params } = context
+  async getEmailPolicies(
+    userId: string,
+    context: PolicyContext,
+  ): Promise<PolicyResult> {
+    return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
+      const defaultPolicy = KnexAuthorization.buildDefaultPolicy();
+      const { params } = context;
       defaultPolicy.createAllowed = true;
       if (params && params.id) {
         const exists = await this.db("emails")
           .where({ id: params.id, user_id: userId })
           .count("*")
-          .then(count => Number(count[0]["count(*)"]) > 0)
+          .then((count) => Number(count[0]["count(*)"]) > 0);
 
         if (exists) {
           defaultPolicy.readAllowed = exists;
           defaultPolicy.updateAllowed = exists;
-          defaultPolicy.deleteAllowed = exists
+          defaultPolicy.deleteAllowed = exists;
         }
       }
-      return defaultPolicy
-    })
+      return defaultPolicy;
+    });
   }
 
-  async getContextPolicies(userId: string, context: PolicyContext): Promise<PolicyResult> {
-    return this.checkAdminWrapper(userId, async () => {
-      const defaultPolicy = KnexAuthorization.buildDefaultPolicy()
-      const { params } = context
+  async getContextPolicies(
+    userId: string,
+    context: PolicyContext,
+  ): Promise<PolicyResult> {
+    return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
+      const defaultPolicy = KnexAuthorization.buildDefaultPolicy();
+      const { params } = context;
       defaultPolicy.createAllowed = true;
       if (params && params.id) {
         const exists = await this.db("context")
           .where({ id: params.id, user_id: userId })
           .count("*")
-          .then(count => Number(count[0]["count(*)"]) > 0)
+          .then((count) => Number(count[0]["count(*)"]) > 0);
 
         if (exists) {
           defaultPolicy.readAllowed = exists;
           defaultPolicy.updateAllowed = exists;
-          defaultPolicy.deleteAllowed = exists
+          defaultPolicy.deleteAllowed = exists;
         }
       }
 
-      return defaultPolicy
-    })
+      return defaultPolicy;
+    });
   }
 
-  async getAllowedHostsPolicies(userId: string, context: PolicyContext): Promise<PolicyResult> {
-    return this.checkAdminWrapper(userId, async () => {
+  async getAllowedHostsPolicies(
+    userId: string,
+    context: PolicyContext,
+  ): Promise<PolicyResult> {
+    return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
       const defaultPolicy = KnexAuthorization.buildDefaultPolicy();
       const { params } = context;
       defaultPolicy.createAllowed = true;
@@ -84,92 +94,98 @@ export class KnexAuthorization extends Authorization {
         const exists = await this.db("allowed_hosts")
           .where({ id: params.id, user_id: userId })
           .count("*")
-          .then(count => Number(count[0]["count(*)"]) > 0)
+          .then((count) => Number(count[0]["count(*)"]) > 0);
 
         if (exists) {
           defaultPolicy.readAllowed = exists;
           defaultPolicy.updateAllowed = exists;
-          defaultPolicy.deleteAllowed = exists
+          defaultPolicy.deleteAllowed = exists;
         }
       }
 
-      return defaultPolicy
+      return defaultPolicy;
     });
   }
 
-  async getReplyEmailPolicies(userId: string, context: PolicyContext): Promise<PolicyResult> {
-    return this.checkAdminWrapper(userId, async () => {
+  async getReplyEmailPolicies(
+    userId: string,
+    context: PolicyContext,
+  ): Promise<PolicyResult> {
+    return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
       const defaultPolicy = KnexAuthorization.buildDefaultPolicy();
       const { params } = context;
       defaultPolicy.createAllowed = true;
       if (params) {
-        if(params.id){
+        if (params.id) {
           const exists = await this.db("reply_emails")
             .where({ id: params.id, user_id: userId })
             .count("*")
-            .then(count => Number(count[0]["count(*)"]) > 0)
-  
+            .then((count) => Number(count[0]["count(*)"]) > 0);
+
           if (exists) {
             defaultPolicy.readAllowed = exists;
             defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists
+            defaultPolicy.deleteAllowed = exists;
           }
-        }else if(params.emailId){
+        } else if (params.emailId) {
           const exists = await this.db("reply_emails")
             .where({ email_id: params.emailId, user_id: userId })
             .count("*")
-            .then(count => Number(count[0]["count(*)"]) > 0)
-  
+            .then((count) => Number(count[0]["count(*)"]) > 0);
+
           if (exists) {
             defaultPolicy.readAllowed = exists;
             defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists
+            defaultPolicy.deleteAllowed = exists;
           }
         }
       }
 
-      return defaultPolicy
+      return defaultPolicy;
     });
   }
 
-  async getChatHistoryPolicies(userId: string, context: PolicyContext): Promise<PolicyResult> {
-    return this.checkAdminWrapper(userId, async () => {
+  async getChatHistoryPolicies(
+    userId: string,
+    context: PolicyContext,
+  ): Promise<PolicyResult> {
+    return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
       const defaultPolicy = KnexAuthorization.buildDefaultPolicy();
       defaultPolicy.createAllowed = true;
-      const { params } = context
-      if(params){
-        if(params.id){
+      const { params } = context;
+      if (params) {
+        if (params.id) {
           const exists = await this.db("chat_history")
             .where({ id: params.id, user_id: userId })
             .count("*")
-            .then(count => Number(count[0]["count(*)"]) > 0)
-  
+            .then((count) => Number(count[0]["count(*)"]) > 0);
+
           if (exists) {
             defaultPolicy.readAllowed = exists;
             defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists
+            defaultPolicy.deleteAllowed = exists;
           }
-        }else if(params.emailId){
+        } else if (params.emailId) {
           const exists = await this.db("chat_history")
             .where({ email_id: params.emailId, user_id: userId })
             .count("*")
-            .then(count => Number(count[0]["count(*)"]) > 0)
-  
+            .then((count) => Number(count[0]["count(*)"]) > 0);
+
           if (exists) {
             defaultPolicy.readAllowed = exists;
             defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists
+            defaultPolicy.deleteAllowed = exists;
           }
-        }else if(params.replyId){
+        } else if (params.replyId) {
           const exists = await this.db("chat_history")
             .where({ reply_id: params.replyId, user_id: userId })
             .count("*")
-            .then(count => Number(count[0]["count(*)"]) > 0)
-  
+            .then((count) => Number(count[0]["count(*)"]) > 0);
+
           if (exists) {
             defaultPolicy.readAllowed = exists;
             defaultPolicy.updateAllowed = exists;
-            defaultPolicy.deleteAllowed = exists
+            defaultPolicy.deleteAllowed = exists;
           }
         }
       }
@@ -177,19 +193,57 @@ export class KnexAuthorization extends Authorization {
     });
   }
 
-  async getEmbeddingsPolicies(userId: string): Promise<PolicyResult> {
-    return this.checkAdminWrapper(userId, async () => {
-      return KnexAuthorization.buildDefaultPolicy()
+  async getEmbeddingsPolicies(
+    userId: string,
+    context: PolicyContext,
+  ): Promise<PolicyResult> {
+    return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
+      return KnexAuthorization.buildDefaultPolicy();
+    });
+  }
+
+  async getProcessEmailsPolicies(
+    userId: string,
+    context: PolicyContext,
+  ): Promise<PolicyResult> {
+    return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
+      const defaultPolicy = KnexAuthorization.buildDefaultPolicy();
+
+      return defaultPolicy;
+    });
+  }
+
+  async getEvaluateEmailPolicies(userId: string, context: PolicyContext): Promise<PolicyResult> {
+    return this.checkAdminWrapper(userId, context.fromAccessToken, async () => {
+      const defaultPolicy = KnexAuthorization.buildDefaultPolicy()
+        const { body } = context
+        if(body && body.emailId){
+          const exists = await this.db("chat_history")
+            .where({ id: body.emailId, user_id: userId })
+            .count("*")
+            .then((count) => Number(count[0]["count(*)"]) > 0);
+
+          if (exists) {
+            defaultPolicy.readAllowed = exists;
+            defaultPolicy.updateAllowed = exists;
+          }
+        }
+
+        return defaultPolicy;
     })
   }
 
-  private async checkAdminWrapper(userId: string, func: () => Promise<PolicyResult>): Promise<PolicyResult> {
+  private async checkAdminWrapper(
+    userId: string,
+    isAccessToken: boolean,
+    func: () => Promise<PolicyResult>,
+  ): Promise<PolicyResult> {
     const isAdmin = await this.db("user_roles")
       .where({ user_id: userId, role: "admin" })
       .select("*")
-      .then(v => v.length > 0)
+      .then((v) => v.length > 0);
 
-    if (isAdmin) {
+    if (isAdmin || isAccessToken) {
       return {
         createAllowed: true,
         readAllowed: true,
