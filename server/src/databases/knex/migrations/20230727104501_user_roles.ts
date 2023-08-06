@@ -3,7 +3,7 @@ import { Knex } from "knex";
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("user_roles", (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
-    table.uuid("user_id").references("id").inTable("id");
+    table.uuid("user_id").references("id").inTable("users");
     table.enum("role", ["admin", "user"]);
     table.unique(["user_id", "role"]);
   });

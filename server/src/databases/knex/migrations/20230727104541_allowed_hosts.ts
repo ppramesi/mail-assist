@@ -5,7 +5,7 @@ export async function up(knex: Knex): Promise<void> {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
     table.string("host").primary();
     table.enum("type", ["string", "regex"]);
-    table.uuid("user_id").references("id").inTable("id");
+    table.uuid("user_id").references("id").inTable("users");
   });
 }
 

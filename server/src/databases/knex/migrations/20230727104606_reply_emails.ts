@@ -7,7 +7,7 @@ export async function up(knex: Knex): Promise<void> {
     table.text("reply_text");
     table.text("summary");
     table.uuid("email_id").references("id").inTable("emails");
-    table.uuid("user_id").references("id").inTable("id");
+    table.uuid("user_id").references("id").inTable("users");
   });
 }
 

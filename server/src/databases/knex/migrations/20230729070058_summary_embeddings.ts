@@ -7,7 +7,7 @@ export async function up(knex: Knex): Promise<void> {
     table.text("pageContent");
     table.specificType("embedding", "vector");
     table.jsonb("metadata");
-    table.uuid("user_id").references("id").inTable("id");
+    table.uuid("user_id").references("id").inTable("users");
   });
 }
 

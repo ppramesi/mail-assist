@@ -6,7 +6,7 @@ export async function up(knex: Knex): Promise<void> {
     table.uuid("email_id").references("id").inTable("emails");
     table.uuid("reply_id").references("id").inTable("reply_emails");
     table.jsonb("chat_messages");
-    table.uuid("user_id").references("id").inTable("id");
+    table.uuid("user_id").references("id").inTable("users");
   });
 }
 

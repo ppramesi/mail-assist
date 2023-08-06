@@ -164,11 +164,21 @@ export abstract class Database {
 
   abstract getUsers(): Promise<{ id: string; email: string }[]>;
 
+  abstract setUserImapSettings(
+    userId: string,
+    imapSettings: {
+      email_password: string;
+      email_host: string;
+      email_port: string;
+      imap_settings?: Record<string, any>;
+    },
+  ): Promise<void>;
+
   abstract getUserImapSettings(userId: string): Promise<{
-    email: string;
-    email_password: string;
-    email_host: string;
-    email_port: string;
+    user: string;
+    password: string;
+    host: string;
+    port: string;
     imap_settings?: Record<string, any>;
   } | null>;
 

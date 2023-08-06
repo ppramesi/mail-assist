@@ -48,6 +48,7 @@ async function main(){
     throw new Error("Ooops, something went wrong!!! 😕");
   }
 }
+
 main().then(() => {
   process.exit(0);
 }).catch((err) => {

@@ -345,7 +345,7 @@ export class KnexDatabase extends Database {
       email_password: string;
       email_host: string;
       email_port: string;
-      imap_settings?: string;
+      imap_settings?: Record<string, any>;
     },
   ): Promise<void> {
     const user = await this.db("users")
@@ -380,10 +380,10 @@ export class KnexDatabase extends Database {
   }
 
   async getUserImapSettings(userId: string): Promise<{
-    email: string;
-    email_password: string;
-    email_host: string;
-    email_port: string;
+    user: string;
+    password: string;
+    host: string;
+    port: string;
     imap_settings?: Record<string, any>;
   } | null> {
     const settings = await this.db("users")
@@ -394,10 +394,10 @@ export class KnexDatabase extends Database {
         v
           ? {
               metakey: v.metakey,
-              email: v.email,
-              email_password: v.email_password,
-              email_host: v.email_host,
-              email_port: v.email_port,
+              user: v.email,
+              password: v.email_password,
+              host: v.host,
+              port: v.email_port,
               imap_settings: v.imap_settings,
             }
           : null,
@@ -409,7 +409,7 @@ export class KnexDatabase extends Database {
 
     const { metakey, ...rest } = settings;
 
-    settings.email_password = decrypt(rest.email_password, metakey);
+    settings.password = decrypt(rest.password, metakey);
 
     return settings;
   }
