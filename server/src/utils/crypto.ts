@@ -1,11 +1,17 @@
 import crypto from "crypto";
 
-export function encrypt(message: string, init: string) {
+export function encrypt(message: string, init: string, salt: string) {
   if (!process.env.TOKEN_KEY) {
     throw new Error("token key not set");
   }
 
-  const key = Buffer.from(process.env.TOKEN_KEY, "base64").subarray(0, 32);
+  const key = crypto.pbkdf2Sync(
+    Buffer.from(process.env.TOKEN_KEY, "base64"),
+    Buffer.from(salt, "utf8").subarray(0, 16),
+    210000,
+    32,
+    "sha512",
+  );
   const initVector = Buffer.from(init, "base64").subarray(0, 16);
   const algo = "aes256";
   const cipher = crypto.createCipheriv(algo, key, initVector);
@@ -14,12 +20,18 @@ export function encrypt(message: string, init: string) {
   return encrypted;
 }
 
-export function decrypt(message: string, init: string) {
+export function decrypt(message: string, init: string, salt: string) {
   if (!process.env.TOKEN_KEY) {
     throw new Error("token key not set");
   }
 
-  const key = Buffer.from(process.env.TOKEN_KEY, "base64").subarray(0, 32);
+  const key = crypto.pbkdf2Sync(
+    Buffer.from(process.env.TOKEN_KEY, "base64"),
+    Buffer.from(salt, "utf8").subarray(0, 16),
+    210000,
+    32,
+    "sha512",
+  );
   const initVector = Buffer.from(init, "base64").subarray(0, 16);
   const algo = "aes256";
   const cipher = crypto.createDecipheriv(algo, key, initVector);

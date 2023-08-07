@@ -342,9 +342,9 @@ export class KnexDatabase extends Database {
   async setUserImapSettings(
     userId: string,
     imapSettings: {
-      email_password: string;
-      email_host: string;
-      email_port: string;
+      imap_password: string;
+      imap_host: string;
+      imap_port: string;
       imap_settings?: Record<string, any>;
     },
   ): Promise<void> {
@@ -352,13 +352,14 @@ export class KnexDatabase extends Database {
       .where({
         id: userId,
       })
-      .returning(["email", "metakey"])
+      .returning(["email", "metakey", "salt"])
       .first()
       .then((v) =>
         v
           ? {
               metakey: v.metakey,
               email: v.email,
+              salt: v.salt,
             }
           : null,
       );
@@ -366,8 +367,8 @@ export class KnexDatabase extends Database {
     if (!user) {
       throw new Error("User not found");
     }
-    const { metakey } = user;
-    const { email_password: emailPassword, ...settings } = imapSettings;
+    const { metakey, salt } = user;
+    const { imap_password: emailPassword, ...settings } = imapSettings;
 
     await this.db("users")
       .where({
@@ -375,7 +376,7 @@ export class KnexDatabase extends Database {
       })
       .update({
         ...settings,
-        email_password: encrypt(emailPassword, metakey),
+        imap_password: encrypt(emailPassword, metakey, salt),
       });
   }
 
@@ -388,17 +389,18 @@ export class KnexDatabase extends Database {
   } | null> {
     const settings = await this.db("users")
       .where({ id: userId })
-      .returning("email")
+      .returning("*")
       .first()
       .then((v) =>
         v
           ? {
               metakey: v.metakey,
               user: v.email,
-              password: v.email_password,
-              host: v.host,
-              port: v.email_port,
+              password: v.imap_password,
+              host: v.imap_host,
+              port: v.imap_port,
               imap_settings: v.imap_settings,
+              salt: v.salt,
             }
           : null,
       );
@@ -407,9 +409,9 @@ export class KnexDatabase extends Database {
       return null;
     }
 
-    const { metakey, ...rest } = settings;
+    const { metakey, salt, ...rest } = settings;
 
-    settings.password = decrypt(rest.password, metakey);
+    settings.password = decrypt(rest.password, metakey, salt);
 
     return settings;
   }

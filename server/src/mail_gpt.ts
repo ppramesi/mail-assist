@@ -77,25 +77,24 @@ export abstract class MailGPTServer {
 
   abstract startServer(): Promise<void>;
 
-  async getAllowedHostsFilter(hostsParam: AllowedHost[] = []) {
-    const hosts = await this.database.getAllowedHosts();
+  async getAllowedHostsFilter(userId?: string, hostsParam: AllowedHost[] = []) {
+    const hosts = await this.database.getAllowedHosts(userId);
     if (hosts || hostsParam) {
       return buildFilterFunction([...(hosts ?? []), ...hostsParam]);
     }
     return null;
   }
 
-  async getContext(fromDb = false) {
-    return this.context && !fromDb
-      ? Promise.resolve(this.context)
-      : this.database.getContext();
-  }
-
-  async *streamEvaluateEmail(input: string, emailId: string, replyId: string) {
+  async *streamEvaluateEmail(
+    input: string,
+    emailId: string,
+    replyId: string,
+    userId?: string,
+  ) {
     let [email, reply, context, chatHistory] = await Promise.all([
       this.database.getEmail(emailId),
       this.database.getReplyEmail(replyId),
-      this.getContext(),
+      this.database.getContext(userId),
       this.database.getChatHistoryByReply(replyId),
     ]);
     if (!email || !reply) {
@@ -147,11 +146,16 @@ export abstract class MailGPTServer {
     ]);
   }
 
-  async evaluateEmail(input: string, emailId: string, replyId: string) {
+  async evaluateEmail(
+    input: string,
+    emailId: string,
+    replyId: string,
+    userId?: string,
+  ) {
     let [email, reply, context, chatHistory] = await Promise.all([
       this.database.getEmail(emailId),
       this.database.getReplyEmail(replyId),
-      this.getContext(),
+      this.database.getContext(userId),
       this.database.getChatHistoryByReply(replyId),
     ]);
     if (!email || !reply) {
@@ -200,7 +204,7 @@ export abstract class MailGPTServer {
   }
 
   async processEmails(userId?: string) {
-    const users = [];
+    const users: string[] = [];
     if (userId) {
       users.push(userId);
     } else {
@@ -221,8 +225,8 @@ export abstract class MailGPTServer {
       const lastEmail = await this.database.getLatestEmail();
       const [emails, context, hostsFilter] = await Promise.all([
         this.mailAdapter.fetch(imapAuth, lastEmail?.date),
-        this.getContext(),
-        this.getAllowedHostsFilter(this.allowedHosts),
+        this.database.getContext(id),
+        this.getAllowedHostsFilter(id, this.allowedHosts),
       ]);
       const filteredEmails = emails.filter(hostsFilter ?? (() => false));
       const newEmails = await this.database.insertUnseenEmails(filteredEmails);
@@ -469,9 +473,14 @@ export class MailGPTAPIServer extends MailGPTServer {
     });
 
     gptRoutes.post("/evaluate-email", async (req, res) => {
+      const { body, params } = req;
+      const {
+        input,
+        email_id: emailId,
+        reply_id: replyId,
+        user_id: userId,
+      } = body;
       if (this.authorizer) {
-        const { body, params } = req;
-        const { user_id: userId } = body;
         const policies = await this.authorizer.getEvaluateEmailPolicies(
           userId,
           {
@@ -486,10 +495,14 @@ export class MailGPTAPIServer extends MailGPTServer {
           return;
         }
       }
-      const { input, email_id: emailId, reply_id: replyId } = req.body;
       try {
         logger.info(`Starting to evaluate email with id: ${emailId}`);
-        const newReplyEmail = await this.evaluateEmail(input, emailId, replyId);
+        const newReplyEmail = await this.evaluateEmail(
+          input,
+          emailId,
+          replyId,
+          userId,
+        );
         res.status(200).send({ new_reply_email: newReplyEmail });
         return;
       } catch (error) {
@@ -503,7 +516,28 @@ export class MailGPTAPIServer extends MailGPTServer {
     });
 
     gptRoutes.post("/stream/evaluate-email", async (req, res) => {
-      const { input, email_id: emailId, reply_id: replyId } = req.body;
+      const { body, params } = req;
+      const {
+        input,
+        email_id: emailId,
+        reply_id: replyId,
+        user_id: userId,
+      } = body;
+      if (this.authorizer) {
+        const policies = await this.authorizer.getEvaluateEmailPolicies(
+          userId,
+          {
+            body,
+            params,
+            fromAccessToken: body.fromAccessToken,
+          },
+        );
+        if (!policies.updateAllowed) {
+          logger.error(`Error while evaluating email with id: no authority`);
+          res.status(500).send({ error: "no authority" });
+          return;
+        }
+      }
       try {
         logger.info(`Starting to stream evaluate email with id: ${emailId}`);
         res.statusCode = 200;
@@ -512,6 +546,7 @@ export class MailGPTAPIServer extends MailGPTServer {
           input,
           emailId,
           replyId,
+          userId,
         );
         for await (const chunk of evaluatorStream) {
           if (chunk) {

@@ -5,9 +5,19 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 dotenv.config();
 
-function encrypt(message, init) {
-  const key = Buffer.from(process.env.TOKEN_KEY, "base64").subarray(0, 32);
-  
+function encrypt(message, init, salt) {
+  if (!process.env.TOKEN_KEY) {
+    throw new Error("token key not set");
+  }
+
+  const key = crypto.pbkdf2Sync(
+    Buffer.from(process.env.TOKEN_KEY, "base64"),
+    Buffer.from(salt, "utf8").subarray(0, 16),
+    210000,
+    32,
+    "sha512",
+  );
+
   const initVector = Buffer.from(init, "base64").subarray(0, 16);
   const algo = "aes256";
   const cipher = crypto.createCipheriv(algo, key, initVector);
@@ -16,8 +26,18 @@ function encrypt(message, init) {
   return encrypted;
 }
 
-function decrypt(message, init) {
-  const key = Buffer.from(process.env.TOKEN_KEY, "base64").subarray(0, 32);
+function decrypt(message, init, salt) {
+  if (!process.env.TOKEN_KEY) {
+    throw new Error("token key not set");
+  }
+
+  const key = crypto.pbkdf2Sync(
+    Buffer.from(process.env.TOKEN_KEY, "base64"),
+    Buffer.from(salt, "utf8").subarray(0, 16),
+    210000,
+    32,
+    "sha512",
+  );
   const initVector = Buffer.from(init, "base64").subarray(0, 16);
   const algo = "aes256";
   const cipher = crypto.createDecipheriv(algo, key, initVector);
@@ -27,77 +47,92 @@ function decrypt(message, init) {
   return decrypted;
 }
 
-async function main(){
+async function main() {
   const knex = require("knex")({
     client: "postgresql",
     connection: {
       database: process.env.POSTGRES_DB,
       user: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD
+      password: process.env.POSTGRES_PASSWORD,
     },
     pool: {
       min: 2,
-      max: 10
-    }
+      max: 10,
+    },
   });
-  
+
   const { e, p, email, password } = argv;
   const emailStr = e || email;
   const passwordStr = p || password;
-  if(!emailStr || !passwordStr) {
+  if (!emailStr || !passwordStr) {
     console.error("Please provide email and password");
     process.exit(1);
   }
 
-  const { password: encryptedPass, metakey } = await knex("users")
-    .where({ 
-      email: emailStr
+  const {
+    password: encryptedPass,
+    metakey,
+    salt,
+  } = await knex("users")
+    .where({
+      email: emailStr,
     })
     .select("password")
     .select("metakey")
+    .select("salt")
     .first();
 
   const authenticated = await bcrypt.compare(passwordStr, encryptedPass);
-  if(!authenticated){
-    console.error("Auth failed!")
+  if (!authenticated) {
+    console.error("Auth failed!");
     return;
   }
 
-  const { imap_pass: imapPass, imap_host: imapHost, imap_port: imapPort } = argv
-  console.log(imapHost, imapPass, imapPort)
+  const {
+    imap_pass: imapPass,
+    imap_host: imapHost,
+    imap_port: imapPort,
+  } = argv;
 
-  if(!imapPass || !imapHost || !imapPort){
-    console.error("IMAP config missing")
+  if (!imapPass || !imapHost || !imapPort) {
+    console.error("IMAP config missing");
     return;
   }
 
-  const encryptedPassword = encrypt(imapPass, metakey)
+  const encryptedPassword = encrypt(imapPass, metakey, salt);
+  const testDecrypted = decrypt(encryptedPassword, metakey, salt);
+  if (testDecrypted !== imapPass) {
+    console.error("Encryption failed");
+    return;
+  }
   try {
     await knex("users")
       .where({
-        email: emailStr
+        email: emailStr,
       })
       .update({
-        email_password: encryptedPassword,
-        email_host: imapHost,
-        email_port: imapPort,
+        imap_password: encryptedPassword,
+        imap_host: imapHost,
+        imap_port: imapPort,
         imap_settings: {
           tls: true,
           tlsOptions: {
             rejectUnauthorized: false,
-          }
-        }
-      })
+          },
+        },
+      });
     return;
   } catch (error) {
-    console.error("update fucked up:", error)
-    return
+    console.error("update fucked up:", error);
+    return;
   }
 }
 
-main().then(() => {
-  process.exit(0);
-}).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

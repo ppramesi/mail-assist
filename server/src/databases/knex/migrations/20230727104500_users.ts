@@ -9,9 +9,9 @@ export async function up(knex: Knex): Promise<void> {
     table.string("metakey");
     table.string("session_key").nullable();
 
-    table.string("email_password").nullable();
-    table.string("email_host").nullable();
-    table.string("email_port").nullable();
+    table.string("imap_password").nullable();
+    table.string("imap_host").nullable();
+    table.string("imap_port").nullable();
     table.jsonb("imap_settings").nullable();
   });
 }

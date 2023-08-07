@@ -167,9 +167,9 @@ export abstract class Database {
   abstract setUserImapSettings(
     userId: string,
     imapSettings: {
-      email_password: string;
-      email_host: string;
-      email_port: string;
+      imap_password: string;
+      imap_host: string;
+      imap_port: string;
       imap_settings?: Record<string, any>;
     },
   ): Promise<void>;
