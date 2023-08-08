@@ -7,12 +7,10 @@ import {
   SystemMessagePromptTemplate,
 } from "langchain/prompts";
 import { ChainValues } from "langchain/schema";
-import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { stringJoinArrayOrNone } from "../../utils/string.js";
 
 export interface ReplyGeneratorOpts {
   llm: ChatOpenAI;
-  retriever: VectorStoreRetriever;
 }
 
 const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. Your task is to write a reply given the email's body, user's intention and relevant summaries of previous emails (ignore them if they're irrelevant). Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. You answer should only be the email's text and nothing else.
@@ -68,11 +66,9 @@ const buildPrompt = () =>
 
 export class ReplyGenerator extends LLMChain {
   context?: Record<string, string>;
-  retriever: VectorStoreRetriever;
 
   constructor(opts: ReplyGeneratorOpts) {
     super({ llm: opts.llm, prompt: buildPrompt() });
-    this.retriever = opts.retriever;
   }
 
   setContext(newContext: Record<string, string>) {

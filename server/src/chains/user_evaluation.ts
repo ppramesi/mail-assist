@@ -28,53 +28,6 @@ export interface ConversationalEmailEvaluatorOpts
   db: Database;
 }
 
-export class IterableReadableStream<T> extends ReadableStream<T> {
-  public reader: ReadableStreamDefaultReader<T>;
-
-  ensureReader() {
-    if (!this.reader) {
-      this.reader = this.getReader();
-    }
-  }
-
-  async next() {
-    this.ensureReader();
-    try {
-      const result = await this.reader.read();
-      if (result.done) this.reader.releaseLock(); // release lock when stream becomes closed
-      return result;
-    } catch (e) {
-      this.reader.releaseLock(); // release lock when stream becomes errored
-      throw e;
-    }
-  }
-
-  async return() {
-    this.ensureReader();
-    const cancelPromise = this.reader.cancel(); // cancel first, but don't await yet
-    this.reader.releaseLock(); // release lock first
-    await cancelPromise; // now await it
-    return { done: true, value: undefined };
-  }
-
-  [Symbol.asyncIterator]() {
-    return this;
-  }
-
-  static fromAsyncGenerator<T>(generator: AsyncGenerator<T>) {
-    return new IterableReadableStream<T>({
-      async pull(controller) {
-        const { value, done } = await generator.next();
-        if (done) {
-          controller.close();
-        } else if (value) {
-          controller.enqueue(value);
-        }
-      },
-    });
-  }
-}
-
 export class ConversationalEmailEvaluator extends LLMChain {
   db: Database;
   replyId?: string;

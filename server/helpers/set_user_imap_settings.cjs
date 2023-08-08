@@ -21,6 +21,7 @@ function encrypt(message, init, salt) {
   const initVector = Buffer.from(init, "base64").subarray(0, 16);
   const algo = "aes256";
   const cipher = crypto.createCipheriv(algo, key, initVector);
+
   let encrypted = cipher.update(message, "utf-8", "base64");
   encrypted += cipher.final("base64");
   return encrypted;
@@ -38,6 +39,7 @@ function decrypt(message, init, salt) {
     32,
     "sha512",
   );
+  
   const initVector = Buffer.from(init, "base64").subarray(0, 16);
   const algo = "aes256";
   const cipher = crypto.createDecipheriv(algo, key, initVector);

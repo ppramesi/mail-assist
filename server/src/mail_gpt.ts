@@ -232,7 +232,10 @@ export abstract class MailGPTServer {
       const newEmails = await this.database.insertUnseenEmails(filteredEmails);
       this.executor.setContext(context ?? {});
       try {
-        const processedEmails = await this.executor.processEmails(newEmails);
+        const processedEmails = await this.executor.processEmails(
+          id,
+          newEmails,
+        );
         const processedPromises = processedEmails.map(async (emailOrReply) => {
           switch (emailOrReply.process_status) {
             case "empty": {
@@ -286,6 +289,7 @@ export abstract class MailGPTServer {
                         text,
                         from,
                         date: date?.toLocaleString(),
+                        user_id: id,
                       },
                     }),
                   ]),
@@ -472,50 +476,7 @@ export class MailGPTAPIServer extends MailGPTServer {
       }
     });
 
-    gptRoutes.post("/evaluate-email", async (req, res) => {
-      const { body, params } = req;
-      const {
-        input,
-        email_id: emailId,
-        reply_id: replyId,
-        user_id: userId,
-      } = body;
-      if (this.authorizer) {
-        const policies = await this.authorizer.getEvaluateEmailPolicies(
-          userId,
-          {
-            body,
-            params,
-            fromAccessToken: body.fromAccessToken,
-          },
-        );
-        if (!policies.updateAllowed) {
-          logger.error(`Error while evaluating email with id: no authority`);
-          res.status(500).send({ error: "no authority" });
-          return;
-        }
-      }
-      try {
-        logger.info(`Starting to evaluate email with id: ${emailId}`);
-        const newReplyEmail = await this.evaluateEmail(
-          input,
-          emailId,
-          replyId,
-          userId,
-        );
-        res.status(200).send({ new_reply_email: newReplyEmail });
-        return;
-      } catch (error) {
-        logger.error(
-          `Error while evaluating email with id: ${emailId}:`,
-          error,
-        );
-        res.status(500).send(error);
-        return;
-      }
-    });
-
-    gptRoutes.post("/stream/evaluate-email", async (req, res) => {
+    gptRoutes.post("/evaluate-email/stream", async (req, res) => {
       const { body, params } = req;
       const {
         input,
@@ -558,6 +519,49 @@ export class MailGPTAPIServer extends MailGPTServer {
       } catch (error) {
         logger.error(
           `Error while stream evaluating email with id: ${emailId}:`,
+          error,
+        );
+        res.status(500).send(error);
+        return;
+      }
+    });
+
+    gptRoutes.post("/evaluate-email", async (req, res) => {
+      const { body, params } = req;
+      const {
+        input,
+        email_id: emailId,
+        reply_id: replyId,
+        user_id: userId,
+      } = body;
+      if (this.authorizer) {
+        const policies = await this.authorizer.getEvaluateEmailPolicies(
+          userId,
+          {
+            body,
+            params,
+            fromAccessToken: body.fromAccessToken,
+          },
+        );
+        if (!policies.updateAllowed) {
+          logger.error(`Error while evaluating email with id: no authority`);
+          res.status(500).send({ error: "no authority" });
+          return;
+        }
+      }
+      try {
+        logger.info(`Starting to evaluate email with id: ${emailId}`);
+        const newReplyEmail = await this.evaluateEmail(
+          input,
+          emailId,
+          replyId,
+          userId,
+        );
+        res.status(200).send({ new_reply_email: newReplyEmail });
+        return;
+      } catch (error) {
+        logger.error(
+          `Error while evaluating email with id: ${emailId}:`,
           error,
         );
         res.status(500).send(error);

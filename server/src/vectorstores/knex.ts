@@ -133,7 +133,9 @@ export class KnexVectorStore extends VectorStore {
       .flatMap(([key, ops]) =>
         Object.entries(ops as Record<string, any>).map(([opName, value]) => {
           const opRaw = OpMap[opName as keyof typeof OpMap];
-          return this.knex.raw(`"${key}" ${opRaw} ?`, [value]).toString();
+          return this.knex
+            .raw(`metadata ->> "${key}" ${opRaw} ?`, [value])
+            .toString();
         }),
       )
       .join(" AND ")}`;

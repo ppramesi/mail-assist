@@ -9,7 +9,6 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   try {
-    const body = await request.json();
     const axiosRequest = await axios.request({
       url: buildPath(`/allowed-hosts/${params.id}`),
       method: "DELETE",

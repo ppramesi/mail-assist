@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       headers.set("x-session-token", sessionToken);
     }
     const fetchResponse = await fetch(
-      buildPath("/gpt/stream/evaluate-email/"),
+      buildPath("/gpt/evaluate-email/stream/"),
       {
         method: "POST",
         headers,

@@ -410,7 +410,6 @@ export class KnexDatabase extends Database {
     }
 
     const { metakey, salt, ...rest } = settings;
-
     settings.password = decrypt(rest.password, metakey, salt);
 
     return settings;

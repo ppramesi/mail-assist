@@ -29,6 +29,7 @@ export class MainExecutor {
   replier: ReplyGenerator;
   summarizer: EmailSummarizer;
   retriever: VectorStoreRetriever;
+  currentUserId?: string;
   context?: Record<string, string>;
   // db: Database;
 
@@ -39,7 +40,6 @@ export class MainExecutor {
     this.keywordsGenerator = new KeywordsGenerator(chainParams);
     this.replier = new ReplyGenerator({
       ...chainParams,
-      retriever: opts.retriever,
     });
     this.summarizer = new EmailSummarizer(chainParams);
     this.retriever = opts.retriever;
@@ -65,6 +65,13 @@ export class MainExecutor {
       (await this.keywordsGenerator.call(values, callbacks)) as {
         extracted_info: string[];
       };
+    if (this.currentUserId) {
+      this.retriever.filter = {
+        user_id: {
+          equals: this.currentUserId,
+        },
+      };
+    }
     const summaries = await Promise.all(
       extractedInfo.map((keyword) =>
         this.retriever.getRelevantDocuments(keyword, callbacks),
@@ -98,9 +105,11 @@ export class MainExecutor {
    * @returns
    */
   async processEmails(
+    userId: string,
     emails: Email[],
     callbacks?: Callbacks,
   ): Promise<ProcessedEmail[]> {
+    this.currentUserId = userId;
     const processEmailPromise = emails.map(async (email) => {
       const { text: body, from, date, to: rawTo, cc, bcc } = email;
       const to = rawTo.slice(0, 10).join("\n");
