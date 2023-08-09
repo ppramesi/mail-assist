@@ -42,6 +42,7 @@ export default function ImapSettings() {
       myPrivateKey,
       serverPublicKey,
     );
+    
     const { iv, cipherText } = await encrypt(sharedSecret, password);
     await fetchWithSessionToken("/api/settings", {
       method: "POST",
@@ -60,14 +61,7 @@ export default function ImapSettings() {
     <Paper className="p-4 mx-auto mt-20 max-w-md" elevation={3}>
       <form onSubmit={handleSubmit} className="flex flex-col">
         <TextField
-          className="mb-4"
-          label="Password"
-          variant="outlined"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <TextField
+          type="text"
           className="mb-4"
           label="Host"
           variant="outlined"
@@ -75,11 +69,20 @@ export default function ImapSettings() {
           onChange={(e) => setHost(e.target.value)}
         />
         <TextField
+          type="text"
           className="mb-4"
           label="Port"
           variant="outlined"
           value={port}
           onChange={(e) => setPort(e.target.value)}
+        />
+        <TextField
+          className="mb-4"
+          label="Password"
+          variant="outlined"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
         <Button
           type="submit"

@@ -5,6 +5,7 @@ import "./globals.css";
 import Cookies from "js-cookie";
 import { useEffect } from "react";
 import isNil from "lodash/isNil";
+import Link from "next/link";
 // import type { Metadata } from 'next'
 // import { Inter } from 'next/font/google'
 
@@ -31,7 +32,13 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <nav>
+          <Link href="/settings/contexts">Contexts</Link>
+          <Link href="/settings/imap">IMAP Settings</Link>
+        </nav>
+        {children}
+      </body>
     </html>
   );
 }

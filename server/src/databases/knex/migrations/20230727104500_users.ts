@@ -6,8 +6,8 @@ export async function up(knex: Knex): Promise<void> {
     table.string("email").unique();
     table.string("salt");
     table.string("password");
-    table.string("metakey");
-    table.string("session_key").nullable();
+    table.text("metakey");
+    table.text("session_key").nullable();
 
     table.string("imap_password").nullable();
     table.string("imap_host").nullable();

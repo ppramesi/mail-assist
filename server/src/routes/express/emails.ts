@@ -7,9 +7,9 @@ import { Authorization } from "../../authorization/base.js";
 export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
   const router = express.Router();
   router.use(async (req, res, next) => {
+    const { body, params } = req;
+    const { user_id: userId } = body;
     if (authorizer) {
-      const { body, params } = req;
-      const { user_id: userId } = body;
       if (userId) {
         const policies = await authorizer.getEmailPolicies(userId, {
           body,
@@ -26,6 +26,7 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
         return;
       }
     } else {
+      body.policies = Authorization.buildDefaultAllowPolicy();
       next();
     }
   });

@@ -1,23 +1,57 @@
 import crypto from "crypto";
 
-export function generateECDHKeys() {
-  const ecdh = crypto.createECDH("secp256k1");
-  ecdh.generateKeys();
-  const publicKey = ecdh.getPublicKey("base64");
-  const privateKey = ecdh.getPrivateKey("base64");
+export async function generateECDHKeys() {
+  const keys = await crypto.subtle.generateKey(
+    {
+      name: "ECDH",
+      namedCurve: "P-256",
+    },
+    true,
+    ["deriveKey", "deriveBits"],
+  );
+  
+  const publicKey = await crypto.subtle.exportKey("raw", keys.publicKey);
+  const privateKey = await crypto.subtle.exportKey("pkcs8", keys.privateKey);
 
-  return { publicKey, privateKey };
+  return { publicKey: Buffer.from(publicKey).toString("base64"), privateKey: Buffer.from(privateKey).toString("base64") };
 }
 
-export function computeSharedSecret(
+export async function computeSharedSecret(
   privateKeyBase64: string,
   publicKeyBase64: string,
 ) {
-  const privateKey = Buffer.from(privateKeyBase64, "base64");
-  const publicKey = Buffer.from(publicKeyBase64, "base64");
-  const ecdh = crypto.createECDH("secp256k1");
-  ecdh.setPrivateKey(privateKey);
-  return ecdh.computeSecret(publicKey, "base64");
+  const privateKeyBuffer = Buffer.from(privateKeyBase64, "base64");
+  const publicKeyBuffer = Buffer.from(publicKeyBase64, "base64");
+
+  const privateKey = await crypto.subtle.importKey(
+    "pkcs8",
+    privateKeyBuffer,
+    {
+      name: "ECDH",
+      namedCurve: "P-256",
+    },
+    false,
+    ["deriveBits", "deriveKey"],
+  );
+  const publicKey = await crypto.subtle.importKey(
+    "raw",
+    publicKeyBuffer,
+    {
+      name: "ECDH",
+      namedCurve: "P-256",
+    },
+    false,
+    [],
+  );
+  const sharedSecretBuffer = await crypto.subtle.deriveBits(
+    {
+      name: "ECDH",
+      public: publicKey,
+    },
+    privateKey,
+    256,
+  );
+  return Buffer.from(sharedSecretBuffer).toString("base64");
 }
 
 export function encrypt(

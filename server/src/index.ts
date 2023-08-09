@@ -7,6 +7,7 @@ import { ChatOpenAI } from "langchain/chat_models/openai";
 import dotenv from "dotenv";
 import { CallerScheduler } from "./scheduler/caller.js";
 import { IMAPGmailAdapter } from "./adapters/gmail.js";
+import { KnexAuthorization } from "./authorization/knex.js";
 dotenv.config();
 
 if (!process.env.GMAIL_USER || !process.env.GMAIL_PASSWORD) {
@@ -37,6 +38,7 @@ const knex = Knex.knex({
   },
 });
 
+const authorizer = new KnexAuthorization(knex);
 const dbInstance = new KnexDatabase(knex);
 const retriever = new KnexVectorStore(new OpenAIEmbeddings(), {
   knex,
@@ -59,6 +61,7 @@ const apiServer = new MailGPTAPIServer({
   middlewareOpts: {
     useAuth,
   },
+  authorizer,
   scheduler: callerScheduler,
   onStartServer(server?: MailGPTServer) {
     if (process.env.WITH_SCHEDULER && process.env.WITH_SCHEDULER === "true") {

@@ -59,4 +59,18 @@ export abstract class Authorization {
       deleteAllAllowed: false,
     };
   }
+
+  static buildDefaultAllowPolicy(): PolicyResult {
+    return {
+      createAllowed: false,
+      readAllowed: false,
+      updateAllowed: false,
+      deleteAllowed: false,
+
+      createAllAllowed: false,
+      readAllAllowed: false,
+      updateAllAllowed: false,
+      deleteAllAllowed: false,
+    };
+  }
 }

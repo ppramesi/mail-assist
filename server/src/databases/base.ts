@@ -41,7 +41,7 @@ export abstract class Database {
 
   abstract getTempKeys(
     id: string,
-  ): Promise<{ publicKey: string; privateKey: string }>;
+  ): Promise<{ public_key: string; private_key: string }>;
 
   abstract deleteTempKey(id: string): Promise<void>;
 

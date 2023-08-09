@@ -72,37 +72,39 @@ export async function computeSharedSecret(
 ) {
   const privateKeyBuffer = b64toArrayBuffer(privateKeyBase64).buffer;
   const publicKeyBuffer = b64toArrayBuffer(publicKeyBase64).buffer;
-
-  const privateKey = await crypto.subtle.importKey(
-    "pkcs8",
-    privateKeyBuffer,
-    {
-      name: "ECDH",
-      namedCurve: "P-256",
-    },
-    false,
-    [],
-  );
-
-  const publicKey = await crypto.subtle.importKey(
-    "raw",
-    publicKeyBuffer,
-    {
-      name: "ECDH",
-      namedCurve: "P-256",
-    },
-    false,
-    [],
-  );
-
-  const sharedSecretBuffer = await crypto.subtle.deriveBits(
-    {
-      name: "ECDH",
-      public: publicKey,
-    },
-    privateKey,
-    256,
-  );
-
-  return arrayBufferToB64(sharedSecretBuffer);
+  try {
+    const privateKey = await crypto.subtle.importKey(
+      "pkcs8",
+      privateKeyBuffer,
+      {
+        name: "ECDH",
+        namedCurve: "P-256",
+      },
+      false,
+      ["deriveBits", "deriveKey"],
+    );
+    const publicKey = await crypto.subtle.importKey(
+      "raw",
+      publicKeyBuffer,
+      {
+        name: "ECDH",
+        namedCurve: "P-256",
+      },
+      false,
+      [],
+    );
+    const sharedSecretBuffer = await crypto.subtle.deriveBits(
+      {
+        name: "ECDH",
+        public: publicKey,
+      },
+      privateKey,
+      256,
+    );
+  
+    return arrayBufferToB64(sharedSecretBuffer);
+  } catch (error) {
+    console.error(error)
+    throw new Error((error as Error).message)
+  }
 }

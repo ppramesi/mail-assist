@@ -20,7 +20,7 @@ export function buildSettingsRoutes(db: Database) {
       return;
     }
 
-    const { publicKey, privateKey } = generateECDHKeys();
+    const { publicKey, privateKey } = await generateECDHKeys();
     await db.insertTempKeys(uuid, { publicKey, privateKey });
     res.status(200).send({ public_key: publicKey });
   });
@@ -87,7 +87,7 @@ export function buildSettingsRoutes(db: Database) {
         return;
       }
       try {
-        const sharedKey = computeSharedSecret(keyPair.privateKey, publicKey);
+        const sharedKey = await computeSharedSecret(keyPair.private_key, publicKey);
         data["imap_password"] = decrypt(password, iv, undefined, sharedKey);
       } catch (error) {
         logger.error("Failed settings request: Decryption failed");

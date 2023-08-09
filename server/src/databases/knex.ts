@@ -43,9 +43,9 @@ export class KnexDatabase extends Database {
 
   async getTempKeys(
     id: string,
-  ): Promise<{ publicKey: string; privateKey: string }> {
+  ): Promise<{ public_key: string; private_key: string }> {
     const keys = await this.db("temp_keys").where("id", id).select();
-    if (keys.length === 0) return { publicKey: "", privateKey: "" };
+    if (keys.length === 0) return { public_key: "", private_key: "" };
     return keys[0];
   }
 
@@ -417,10 +417,10 @@ export class KnexDatabase extends Database {
     if (emailPassword) {
       settingsDupe.imap_password = encrypt(emailPassword, metakey, salt);
     }
-
+    
     await this.db("users")
       .where({
-        us: userId,
+        id: userId,
       })
       .update({
         ...settingsDupe,
@@ -452,7 +452,7 @@ export class KnexDatabase extends Database {
           : null,
       );
 
-    if (!settings) {
+    if (!settings || !settings.password || !settings.host || !settings.port) {
       return null;
     }
 
