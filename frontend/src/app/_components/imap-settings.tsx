@@ -13,12 +13,12 @@ export default function ImapSettings() {
   const [port, setPort] = useState<string>("993");
 
   useEffect(() => {
-    fetchWithSessionToken("/api/settings")
+    fetchWithSessionToken("/api/settings", { method: "GET" })
       .then((res) => res.json())
       .then((data) => {
         const { host, port } = data;
-        setHost(host);
-        setPort(port + "");
+        setHost(host ?? "");
+        setPort((port ?? "") + "");
       });
   }, []);
 
