@@ -2,7 +2,7 @@
 
 import { fetchWithSessionToken } from "@/utils/client_fetcher";
 import { computeSharedSecret, encrypt, generateECDHKeys } from "@/utils/crypto";
-import { useEffect } from "react";
+import { FormEvent, useEffect } from "react";
 import { useState } from "react";
 import { TextField, Button, Paper } from "@mui/material";
 import * as uuid from "uuid";
@@ -22,19 +22,22 @@ export default function ImapSettings() {
       });
   }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     const myUuid = uuid.v4();
-    const { public_key: serverPublicKey } = await fetchWithSessionToken(
-      "/api/settings/dh",
-      {
+    const [
+      { public_key: serverPublicKey },
+      { privateKey: myPrivateKey, publicKey: myPublicKey },
+    ] = await Promise.all([
+      fetchWithSessionToken("/api/settings/dh", {
         method: "POST",
         body: JSON.stringify({
           uuid: myUuid,
         }),
-      },
-    ).then((res) => res.json());
-    const { privateKey: myPrivateKey, publicKey: myPublicKey } =
-      await generateECDHKeys();
+      }).then((res) => res.json()),
+      generateECDHKeys(),
+    ]);
+
     const sharedSecret = await computeSharedSecret(
       myPrivateKey,
       serverPublicKey,
