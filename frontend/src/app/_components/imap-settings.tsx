@@ -18,7 +18,7 @@ export default function ImapSettings() {
       .then((data) => {
         const { host, port } = data;
         setHost(host ?? "");
-        setPort((port ?? "") + "");
+        setPort((port ?? "").toString());
       });
   }, []);
 
@@ -45,7 +45,7 @@ export default function ImapSettings() {
       body: JSON.stringify({
         password: cipherText,
         host,
-        port: port + "",
+        port: port.toString(),
         uuid: myUuid,
         iv,
         public_key: myPublicKey,
