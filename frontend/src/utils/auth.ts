@@ -6,7 +6,8 @@ export function createToken(injectables: Record<string, any> = {}) {
   }
 
   return jwt.sign(
-    { exp: Math.floor(Date.now() / 1000) + 10, ...injectables },
+    { exp: Math.floor(Date.now() / 1000) + 36000, ...injectables },
     process.env.TOKEN_KEY,
+    { expiresIn: "10h" },
   );
 }

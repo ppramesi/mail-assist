@@ -368,8 +368,7 @@ export class MailGPTAPIServer extends MailGPTServer {
         return;
       }
 
-      const hashed = await bcrypt.hash(password, authData?.salt!);
-      const authenticated = await bcrypt.compare(password, hashed);
+      const authenticated = await bcrypt.compare(password, authData.password);
       if (authenticated) {
         const userData = await this.database.getUserByEmail(email);
         if (!userData) {
@@ -381,6 +380,7 @@ export class MailGPTAPIServer extends MailGPTServer {
           {
             email,
             user_id: id,
+            nonce: Math.random().toString(36).substring(2),
           },
           process.env.TOKEN_KEY! + metakey,
           { expiresIn: "10h" },

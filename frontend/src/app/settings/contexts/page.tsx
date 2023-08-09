@@ -6,7 +6,7 @@ import isNil from "lodash/isNil";
 import { useEffect } from "react";
 import { useState } from "react";
 
-export default function Home() {
+export default function SettingsContext() {
   const [loggedIn, isLoggedIn] = useState<boolean>(false);
   // const router = useRouter();
 

@@ -33,8 +33,9 @@ class CloudRunCallerScheduler {
         const headers: { [k: string]: string } = {};
         if (opts.useAuth) {
           const token = jwt.sign(
-            { exp: Math.floor(Date.now() / 1000) + 10 },
+            { exp: Math.floor(Date.now() / 1000) + 36000 },
             process.env.TOKEN_KEY!,
+            { expiresIn: "10h" },
           );
           headers["x-access-token"] = token;
         }

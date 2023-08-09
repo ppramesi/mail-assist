@@ -1,102 +1,27 @@
 "use client";
 
-import { fetchWithSessionToken } from "@/utils/client_fetcher";
-import { computeSharedSecret, encrypt, generateECDHKeys } from "@/utils/crypto";
 import cookies from "js-cookie";
 import isNil from "lodash/isNil";
 import { useEffect } from "react";
 import { useState } from "react";
-import { TextField, Button, Paper } from "@mui/material";
-import * as uuid from "uuid";
+import ImapSettings from "@/app/_components/imap-settings";
 
-export default function Home() {
+export default function SettingsImap() {
   const [loggedIn, isLoggedIn] = useState<boolean>(false);
-  const [password, setPassword] = useState<string>("");
-  const [host, setHost] = useState<string>("");
-  const [port, setPort] = useState<string>("993");
 
   useEffect(() => {
     const sessionKey = cookies.get("session_key");
     if (!isNil(sessionKey)) {
       isLoggedIn(true);
-      fetchWithSessionToken("/api/settings")
-        .then((res) => res.json())
-        .then((data) => {
-          const { host, port } = data;
-          setHost(host);
-          setPort(port + "");
-        });
     }
   }, []);
-
-  const handleSubmit = async () => {
-    const myUuid = uuid.v4();
-    const { public_key: serverPublicKey } = await fetchWithSessionToken(
-      "/api/settings/dh",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          uuid: myUuid,
-        }),
-      },
-    ).then((res) => res.json());
-    const { privateKey: myPrivateKey, publicKey: myPublicKey } =
-      await generateECDHKeys();
-    const sharedSecret = await computeSharedSecret(
-      myPrivateKey,
-      serverPublicKey,
-    );
-    const { iv, cipherText } = await encrypt(sharedSecret, password);
-    await fetchWithSessionToken("/api/settings", {
-      method: "POST",
-      body: JSON.stringify({
-        password: cipherText,
-        host,
-        port: port + "",
-        uuid: myUuid,
-        iv,
-        public_key: myPublicKey,
-      }),
-    });
-  };
 
   return (
     <>
       {loggedIn ? (
-        <Paper className="p-4 mx-auto mt-20 max-w-md" elevation={3}>
-          <form onSubmit={handleSubmit} className="flex flex-col">
-            <TextField
-              className="mb-4"
-              label="Password"
-              variant="outlined"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <TextField
-              className="mb-4"
-              label="Host"
-              variant="outlined"
-              value={host}
-              onChange={(e) => setHost(e.target.value)}
-            />
-            <TextField
-              className="mb-4"
-              label="Port"
-              variant="outlined"
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              className="self-end"
-            >
-              Save
-            </Button>
-          </form>
-        </Paper>
+        <main className="flex min-h-screen flex-col items-center justify-between p-24">
+          <ImapSettings></ImapSettings>
+        </main>
       ) : (
         <></>
       )}
