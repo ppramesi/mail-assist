@@ -12,7 +12,7 @@ interface Context {
   value: string;
 }
 
-export default function SettingsForm() {
+export default function ContextList() {
   const [settings, setSettings] = useState<Context[]>([{ key: "", value: "" }]);
   const [snackbar, openSnackbar] = useState<boolean>(false);
 

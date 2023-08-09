@@ -49,6 +49,11 @@ export function buildAuthMiddleware(database: Database) {
         return;
       }
     } else if (sessionToken) {
+      if (req.body["user_id"]) {
+        logger.error("What the fuck are you doing???");
+        res.status(403).send("What the fuck are you doing?!?!?!");
+        return;
+      }
       const user = await database.getUserBySessionKey(sessionToken);
       if (!user) {
         logger.error("Failed to find session token:");
@@ -72,6 +77,12 @@ export function buildAuthMiddleware(database: Database) {
               decoded,
             )}`,
           );
+        }
+
+        if (!req.body["user_id"]) {
+          logger.error("Malformed jwt!!!");
+          res.status(403).send("Malformed jwt!!!!?!");
+          return;
         }
 
         if (email === decoded.email) {

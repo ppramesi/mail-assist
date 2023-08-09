@@ -16,7 +16,8 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
   }
 
   async connect(auth: this["AuthType"]): Promise<void> {
-    this.client = new Imap(auth);
+    const { port, ...rest } = auth;
+    this.client = new Imap({ ...rest, port: parseInt(port as any) });
     await new Promise<void>((resolve, reject) => {
       this.client!.once("ready", () => {
         this.connected = true;

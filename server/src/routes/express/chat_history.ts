@@ -158,12 +158,12 @@ export function buildChatHistoryRoutes(
       req: Request<
         {},
         {},
-        { chat_history: ChatHistory; policies: PolicyResult }
+        { chat_history: ChatHistory; policies: PolicyResult; user_id: string }
       >,
       res,
     ) => {
       const {
-        body: { chat_history: chatHistory, policies },
+        body: { chat_history: chatHistory, policies, user_id: userId },
       } = req;
       try {
         if (!policies.createAllowed) {
@@ -175,7 +175,7 @@ export function buildChatHistoryRoutes(
           );
           return;
         }
-        await db.insertChatHistory(chatHistory);
+        await db.insertChatHistory(userId, chatHistory);
         logger.info(
           `Inserted new chat history: ${JSON.stringify(chatHistory)}`,
         );

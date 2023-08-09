@@ -130,10 +130,15 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
   router.post(
     "/",
     async (
-      req: Request<{}, {}, { replies: ReplyEmail; policies: PolicyResult }>,
+      req: Request<
+        {},
+        {},
+        { replies: ReplyEmail; policies: PolicyResult; user_id: string }
+      >,
       res,
     ) => {
       const { body } = req;
+      const { user_id: userId } = body;
       try {
         const {
           body: { policies, replies },
@@ -147,7 +152,7 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        const replyId = await db.insertReplyEmail(replies);
+        const replyId = await db.insertReplyEmail(userId, replies);
         logger.info(
           `Inserted reply email: ${JSON.stringify(body)}, reply id: ${replyId}`,
         );

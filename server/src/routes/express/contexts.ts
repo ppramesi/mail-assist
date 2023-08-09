@@ -132,10 +132,15 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
   router.post(
     "/",
     async (
-      req: Request<{}, {}, { context: Context; policies: PolicyResult }>,
+      req: Request<
+        {},
+        {},
+        { context: Context; policies: PolicyResult; user_id: string }
+      >,
       res,
     ) => {
       const { body } = req;
+      const { user_id: userId } = body;
       try {
         const { policies, context } = body;
         if (!policies.createAllowed) {
@@ -147,7 +152,7 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        await db.insertContext(context);
+        await db.insertContext(userId, context);
         logger.info(
           `Set multiple context key-value pairs: ${JSON.stringify(body)}`,
         );

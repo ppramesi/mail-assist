@@ -10,6 +10,7 @@ export interface Email extends Pick<ParsedMail, "subject" | "text" | "date"> {
   bcc?: string[];
   status?: string;
   summary?: string;
+  user_id?: string;
 }
 
 export interface EmptyEmail extends Email {
@@ -31,6 +32,7 @@ export interface ReplyEmail extends Email {
   reply_text: string;
   email_id: string;
   summary: string;
+  user_id?: string;
 }
 
 export type ProcessedEmail =
@@ -88,21 +90,15 @@ export type ChatHistory = {
   email_id: string;
   reply_id: string;
   chat_messages: (AIMessage | HumanMessage)[];
+  user_id?: string;
 };
 
 export type AllowedHost = {
   id?: string;
   host: string;
   type: "string" | "regex";
+  user_id?: string;
 };
-
-export interface ReplyEmail extends Email {
-  process_status: "reply_email";
-  intention: string;
-  reply_text: string;
-  email_id: string;
-  summary: string;
-}
 
 export type PolicyResult = {
   createAllowed: boolean;

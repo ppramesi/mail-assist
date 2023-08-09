@@ -34,6 +34,17 @@ export abstract class Database {
    */
   abstract disconnect(): Promise<void>;
 
+  abstract insertTempKeys(
+    id: string,
+    keys: { publicKey: string; privateKey: string },
+  ): Promise<void>;
+
+  abstract getTempKeys(
+    id: string,
+  ): Promise<{ publicKey: string; privateKey: string }>;
+
+  abstract deleteTempKey(id: string): Promise<void>;
+
   /**
    * Inserts an email into the database.
    * @param email The email data to insert.
@@ -99,7 +110,10 @@ export abstract class Database {
    * Inserts an context into the database.
    * @param context The context data to insert.
    */
-  abstract insertContext(context: Context): Promise<string[] | null>;
+  abstract insertContext(
+    userId: string,
+    context: Context,
+  ): Promise<string[] | null>;
 
   /**
    * Fetches all context from the database.
@@ -126,7 +140,10 @@ export abstract class Database {
 
   abstract getAllowedHosts(userId?: string): Promise<AllowedHost[] | null>;
 
-  abstract createAllowedHosts(hosts: AllowedHost[]): Promise<void>;
+  abstract createAllowedHosts(
+    userId: string,
+    hosts: AllowedHost[],
+  ): Promise<void>;
 
   abstract updateAllowedHost(
     hostId: string,
@@ -135,7 +152,7 @@ export abstract class Database {
 
   abstract deleteAllowedHost(id: string): Promise<void>;
 
-  abstract insertReplyEmail(data: ReplyEmail): Promise<string>;
+  abstract insertReplyEmail(userId: string, data: ReplyEmail): Promise<string>;
 
   abstract updateReplyEmail(id: string, text: string): Promise<void>;
 
@@ -144,6 +161,7 @@ export abstract class Database {
   abstract getReplyEmailsByEmail(emailId: string): Promise<ReplyEmail[] | null>;
 
   abstract insertChatHistory(
+    userId: string,
     chatHistory: Omit<ChatHistory, "id">,
   ): Promise<string>; // returns id
 
@@ -167,9 +185,9 @@ export abstract class Database {
   abstract setUserImapSettings(
     userId: string,
     imapSettings: {
-      imap_password: string;
-      imap_host: string;
-      imap_port: string;
+      imap_password?: string;
+      imap_host?: string;
+      imap_port?: string;
       imap_settings?: Record<string, any>;
     },
   ): Promise<void>;

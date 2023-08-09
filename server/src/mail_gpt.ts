@@ -23,6 +23,7 @@ import { CallerScheduler } from "./scheduler/caller.js";
 import { buildFilterFunction } from "./filters/simple_host.js";
 import { AIMessage, AllowedHost, HumanMessage } from "./schema/index.js";
 import { Authorization } from "./authorization/base.js";
+import { buildSettingsRoutes } from "./routes/express/settings.js";
 
 export interface MailGPTServerOpts {
   onStartServer?: (instance?: MailGPTServer) => void;
@@ -89,7 +90,7 @@ export abstract class MailGPTServer {
     input: string,
     emailId: string,
     replyId: string,
-    userId?: string,
+    userId: string,
   ) {
     let [email, reply, context, chatHistory] = await Promise.all([
       this.database.getEmail(emailId),
@@ -110,7 +111,7 @@ export abstract class MailGPTServer {
           { type: "ai", text: reply.reply_text!, timestamp: Date.now() },
         ],
       };
-      await this.database.insertChatHistory(chatHistory);
+      await this.database.insertChatHistory(userId, chatHistory);
     }
 
     const humanInput: HumanMessage = {
@@ -150,7 +151,7 @@ export abstract class MailGPTServer {
     input: string,
     emailId: string,
     replyId: string,
-    userId?: string,
+    userId: string,
   ) {
     let [email, reply, context, chatHistory] = await Promise.all([
       this.database.getEmail(emailId),
@@ -171,7 +172,7 @@ export abstract class MailGPTServer {
           { type: "ai", text: reply.reply_text!, timestamp: Date.now() },
         ],
       };
-      await this.database.insertChatHistory(chatHistory);
+      await this.database.insertChatHistory(userId, chatHistory);
     }
 
     const humanInput: HumanMessage = {
@@ -307,7 +308,7 @@ export abstract class MailGPTServer {
             }
             case "reply_email": {
               try {
-                const result = await this.database.insertReplyEmail({
+                const result = await this.database.insertReplyEmail(id, {
                   ...emailOrReply,
                 });
                 logger.info(
@@ -584,6 +585,7 @@ export class MailGPTAPIServer extends MailGPTServer {
     );
     this.app.use("/emails", buildEmailRoutes(this.database, this.authorizer));
     this.app.use("/replies", buildReplyRoutes(this.database, this.authorizer));
+    this.app.use("/settings", buildSettingsRoutes(this.database));
   }
 
   async startServer() {

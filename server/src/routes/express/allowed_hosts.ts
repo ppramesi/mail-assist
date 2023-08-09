@@ -115,7 +115,11 @@ export function buildAllowedHostsRoutes(
       req: Request<
         {},
         {},
-        { hosts: Omit<AllowedHost, "id">[]; policies: PolicyResult }
+        {
+          hosts: Omit<AllowedHost, "id">[];
+          policies: PolicyResult;
+          user_id: string;
+        }
       >,
       res,
     ) => {
@@ -133,7 +137,7 @@ export function buildAllowedHostsRoutes(
           return;
         }
         const { body } = req;
-        await db.createAllowedHosts(body.hosts);
+        await db.createAllowedHosts(body.user_id, body.hosts);
         logger.info(`Set allowed hosts to: ${JSON.stringify(body.hosts)}`);
         res.status(200).send({ status: "ok" });
         return;

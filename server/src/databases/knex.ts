@@ -31,6 +31,28 @@ export class KnexDatabase extends Database {
     await this.db.destroy();
   }
 
+  async insertTempKeys(
+    id: string,
+    keys: { publicKey: string; privateKey: string },
+  ): Promise<void> {
+    await this.db("temp_keys")
+      .insert({ id, public_key: keys.publicKey, private_key: keys.privateKey })
+      .onConflict("id")
+      .merge();
+  }
+
+  async getTempKeys(
+    id: string,
+  ): Promise<{ publicKey: string; privateKey: string }> {
+    const keys = await this.db("temp_keys").where("id", id).select();
+    if (keys.length === 0) return { publicKey: "", privateKey: "" };
+    return keys[0];
+  }
+
+  async deleteTempKey(id: string): Promise<void> {
+    await this.db("temp_keys").where("id", id).delete();
+  }
+
   async insertEmail(email: Email): Promise<void> {
     if (_.isNil(email.date)) return;
     await this.db("emails")
@@ -106,10 +128,14 @@ export class KnexDatabase extends Database {
     await this.db("emails").where("id", id).update(updateData);
   }
 
-  async insertContext(context: Context): Promise<string[] | null> {
+  async insertContext(
+    userId: string,
+    context: Context,
+  ): Promise<string[] | null> {
     const entries = Object.entries(context).map(([key, value]) => ({
       key,
       value,
+      user_id: userId,
     }));
     return this.db("contexts")
       .insert(entries)
@@ -207,9 +233,16 @@ export class KnexDatabase extends Database {
     }
   }
 
-  async createAllowedHosts(hosts: AllowedHost[]): Promise<void> {
+  async createAllowedHosts(
+    userId: string,
+    hosts: AllowedHost[],
+  ): Promise<void> {
     await this.db("allowed_hosts").insert(
-      hosts.map((host) => ({ host: host.host, type: host.type })),
+      hosts.map((host) => ({
+        host: host.host,
+        type: host.type,
+        user_id: userId,
+      })),
     );
   }
 
@@ -224,10 +257,10 @@ export class KnexDatabase extends Database {
     await this.db("allowed_hosts").where("id", id).delete();
   }
 
-  async insertReplyEmail(data: ReplyEmail): Promise<string> {
+  async insertReplyEmail(userId: string, data: ReplyEmail): Promise<string> {
     const { intention, reply_text, email_id, summary } = data;
     return this.db("reply_emails")
-      .insert({ intention, reply_text, email_id, summary })
+      .insert({ intention, reply_text, email_id, summary, user_id: userId })
       .returning("id")
       .then((ids) => ids[0]);
   }
@@ -265,9 +298,15 @@ export class KnexDatabase extends Database {
     }
   }
 
-  async insertChatHistory(chatHistory: ChatHistory): Promise<string> {
+  async insertChatHistory(
+    userId: string,
+    chatHistory: ChatHistory,
+  ): Promise<string> {
     return this.db("chat_history")
-      .insert(chatHistory)
+      .insert({
+        ...chatHistory,
+        user_id: userId,
+      })
       .returning("id")
       .then((ids) => ids[0]);
   }
@@ -342,9 +381,9 @@ export class KnexDatabase extends Database {
   async setUserImapSettings(
     userId: string,
     imapSettings: {
-      imap_password: string;
-      imap_host: string;
-      imap_port: string;
+      imap_password?: string;
+      imap_host?: string;
+      imap_port?: string;
       imap_settings?: Record<string, any>;
     },
   ): Promise<void> {
@@ -369,14 +408,22 @@ export class KnexDatabase extends Database {
     }
     const { metakey, salt } = user;
     const { imap_password: emailPassword, ...settings } = imapSettings;
+    const settingsDupe = { ...settings } as {
+      imap_password?: string;
+      imap_host?: string;
+      imap_port?: string;
+      imap_settings?: Record<string, any>;
+    };
+    if (emailPassword) {
+      settingsDupe.imap_password = encrypt(emailPassword, metakey, salt);
+    }
 
     await this.db("users")
       .where({
         us: userId,
       })
       .update({
-        ...settings,
-        imap_password: encrypt(emailPassword, metakey, salt),
+        ...settingsDupe,
       });
   }
 
