@@ -101,10 +101,10 @@ export async function computeSharedSecret(
       privateKey,
       256,
     );
-  
+
     return arrayBufferToB64(sharedSecretBuffer);
   } catch (error) {
-    console.error(error)
-    throw new Error((error as Error).message)
+    console.error(error);
+    throw new Error((error as Error).message);
   }
 }

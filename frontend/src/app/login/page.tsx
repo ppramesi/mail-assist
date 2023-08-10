@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useRouter } from "next/navigation";
 import cookies from "js-cookie";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import { SessionContext } from "../layout";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [snackbar, openSnackbar] = useState<boolean>(false);
+  const { setIsLoggedIn } = useContext(SessionContext);
   const router = useRouter();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +31,7 @@ export default function Login() {
       cookies.set("session_key", sessionKey, {
         expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 10),
       });
+      setIsLoggedIn(true);
       router.push("/");
     } catch (error) {
       openSnackbar(true);

@@ -5,6 +5,9 @@ export async function up(knex: Knex): Promise<void> {
     table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
     table.string("public_key").unique();
     table.string("private_key").unique();
+    table
+      .timestamp("created_at")
+      .defaultTo(knex.raw("CURRENT_TIMESTAMP + interval '30 seconds'"));
   });
 }
 

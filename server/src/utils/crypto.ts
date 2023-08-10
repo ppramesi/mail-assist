@@ -9,11 +9,14 @@ export async function generateECDHKeys() {
     true,
     ["deriveKey", "deriveBits"],
   );
-  
+
   const publicKey = await crypto.subtle.exportKey("raw", keys.publicKey);
   const privateKey = await crypto.subtle.exportKey("pkcs8", keys.privateKey);
 
-  return { publicKey: Buffer.from(publicKey).toString("base64"), privateKey: Buffer.from(privateKey).toString("base64") };
+  return {
+    publicKey: Buffer.from(publicKey).toString("base64"),
+    privateKey: Buffer.from(privateKey).toString("base64"),
+  };
 }
 
 export async function computeSharedSecret(

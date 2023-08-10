@@ -417,7 +417,7 @@ export class KnexDatabase extends Database {
     if (emailPassword) {
       settingsDupe.imap_password = encrypt(emailPassword, metakey, salt);
     }
-    
+
     await this.db("users")
       .where({
         id: userId,

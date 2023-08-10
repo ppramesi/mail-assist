@@ -87,7 +87,10 @@ export function buildSettingsRoutes(db: Database) {
         return;
       }
       try {
-        const sharedKey = await computeSharedSecret(keyPair.private_key, publicKey);
+        const sharedKey = await computeSharedSecret(
+          keyPair.private_key,
+          publicKey,
+        );
         data["imap_password"] = decrypt(password, iv, undefined, sharedKey);
       } catch (error) {
         logger.error("Failed settings request: Decryption failed");

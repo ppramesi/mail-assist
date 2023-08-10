@@ -1,26 +1,15 @@
 "use client";
 
-import cookies from "js-cookie";
-// import { useRouter } from 'next/navigation';
-import isNil from "lodash/isNil";
 import EmailList from "./_components/email-list";
-import { useEffect } from "react";
-import { useState } from "react";
+import { SessionContext } from "./layout";
+import { useContext } from "react";
 
 export default function Home() {
-  const [loggedIn, isLoggedIn] = useState<boolean>(false);
-  // const router = useRouter();
-
-  useEffect(() => {
-    const sessionKey = cookies.get("session_key");
-    if (!isNil(sessionKey)) {
-      isLoggedIn(true);
-    }
-  }, []);
+  const { isLoggedIn } = useContext(SessionContext);
 
   return (
     <>
-      {loggedIn ? (
+      {isLoggedIn ? (
         <main className="flex min-h-screen flex-col items-center justify-between p-24">
           <EmailList></EmailList>
         </main>
@@ -30,22 +19,3 @@ export default function Home() {
     </>
   );
 }
-
-// import cookies from "js-cookie";
-// import { redirect } from 'next/navigation';
-// import isNil from "lodash/isNil"
-// import EmailList from "./_components/email-list";
-
-// export default function Home() {
-//   const sessionKey = cookies.get("session_key")
-
-//   if(isNil(sessionKey)){
-//     redirect("/login")
-//   }
-
-//   return (
-//     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-//       <EmailList></EmailList>
-//     </main>
-//   )
-// }

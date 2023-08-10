@@ -42,7 +42,7 @@ export default function ImapSettings() {
       myPrivateKey,
       serverPublicKey,
     );
-    
+
     const { iv, cipherText } = await encrypt(sharedSecret, password);
     await fetchWithSessionToken("/api/settings", {
       method: "POST",
