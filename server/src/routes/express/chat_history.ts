@@ -48,7 +48,10 @@ export function buildChatHistoryRoutes(
         );
         return;
       }
-      const chatHistory = await db.getChatHistoryByEmail(emailId);
+      const chatHistory = await db.doQuery((database) =>
+        database.getChatHistoryByEmail(emailId),
+      );
+      // const chatHistory = await db.getChatHistoryByEmail(emailId);
       logger.info(`Fetched chat history by email ID: ${emailId}`);
       res.status(200).send({ chat_history: chatHistory });
       return;
@@ -77,7 +80,10 @@ export function buildChatHistoryRoutes(
         );
         return;
       }
-      const chatHistory = await db.getChatHistoryByReply(replyId);
+      const chatHistory = await db.doQuery((database) =>
+        database.getChatHistoryByReply(replyId),
+      );
+      // const chatHistory = await db.getChatHistoryByReply(replyId);
       logger.info(`Fetched chat history by reply ID: ${replyId}`);
       res.status(200).send({ chat_history: chatHistory });
       return;
@@ -114,7 +120,10 @@ export function buildChatHistoryRoutes(
           );
           return;
         }
-        await db.appendChatHistory(id, body.chat);
+        await db.doQuery((database) =>
+          database.appendChatHistory(id, body.chat),
+        );
+        // await db.appendChatHistory(id, body.chat);
         logger.info(`Appended messages to chat history ID: ${id}`);
         res.status(200).send({ status: "ok" });
         return;
@@ -141,7 +150,10 @@ export function buildChatHistoryRoutes(
         );
         return;
       }
-      const chatHistory = await db.getChatHistoryById(id);
+      const chatHistory = await db.doQuery((database) =>
+        database.getChatHistoryById(id),
+      );
+      // const chatHistory = await db.getChatHistoryById(id);
       logger.info(`Fetched chat history by ID: ${id}`);
       res.status(200).send({ chat_history: chatHistory });
       return;
@@ -175,7 +187,10 @@ export function buildChatHistoryRoutes(
           );
           return;
         }
-        await db.insertChatHistory(userId, chatHistory);
+        await db.doQuery((database) =>
+          database.insertChatHistory(userId, chatHistory),
+        );
+        // await db.insertChatHistory(userId, chatHistory);
         logger.info(
           `Inserted new chat history: ${JSON.stringify(chatHistory)}`,
         );
@@ -203,7 +218,10 @@ export function buildChatHistoryRoutes(
         );
         return;
       }
-      const chatHistory = await db.getChatHistory(userId);
+      const chatHistory = await db.doQuery((database) =>
+        database.getChatHistory(userId),
+      );
+      // const chatHistory = await db.getChatHistory(userId);
       logger.info(`Fetched all chat histories`);
       res.status(200).send({ chat_history: chatHistory });
       return;

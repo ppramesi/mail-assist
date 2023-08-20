@@ -1,10 +1,11 @@
 import { VectorStore } from "langchain/vectorstores/base";
 import { Embeddings } from "langchain/embeddings/base";
 import { Document } from "langchain/document";
-import { Knex as KnexType } from "knex";
+import { Knex as KnexT } from "knex";
+import _ from "lodash";
 
 export interface KnexVectorStoreArgs {
-  knex: KnexType;
+  knex: KnexT;
   tableName: string;
 }
 
@@ -39,7 +40,7 @@ export type SearchResult = {
 
 export class KnexVectorStore extends VectorStore {
   declare FilterType: KnexFilter;
-  knex: KnexType;
+  knex: KnexT;
   tableName: string;
   constructor(embeddings: Embeddings, args: KnexVectorStoreArgs) {
     super(embeddings, args);
@@ -50,6 +51,10 @@ export class KnexVectorStore extends VectorStore {
 
   _vectorstoreType(): string {
     return "knex";
+  }
+
+  protected doQuery(query: (db: KnexT) => Promise<any>) {
+    return query(this.knex);
   }
 
   async addVectors(
@@ -68,7 +73,8 @@ export class KnexVectorStore extends VectorStore {
 
       return documentRow;
     });
-    await this.knex(this.tableName).insert(rows);
+    await this.doQuery((database) => database(this.tableName).insert(rows));
+    // await this.knex(this.tableName).insert(rows);
   }
 
   async addDocuments(
@@ -83,17 +89,29 @@ export class KnexVectorStore extends VectorStore {
   }
 
   async ensureTableInDatabase(): Promise<void> {
-    await this.knex.raw("CREATE EXTENSION IF NOT EXISTS vector;");
-    await this.knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
+    await this.doQuery(async (database) => {
+      await database.raw("CREATE EXTENSION IF NOT EXISTS vector;");
+      await database.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
+      await database.raw(`
+        CREATE TABLE IF NOT EXISTS ${this.tableName} (
+          "id" uuid NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+          "pageContent" text,
+          "metadata" jsonb,
+          "embedding" vector
+        );
+      `);
+    });
+    // await this.knex.raw("CREATE EXTENSION IF NOT EXISTS vector;");
+    // await this.knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
 
-    await this.knex.raw(`
-      CREATE TABLE IF NOT EXISTS ${this.tableName} (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
-        "pageContent" text,
-        "metadata" jsonb,
-        "embedding" vector
-      );
-    `);
+    // await this.knex.raw(`
+    //   CREATE TABLE IF NOT EXISTS ${this.tableName} (
+    //     "id" uuid NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+    //     "pageContent" text,
+    //     "metadata" jsonb,
+    //     "embedding" vector
+    //   );
+    // `);
   }
 
   async similaritySearchVectorWithScore(
@@ -114,7 +132,10 @@ export class KnexVectorStore extends VectorStore {
     ]
       .filter((x) => x != null)
       .join(" ");
-    const results = await this.knex.raw(queryStr);
+    const results = await this.doQuery((database) => {
+      return database.raw(queryStr);
+    });
+    // const results = await this.knex.raw(queryStr);
     const rows = results.rows as SearchResult[];
     return rows.map((row) => {
       return [
@@ -139,5 +160,32 @@ export class KnexVectorStore extends VectorStore {
         }),
       )
       .join(" AND ")}`;
+  }
+}
+
+export class SupabaseKnexVectorStore extends KnexVectorStore {
+  protected doQuery(
+    query: (db: KnexT<any, any[]>) => Promise<any>,
+    options?: { jwt: Record<string, any> },
+  ): Promise<any> {
+    if (options && options?.jwt) {
+      const optsDupe = _.cloneDeep(options);
+      if (optsDupe.jwt && optsDupe.jwt?.user_id) {
+        const userId = optsDupe.jwt.user_id;
+        optsDupe.jwt.sub = userId;
+        delete optsDupe.jwt["user_id"];
+      }
+      const claimsSetting = "request.jwt.claims";
+      const claims = JSON.stringify(optsDupe.jwt);
+      return this.knex.transaction((trx) => {
+        return trx
+          .raw(`SELECT set_config(?, ?, true)`, claimsSetting, claims)
+          .then(() => {
+            return query(trx);
+          });
+      });
+    }
+
+    return query(this.knex);
   }
 }

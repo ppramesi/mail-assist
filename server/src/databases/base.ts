@@ -178,7 +178,12 @@ export abstract class Database {
 
   abstract getChatHistoryByReply(replyId: string): Promise<ChatHistory | null>;
 
-  abstract insertUser(email: string, password: string): Promise<void>;
+  abstract createNewUser(
+    email: string,
+    password: string,
+    salt: string,
+    metakey: string,
+  ): Promise<string>;
 
   abstract getUsers(): Promise<{ id: string; email: string }[]>;
 
@@ -224,6 +229,11 @@ export abstract class Database {
   abstract getUserAuth(
     email: string,
   ): Promise<{ password: string; salt: string } | null>;
+
+  abstract doQuery<T>(
+    query: (db: Database) => Promise<T>,
+    options?: Record<string, any>,
+  ): Promise<T>;
 
   static async hashPasswordAndGenerateStuff(password: string) {
     const salt = await bcrypt.genSalt(13);

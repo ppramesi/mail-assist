@@ -45,8 +45,10 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
         );
         return;
       }
-
-      const replies = await db.getReplyEmailsByEmail(emailId);
+      const replies = await db.doQuery((database) =>
+        database.getReplyEmailsByEmail(emailId),
+      );
+      // const replies = await db.getReplyEmailsByEmail(emailId);
       logger.info(`Fetched reply emails by email id: ${emailId}`);
       res.status(200).send({ replies });
       return;
@@ -75,7 +77,8 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
         );
         return;
       }
-      const reply = await db.getReplyEmail(id);
+      const reply = await db.doQuery((database) => database.getReplyEmail(id));
+      // const reply = await db.getReplyEmail(id);
       logger.info(`Fetched reply email by id: ${id}`);
       res.status(200).send({ reply });
       return;
@@ -113,7 +116,10 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        const replyId = await db.updateReplyEmail(id, body.text);
+        const replyId = await db.doQuery((database) =>
+          database.updateReplyEmail(id, body.text),
+        );
+        // const replyId = await db.updateReplyEmail(id, body.text);
         logger.info(
           `Updated reply email: ${JSON.stringify(body)}, reply id: ${replyId}`,
         );
@@ -152,7 +158,10 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        const replyId = await db.insertReplyEmail(userId, replies);
+        const replyId = await db.doQuery((database) =>
+          database.insertReplyEmail(userId, replies),
+        );
+        // const replyId = await db.insertReplyEmail(userId, replies);
         logger.info(
           `Inserted reply email: ${JSON.stringify(body)}, reply id: ${replyId}`,
         );

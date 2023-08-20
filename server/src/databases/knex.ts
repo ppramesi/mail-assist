@@ -13,13 +13,17 @@ import {
 } from "../schema/index.js";
 
 export class KnexDatabase extends Database {
-  private db: KnexT;
-  constructor(configOrInstance: KnexT.Config | KnexT) {
+  protected db: KnexT;
+  constructor(configOrInstance: KnexT.Config | KnexT.Transaction | KnexT) {
     super();
-    if (!_.isFunction(configOrInstance) && _.isObject(configOrInstance)) {
+    if (
+      !_.isFunction(configOrInstance) &&
+      _.isObject(configOrInstance) &&
+      configOrInstance.constructor.name === "Object"
+    ) {
       this.db = Knex.knex(configOrInstance);
     } else {
-      this.db = configOrInstance;
+      this.db = configOrInstance as KnexT;
     }
   }
 
@@ -29,6 +33,10 @@ export class KnexDatabase extends Database {
 
   async disconnect(): Promise<void> {
     await this.db.destroy();
+  }
+
+  doQuery<T>(query: (db: KnexDatabase) => Promise<T>): Promise<T> {
+    return query(this);
   }
 
   async insertTempKeys(
@@ -364,10 +372,13 @@ export class KnexDatabase extends Database {
       });
   }
 
-  async insertUser(email: string, rawPassword: string): Promise<void> {
-    const { salt, metakey, password } =
-      await Database.hashPasswordAndGenerateStuff(rawPassword);
-    await this.db("users")
+  async createNewUser(
+    email: string,
+    password: string,
+    salt: string,
+    metakey: string,
+  ): Promise<string> {
+    const id = await this.db("users")
       .insert({
         email,
         password,
@@ -375,7 +386,11 @@ export class KnexDatabase extends Database {
         metakey,
       })
       .onConflict("email")
-      .merge();
+      .merge()
+      .returning("id")
+      .then((v) => v[0]);
+
+    return id;
   }
 
   async setUserImapSettings(

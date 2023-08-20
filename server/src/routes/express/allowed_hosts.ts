@@ -48,7 +48,8 @@ export function buildAllowedHostsRoutes(
         return;
       }
       const { id } = req.params;
-      await db.deleteAllowedHost(id);
+      await db.doQuery((database) => database.deleteAllowedHost(id));
+      // await db.deleteAllowedHost(id);
       logger.info(`Deleted allowed hosts: ${id}`);
       res.status(200).send({ status: "ok" });
       return;
@@ -74,7 +75,10 @@ export function buildAllowedHostsRoutes(
         return;
       }
       const { body, params } = req;
-      await db.updateAllowedHost(params.id, body.hosts);
+      await db.doQuery((database) =>
+        database.updateAllowedHost(params.id, body.hosts),
+      );
+      // await db.updateAllowedHost(params.id, body.hosts);
       logger.info(`Set allowed hosts to: ${JSON.stringify(body.hosts)}`);
       res.status(200).send({ status: "ok" });
       return;
@@ -98,7 +102,10 @@ export function buildAllowedHostsRoutes(
         );
         return;
       }
-      const allowedHosts = await db.getAllowedHosts(userId);
+      const allowedHosts = await db.doQuery((database) =>
+        database.getAllowedHosts(userId),
+      );
+      // const allowedHosts = await db.getAllowedHosts(userId);
       logger.info(`Fetched all allowed hosts: ${JSON.stringify(allowedHosts)}`);
       res.status(200).send({ allowed_hosts: allowedHosts });
       return;
@@ -137,7 +144,10 @@ export function buildAllowedHostsRoutes(
           return;
         }
         const { body } = req;
-        await db.createAllowedHosts(body.user_id, body.hosts);
+        await db.doQuery((database) =>
+          database.createAllowedHosts(body.user_id, body.hosts),
+        );
+        // await db.createAllowedHosts(body.user_id, body.hosts);
         logger.info(`Set allowed hosts to: ${JSON.stringify(body.hosts)}`);
         res.status(200).send({ status: "ok" });
         return;

@@ -66,7 +66,29 @@ const config: { [key: string]: Knex.Config } = {
     seeds: {
       directory: "./src/databases/knex/seeds"
     }
+  },
+
+  supabase: {
+    client: "postgresql",
+    connection: {
+      database: process.env.SUPABASE_POSTGRES_DB,
+      user: process.env.SUPABASE_POSTGRES_USER,
+      password: process.env.SUPABASE_POSTGRES_PASSWORD
+    },
+    pool: {
+      min: 2,
+      max: 10
+    },
+    migrations: {
+      tableName: "knex_migrations",
+      directory: "./src/databases/supabase/migrations",
+      loadExtensions: [".js", ".ts"]
+    },
+    seeds: {
+      directory: "./src/databases/supabase/seeds"
+    }
   }
+
 
 };
 

@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 import { CallerScheduler } from "./scheduler/caller.js";
 import { IMAPGmailAdapter } from "./adapters/gmail.js";
 import { KnexAuthorization } from "./authorization/knex.js";
+import { KnexAuthenticator } from "./authentication/knex.js";
 dotenv.config();
 
 if (!process.env.GMAIL_USER || !process.env.GMAIL_PASSWORD) {
@@ -49,11 +50,14 @@ let callerScheduler: CallerScheduler | undefined;
 let port = parseInt(process.env.SERVER_PORT ?? "42069");
 let useAuth = process.env.USE_AUTH ? process.env.USE_AUTH === "true" : true;
 
+const authenticator = new KnexAuthenticator(dbInstance)
+
 const apiServer = new MailGPTAPIServer({
   port,
   database: dbInstance,
   retriever,
   mailAdapter,
+  authenticator,
   llm: new ChatOpenAI({
     modelName: "gpt-4",
     maxConcurrency: 5,

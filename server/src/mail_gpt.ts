@@ -5,7 +5,6 @@ import { ChatOpenAI } from "langchain/chat_models/openai";
 import { MainExecutor, MainExecutorOpts } from "./chains/executors.js";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
 import { Document } from "langchain/document";
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as uuid from "uuid";
 import { ConversationalEmailEvaluator } from "./chains/user_evaluation.js";
@@ -24,11 +23,13 @@ import { buildFilterFunction } from "./filters/simple_host.js";
 import { AIMessage, AllowedHost, HumanMessage } from "./schema/index.js";
 import { Authorization } from "./authorization/base.js";
 import { buildSettingsRoutes } from "./routes/express/settings.js";
+import { Authenticator } from "./authentication/base.js";
 
 export interface MailGPTServerOpts {
   onStartServer?: (instance?: MailGPTServer) => void;
   mailAdapter: BaseMailAdapter;
   database: Database;
+  authenticator: Authenticator;
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
   allowedHosts?: AllowedHost[];
@@ -53,6 +54,7 @@ export abstract class MailGPTServer {
   executor: MainExecutor;
   conversator: ConversationalEmailEvaluator;
   retriever: VectorStoreRetriever;
+  authenticator: Authenticator;
   authorizer?: Authorization;
   context?: Record<string, string>;
   scheduler?: CallerScheduler;
@@ -74,6 +76,7 @@ export abstract class MailGPTServer {
     this.retriever = opts.retriever;
     this.allowedHosts = opts.allowedHosts || [];
     this.onStartServer = opts.onStartServer;
+    this.authenticator = opts.authenticator;
   }
 
   abstract startServer(): Promise<void>;
@@ -367,74 +370,62 @@ export class MailGPTAPIServer extends MailGPTServer {
         res.status(403).send({ status: "who are you?" });
         return;
       }
+      const auth = await this.authenticator.login(email, password);
 
-      const authenticated = await bcrypt.compare(password, authData.password);
-      if (authenticated) {
-        const userData = await this.database.getUserByEmail(email);
-        if (!userData) {
-          res.status(403).send({ status: "?????" });
-          return;
-        }
-        const { id, metakey } = userData;
-        const sessionKey = jwt.sign(
-          {
-            email,
-            user_id: id,
-            nonce: Math.random().toString(36).substring(2),
-          },
-          process.env.TOKEN_KEY! + metakey,
-          { expiresIn: "10h" },
-        );
-        await this.database.setUserSessionKey(email, sessionKey);
-        res.status(200).send({ session_key: sessionKey });
+      if (auth.status === "ok") {
+        res.status(200).send({ session_key: auth.session_key });
         return;
       } else {
-        res.status(403).send({ status: "wrong password" });
+        res
+          .status(403)
+          .send({ status: "bad auth: wrong password or some shit" });
         return;
       }
     });
 
     this.app.post("/register", async (req, res) => {
-      const accessToken = req.header("x-access-token");
-
-      if (!process.env.TOKEN_KEY) {
-        logger.error("Token key not set.");
-        res.status(500).send("Token key not set");
-        return;
-      }
-
-      if (!accessToken) {
+      const registrationToken = req.header("x-registration-token");
+      if (!registrationToken) {
         logger.warn("Unauthorized access attempt detected.");
         res.status(403).send("Who the fuck are you?");
         return;
       }
       try {
-        const decoded = jwt.verify(
-          accessToken!,
-          process.env.TOKEN_KEY!,
-        ) as jwt.JwtPayload;
-        if (decoded && _.isObject(decoded)) {
-          ["password", "email"].forEach((key) => {
-            req.body[key] = decoded[key];
-          });
-          logger.info(
-            `Token successfully verified for user with details: ${JSON.stringify(
-              decoded,
-            )}`,
-          );
-
-          const {
-            body: { password, email },
-          } = req;
-
-          if (password && email) {
-            await this.database.insertUser(email, password);
-            res.status(200).send({ status: "ok" });
+        let password: string | undefined;
+        let email: string | undefined;
+        if (!process.env.REGISTRATION_KEY) {
+          ({ password, email } = req.body);
+        } else {
+          const decoded = jwt.verify(
+            registrationToken!,
+            process.env.REGISTRATION_KEY,
+          ) as jwt.JwtPayload;
+          if (decoded && _.isObject(decoded)) {
+            ({ password, email } = decoded);
+          } else {
+            logger.error("JWT Body fucked up: ", JSON.stringify(decoded));
+            res.status(403).send("JWT body fcked up.");
             return;
           }
         }
-        logger.error("JWT Body fucked up: ", JSON.stringify(decoded));
-        res.status(403).send("JWT body fcked up.");
+
+        if (password && email) {
+          const auth = await this.authenticator.register(email, password);
+          if (auth.status === "ok") {
+            res
+              .status(200)
+              .send({ status: "ok", session_key: auth.session_key });
+            return;
+          } else {
+            res
+              .status(403)
+              .send({ status: "bad auth: wrong password or some shit" });
+            return;
+          }
+        }
+
+        logger.error("no auth");
+        res.status(403).send("No auth");
         return;
       } catch (err) {
         logger.error("Failed to verify token:", err);

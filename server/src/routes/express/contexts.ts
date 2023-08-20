@@ -45,12 +45,15 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
           );
         return;
       }
-      const ctx = await db.getContextById(id);
-      if (!ctx) {
+      const context = await db.doQuery((database) =>
+        database.getContextById(id),
+      );
+      // const context = await db.getContextById(id);
+      if (!context) {
         throw new Error("Context not found");
       }
-      const key = Object.keys(ctx)[0];
-      const value = Object.values(ctx)[0];
+      const key = Object.keys(context)[0];
+      const value = Object.values(context)[0];
       logger.info(`Fetched specific context value by key: ${key}`);
       res.status(200).send({ [key]: value });
       return;
@@ -86,7 +89,10 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        await db.setContextValue(id, key, value);
+        await db.doQuery((database) =>
+          database.setContextValue(id, key, value),
+        );
+        // await db.setContextValue(id, key, value);
         logger.info(
           `Set single context key-value pair, ID: ${id}, key: ${key}, value: ${value}`,
         );
@@ -118,7 +124,8 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
         );
         return;
       }
-      await db.deleteContext(id);
+      await db.doQuery((database) => database.deleteContext(id));
+      // await db.deleteContext(id);
       logger.info(`Deleted context by ID: ${id}`);
       res.status(200).send({ status: "ok" });
       return;
@@ -152,7 +159,8 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        await db.insertContext(userId, context);
+        await db.doQuery((database) => database.insertContext(userId, context));
+        // await db.insertContext(userId, context);
         logger.info(
           `Set multiple context key-value pairs: ${JSON.stringify(body)}`,
         );
@@ -180,7 +188,10 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
           );
         return;
       }
-      const context = await db.getContext(userId);
+      const context = await db.doQuery((database) =>
+        database.getContext(userId),
+      );
+      // const context = await db.getContext(userId);
       logger.info(`Fetched the whole context`);
       res.status(200).send({ context });
       return;

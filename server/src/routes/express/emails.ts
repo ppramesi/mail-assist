@@ -49,7 +49,8 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        await db.insertEmails(body.emails);
+        await db.doQuery((database) => database.insertEmails(body.emails));
+        // await db.insertEmails(body.emails);
         logger.info(`Inserted multiple emails: ${JSON.stringify(body.emails)}`);
         res.status(200).send({ status: "ok" });
         return;
@@ -83,7 +84,10 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        await db.updateEmailProcessedData(id, status, summary);
+        await db.doQuery((database) =>
+          database.updateEmailProcessedData(id, status, summary),
+        );
+        // await db.updateEmailProcessedData(id, status, summary);
         logger.info(
           `Updated specific email's status and summary, id: ${id}, status: ${status}, summary: ${summary}`,
         );
@@ -115,7 +119,8 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
           );
         return;
       }
-      const email = await db.getEmail(id);
+      const email = await db.doQuery((database) => database.getEmail(id));
+      // const email = await db.getEmail(id);
       logger.info(`Fetched email by id: ${id}`);
       res.status(200).send({ email });
       return;
@@ -140,7 +145,8 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
           );
         return;
       }
-      const emails = await db.getEmails(userId);
+      const emails = await db.doQuery((database) => database.getEmails(userId));
+      // const emails = await db.getEmails(userId);
       logger.info("Fetched all emails");
       res.status(200).send({ emails });
       return;
@@ -168,7 +174,8 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
       if (userId) {
         email.user_id = userId;
       }
-      await db.insertEmail(email);
+      await db.doQuery((database) => database.insertEmail(email));
+      // await db.insertEmail(email);
       logger.info(`Inserted single email: ${JSON.stringify(email)}`);
       res.status(200).send({ status: "ok" });
       return;

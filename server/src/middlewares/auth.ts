@@ -11,25 +11,24 @@ export function buildAuthMiddleware(database: Database) {
     next: NextFunction,
   ) {
     req.body.fromAccessToken = false;
-    const accessToken = req.header("x-access-token");
+    const adminToken = req.header("x-admin-token");
     const sessionToken = req.header("x-session-token");
 
-    if (!process.env.TOKEN_KEY) {
-      logger.error("Token key not set.");
-      res.status(500).send("Token key not set");
-      return;
-    }
-
-    if (!accessToken && !sessionToken) {
-      logger.warn("Unauthorized access attempt detected.");
+    if (!adminToken && !sessionToken) {
+      logger.warn("Unauthorized admin attempt detected.");
       res.status(403).send("Who the fuck are you?");
       return;
     }
-    if (accessToken) {
+    if (adminToken) {
+      if (!process.env.ADMIN_KEY) {
+        logger.error("Token key not set.");
+        res.status(500).send("Token key not set");
+        return;
+      }
       try {
         const decoded = jwt.verify(
-          accessToken,
-          process.env.TOKEN_KEY!,
+          adminToken,
+          process.env.ADMIN_KEY!,
         ) as jwt.JwtPayload;
         if (decoded && _.isObject(decoded)) {
           Object.entries(decoded).forEach(([key, value]) => {
@@ -49,11 +48,18 @@ export function buildAuthMiddleware(database: Database) {
         return;
       }
     } else if (sessionToken) {
+      if (!process.env.TOKEN_KEY) {
+        logger.error("Token key not set.");
+        res.status(500).send("Token key not set");
+        return;
+      }
+
       if (req.body["user_id"]) {
         logger.error("What the fuck are you doing???");
         res.status(403).send("What the fuck are you doing?!?!?!");
         return;
       }
+
       const user = await database.getUserBySessionKey(sessionToken);
       if (!user) {
         logger.error("Failed to find session token:");
@@ -62,10 +68,10 @@ export function buildAuthMiddleware(database: Database) {
       }
 
       try {
-        const { email, metakey } = user!;
+        const { email } = user!;
         const decoded = jwt.verify(
           sessionToken,
-          process.env.TOKEN_KEY! + metakey,
+          process.env.TOKEN_KEY,
         ) as jwt.JwtPayload;
 
         if (decoded && _.isObject(decoded)) {
@@ -98,7 +104,7 @@ export function buildAuthMiddleware(database: Database) {
         return;
       }
     } else {
-      logger.warn("Unauthorized access attempt detected.");
+      logger.warn("Unauthorized admin attempt detected.");
       res.status(403).send("Who the fuck are you?");
       return;
     }

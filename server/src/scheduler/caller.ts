@@ -34,7 +34,7 @@ export class CallerScheduler {
         }
       };
     } else {
-      if (opts.useAuth && !process.env.TOKEN_KEY) {
+      if (opts.useAuth && !process.env.ADMIN_KEY) {
         throw new Error("Set token key!!");
       }
       procFunction = async () => {
@@ -43,10 +43,10 @@ export class CallerScheduler {
           if (opts.useAuth) {
             const token = jwt.sign(
               { exp: Math.floor(Date.now() / 1000) + 36000 },
-              process.env.TOKEN_KEY!,
+              process.env.ADMIN_KEY!,
               { expiresIn: "10h" },
             );
-            headers["x-access-token"] = token;
+            headers["x-admin-token"] = token;
           }
           try {
             const response = await fetch.default(opts.url, {
