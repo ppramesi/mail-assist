@@ -22,7 +22,7 @@ interface GotrueRequestOptions extends FetchOptions {
   /**
    * Function that transforms api response from gotrue into a desirable / standardised format
    */
-  xform?: (data: any) => any;
+  xform: (data: any) => any;
 }
 
 const _getRequestParams = (
@@ -48,12 +48,10 @@ const _getRequestParams = (
   return { ...params, ...parameters };
 };
 
-async function _request(
-  fetcher: Fetch,
-  method: "POST" | "GET",
-  url: string,
-  options?: GotrueRequestOptions,
-) {
+async function _request<
+  Y extends GotrueRequestOptions,
+  T extends ReturnType<Y["xform"]>,
+>(fetcher: Fetch, method: "POST" | "GET", url: string, options: Y): Promise<T> {
   const headers = { ...options?.headers };
   if (options?.jwt) {
     headers["Authorization"] = `Bearer ${options.jwt}`;
@@ -69,13 +67,11 @@ async function _request(
     fetcher,
     method,
     url + queryString,
-    { headers, noResolveJson: options?.noResolveJson },
+    { headers },
     {},
     options?.body,
   );
-  return options?.xform
-    ? options?.xform(data)
-    : { data: { ...data }, error: null };
+  return options.xform(data);
 }
 
 async function _handleRequest(
@@ -151,8 +147,8 @@ export class SupabaseKnexAuthenticator extends Authenticator {
             email,
             password,
             data: {},
-            xform: sessionTransform,
           },
+          xform: sessionTransform,
         }),
       ],
     );
@@ -178,8 +174,8 @@ export class SupabaseKnexAuthenticator extends Authenticator {
           email,
           password,
           data: {},
-          xform: sessionTransform,
         },
+        xform: sessionTransform,
       },
     );
     await this.db.setUserSessionKey(email, res.data.session);
