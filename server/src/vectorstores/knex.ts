@@ -89,29 +89,17 @@ export class KnexVectorStore extends VectorStore {
   }
 
   async ensureTableInDatabase(): Promise<void> {
-    await this.doQuery(async (database) => {
-      await database.raw("CREATE EXTENSION IF NOT EXISTS vector;");
-      await database.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
-      await database.raw(`
-        CREATE TABLE IF NOT EXISTS ${this.tableName} (
-          "id" uuid NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
-          "pageContent" text,
-          "metadata" jsonb,
-          "embedding" vector
-        );
-      `);
-    });
-    // await this.knex.raw("CREATE EXTENSION IF NOT EXISTS vector;");
-    // await this.knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
+    await this.knex.raw("CREATE EXTENSION IF NOT EXISTS vector;");
+    await this.knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
 
-    // await this.knex.raw(`
-    //   CREATE TABLE IF NOT EXISTS ${this.tableName} (
-    //     "id" uuid NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
-    //     "pageContent" text,
-    //     "metadata" jsonb,
-    //     "embedding" vector
-    //   );
-    // `);
+    await this.knex.raw(`
+      CREATE TABLE IF NOT EXISTS ${this.tableName} (
+        "id" uuid NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+        "pageContent" text,
+        "metadata" jsonb,
+        "embedding" vector
+      );
+    `);
   }
 
   async similaritySearchVectorWithScore(
@@ -164,19 +152,27 @@ export class KnexVectorStore extends VectorStore {
 }
 
 export class SupabaseKnexVectorStore extends KnexVectorStore {
+  jwt?: Record<string, any>;
+  setJWT(jwt: Record<string, any>) {
+    this.jwt = jwt;
+  }
+
+  unsetJWT() {
+    this.jwt = undefined;
+  }
+
   protected doQuery(
     query: (db: KnexT<any, any[]>) => Promise<any>,
-    options?: { jwt: Record<string, any> },
   ): Promise<any> {
-    if (options && options?.jwt) {
-      const optsDupe = _.cloneDeep(options);
-      if (optsDupe.jwt && optsDupe.jwt?.user_id) {
-        const userId = optsDupe.jwt.user_id;
-        optsDupe.jwt.sub = userId;
-        delete optsDupe.jwt["user_id"];
+    if (this.jwt) {
+      const jwtDupe = _.cloneDeep(this.jwt);
+      if (jwtDupe && jwtDupe?.user_id) {
+        const userId = jwtDupe.user_id;
+        jwtDupe.sub = userId;
+        delete jwtDupe["user_id"];
       }
       const claimsSetting = "request.jwt.claims";
-      const claims = JSON.stringify(optsDupe.jwt);
+      const claims = JSON.stringify(jwtDupe);
       return this.knex.transaction((trx) => {
         return trx
           .raw(`SELECT set_config(?, ?, true)`, claimsSetting, claims)

@@ -50,7 +50,7 @@ let callerScheduler: CallerScheduler | undefined;
 let port = parseInt(process.env.SERVER_PORT ?? "42069");
 let useAuth = process.env.USE_AUTH ? process.env.USE_AUTH === "true" : true;
 
-const authenticator = new KnexAuthenticator(dbInstance)
+const authenticator = new KnexAuthenticator(dbInstance);
 
 const apiServer = new MailGPTAPIServer({
   port,
@@ -59,7 +59,7 @@ const apiServer = new MailGPTAPIServer({
   mailAdapter,
   authenticator,
   llm: new ChatOpenAI({
-    modelName: "gpt-4",
+    modelName: "gpt-3.5",
     maxConcurrency: 5,
   }),
   middlewareOpts: {

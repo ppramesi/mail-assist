@@ -178,6 +178,14 @@ export abstract class Database {
 
   abstract getChatHistoryByReply(replyId: string): Promise<ChatHistory | null>;
 
+  abstract upsertUser(
+    id: string,
+    email: string,
+    password: string,
+    salt: string,
+    metakey: string,
+  ): Promise<string>;
+
   abstract createNewUser(
     email: string,
     password: string,

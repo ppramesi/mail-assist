@@ -35,7 +35,14 @@ class CloudRunCallerScheduler {
           const token = jwt.sign(
             { exp: Math.floor(Date.now() / 1000) + 36000 },
             process.env.ADMIN_KEY!,
-            { expiresIn: "10h" },
+            {
+              expiresIn: "10h",
+              algorithm: "HS256",
+              header: {
+                typ: "JWT",
+                alg: "HS256",
+              },
+            },
           );
           headers["x-admin-token"] = token;
         }

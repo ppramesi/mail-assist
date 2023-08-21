@@ -24,6 +24,7 @@ import { AIMessage, AllowedHost, HumanMessage } from "./schema/index.js";
 import { Authorization } from "./authorization/base.js";
 import { buildSettingsRoutes } from "./routes/express/settings.js";
 import { Authenticator } from "./authentication/base.js";
+import { SupabaseKnexVectorStore } from "./vectorstores/knex.js";
 
 export interface MailGPTServerOpts {
   onStartServer?: (instance?: MailGPTServer) => void;
@@ -285,18 +286,39 @@ export abstract class MailGPTServer {
                     "summarized",
                     emailOrReply.summary,
                   ),
-                  this.retriever.addDocuments([
-                    new Document({
-                      pageContent: emailOrReply.summary,
-                      metadata: {
-                        id,
-                        text,
-                        from,
-                        date: date?.toLocaleString(),
-                        user_id: id,
-                      },
-                    }),
-                  ]),
+                  new Promise(async (resolve, reject) => {
+                    if (
+                      this.retriever.vectorStore instanceof
+                      SupabaseKnexVectorStore
+                    ) {
+                      this.retriever.vectorStore.setJWT({
+                        user_id: userId,
+                      });
+                    }
+                    this.retriever
+                      .addDocuments([
+                        new Document({
+                          pageContent: emailOrReply.summary,
+                          metadata: {
+                            id,
+                            text,
+                            from,
+                            date: date?.toLocaleString(),
+                            user_id: id,
+                          },
+                        }),
+                      ])
+                      .then((doc) => {
+                        if (
+                          this.retriever.vectorStore instanceof
+                          SupabaseKnexVectorStore
+                        ) {
+                          this.retriever.vectorStore.unsetJWT();
+                        }
+                        resolve(doc);
+                      })
+                      .catch(reject);
+                  }),
                 ]);
                 logger.info(
                   "Summarized email: ",
@@ -362,20 +384,24 @@ export class MailGPTAPIServer extends MailGPTServer {
       const { body } = req;
       const { password, email } = body;
       if (_.isNil(password) || _.isNil(email)) {
+        logger.error("bad auth: bad request?");
         res.status(403).send({ status: "bad request?" });
         return;
       }
       const authData = await this.database.getUserAuth(email);
       if (!authData) {
+        logger.error("bad auth: who are you?");
         res.status(403).send({ status: "who are you?" });
         return;
       }
       const auth = await this.authenticator.login(email, password);
 
       if (auth.status === "ok") {
+        logger.info(`Logging in user ${email}`);
         res.status(200).send({ session_key: auth.session_key });
         return;
       } else {
+        logger.error("bad auth: wrong password or some shit");
         res
           .status(403)
           .send({ status: "bad auth: wrong password or some shit" });
@@ -391,17 +417,22 @@ export class MailGPTAPIServer extends MailGPTServer {
         return;
       }
       try {
-        let password: string | undefined;
-        let email: string | undefined;
-        if (!process.env.REGISTRATION_KEY) {
-          ({ password, email } = req.body);
-        } else {
+        const { password, email } = req.body;
+        if (process.env.REGISTRATION_KEY) {
           const decoded = jwt.verify(
             registrationToken!,
             process.env.REGISTRATION_KEY,
           ) as jwt.JwtPayload;
           if (decoded && _.isObject(decoded)) {
-            ({ password, email } = decoded);
+            const { email: JwtEmail } = decoded;
+            if (email !== JwtEmail) {
+              logger.error(
+                "bad email: email mismatch: ",
+                JSON.stringify(decoded),
+              );
+              res.status(403).send({ status: "bad email: email mismatch" });
+              return;
+            }
           } else {
             logger.error("JWT Body fucked up: ", JSON.stringify(decoded));
             res.status(403).send("JWT body fcked up.");
@@ -412,11 +443,13 @@ export class MailGPTAPIServer extends MailGPTServer {
         if (password && email) {
           const auth = await this.authenticator.register(email, password);
           if (auth.status === "ok") {
+            logger.info(`Registering user ${email}`);
             res
               .status(200)
               .send({ status: "ok", session_key: auth.session_key });
             return;
           } else {
+            logger.error("bad auth: wrong password or some shit");
             res
               .status(403)
               .send({ status: "bad auth: wrong password or some shit" });

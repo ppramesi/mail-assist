@@ -53,7 +53,14 @@ export abstract class Authenticator {
         nonce: Math.random().toString(36).substring(2),
       },
       process.env.TOKEN_KEY!,
-      { expiresIn: "10h" },
+      {
+        expiresIn: "10h",
+        algorithm: "HS256",
+        header: {
+          typ: "JWT",
+          alg: "HS256",
+        },
+      },
     );
   }
 

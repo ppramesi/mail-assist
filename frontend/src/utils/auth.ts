@@ -8,6 +8,13 @@ export function createToken(injectables: Record<string, any> = {}) {
   return jwt.sign(
     { exp: Math.floor(Date.now() / 1000) + 36000, ...injectables },
     process.env.TOKEN_KEY,
-    { expiresIn: "10h" },
+    {
+      expiresIn: "10h",
+      algorithm: "HS256",
+      header: {
+        typ: "JWT",
+        alg: "HS256",
+      },
+    },
   );
 }

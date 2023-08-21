@@ -372,6 +372,27 @@ export class KnexDatabase extends Database {
       });
   }
 
+  async upsertUser(
+    id: string,
+    email: string,
+    password: string,
+    salt: string,
+    metakey: string,
+  ): Promise<string> {
+    await this.db("users")
+      .insert({
+        id,
+        email,
+        password,
+        salt,
+        metakey,
+      })
+      .onConflict("id")
+      .merge();
+
+    return id;
+  }
+
   async createNewUser(
     email: string,
     password: string,

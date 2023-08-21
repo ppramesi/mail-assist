@@ -16,6 +16,8 @@ import {
   ProcessedEmail,
   SummarizedEmail,
 } from "../schema/index.js";
+import { SupabaseKnexVectorStore } from "../vectorstores/knex.js";
+import { Document } from "langchain/document";
 
 export type MainExecutorOpts = {
   llm: ChatOpenAI;
@@ -60,11 +62,16 @@ export class MainExecutor {
     return summary;
   }
 
-  async vectorStoreFetchSummaries(values: ChainValues, callbacks?: Callbacks) {
+  async vectorStoreFetchSummaries(
+    values: ChainValues,
+    callbacks?: Callbacks,
+    options?: Record<string, any>,
+  ) {
     const { extracted_info: extractedInfo } =
       (await this.keywordsGenerator.call(values, callbacks)) as {
         extracted_info: string[];
       };
+
     if (this.currentUserId) {
       this.retriever.filter = {
         user_id: {
@@ -72,9 +79,33 @@ export class MainExecutor {
         },
       };
     }
+
     const summaries = await Promise.all(
-      extractedInfo.map((keyword) =>
-        this.retriever.getRelevantDocuments(keyword, callbacks),
+      extractedInfo.map(
+        (keyword) =>
+          new Promise<Document<Record<string, any>>[]>((resolve, reject) => {
+            if (
+              this.retriever.vectorStore instanceof SupabaseKnexVectorStore &&
+              options
+            ) {
+              this.retriever.vectorStore.setJWT(options.jwt);
+            }
+
+            this.retriever
+              .getRelevantDocuments(keyword, callbacks)
+              .then((docs) => {
+                if (
+                  this.retriever.vectorStore instanceof
+                    SupabaseKnexVectorStore &&
+                  options
+                ) {
+                  this.retriever.vectorStore.unsetJWT();
+                }
+                resolve(docs);
+              })
+              .catch(reject);
+          }),
+        // this.retriever.getRelevantDocuments(keyword, callbacks),
       ),
     ).then((stuff) => {
       return stuff
@@ -137,6 +168,11 @@ export class MainExecutor {
           const fetchSummariesPromise = this.vectorStoreFetchSummaries(
             values,
             callbacks,
+            {
+              jwt: {
+                user_id: userId,
+              },
+            },
           );
           const intentionsPromise = this.generateIntentions(values, callbacks);
           return Promise.all([
