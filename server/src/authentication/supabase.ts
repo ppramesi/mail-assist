@@ -1,6 +1,6 @@
-import jwt from "jsonwebtoken";
 import { Database } from "../databases/base.js";
-import { Authenticator, JWTSignReturn, JWTVerifyReturn } from "./base.js";
+import { JWTSignReturn } from "./base.js";
+import { KnexAuthenticator } from "./knex.js";
 
 type Fetch = typeof fetch;
 
@@ -117,7 +117,7 @@ function sessionTransform(data: any) {
   return { data: { session, user } };
 }
 
-export class SupabaseKnexAuthenticator extends Authenticator {
+export class SupabaseKnexAuthenticator extends KnexAuthenticator {
   authUrl: string;
   publicKey: string;
   constructor(db: Database) {
@@ -245,68 +245,6 @@ export class SupabaseKnexAuthenticator extends Authenticator {
       return {
         status: "error",
         error: `refresh-token-failed-{${error}}`,
-      };
-    }
-  }
-
-  async verifyAdminToken(
-    token: string,
-    body?: Record<string, any>,
-  ): Promise<JWTVerifyReturn> {
-    try {
-      const decoded = SupabaseKnexAuthenticator.extractInjectAdminJWT(
-        token,
-        body,
-      );
-      return {
-        status: "ok",
-        jwt: decoded,
-      };
-    } catch (err) {
-      return {
-        status: "error",
-        error: `verify-admin-token-failed-{${err}}`,
-      };
-    }
-  }
-
-  async verifySessionToken(
-    token: string,
-    body?: object,
-  ): Promise<JWTVerifyReturn> {
-    try {
-      const unverifiedDecoded = jwt.decode(token);
-      if (
-        !unverifiedDecoded ||
-        typeof unverifiedDecoded === "string" ||
-        !unverifiedDecoded.email
-      ) {
-        return {
-          status: "error",
-          error: `malformed-jwt`,
-        };
-      }
-
-      const user = await this.db.getUserByEmail(unverifiedDecoded.email);
-      if (!user) {
-        return {
-          status: "error",
-          error: `user-not-found`,
-        };
-      }
-
-      const decoded = SupabaseKnexAuthenticator.extractInjectSessionJWT(
-        token,
-        body,
-      );
-      return {
-        status: "ok",
-        jwt: decoded,
-      };
-    } catch (err) {
-      return {
-        status: "error",
-        error: `verify-session-token-failed-{${err}}`,
       };
     }
   }
