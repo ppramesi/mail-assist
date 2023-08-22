@@ -130,9 +130,9 @@ export class SupabaseKnexAuthenticator extends Authenticator {
     this.publicKey = process.env.SUPABASE_PUBLIC_KEY;
   }
 
-  buildAuthHeaders() {
+  buildAuthHeaders(jwt?: string) {
     return {
-      Authorization: `Bearer ${this.publicKey}`,
+      Authorization: `Bearer ${jwt ?? this.publicKey}`,
       apikey: `${this.publicKey}`,
     };
   }

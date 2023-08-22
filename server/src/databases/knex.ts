@@ -379,7 +379,7 @@ export class KnexDatabase extends Database {
     salt: string,
     metakey: string,
   ): Promise<string> {
-    await this.db("users")
+    const constructedId = await this.db("users")
       .insert({
         id,
         email,
@@ -387,10 +387,22 @@ export class KnexDatabase extends Database {
         salt,
         metakey,
       })
-      .onConflict("id")
-      .merge();
+      .onConflict("email")
+      .ignore()
+      .returning("id")
+      .then((v) => v[0]);
 
-    return id;
+    if (constructedId) {
+      await this.db("user_roles")
+        .insert({
+          user_id: id,
+          role: "user",
+        })
+        .onConflict(["user_id", "role"])
+        .merge();
+    }
+
+    return constructedId;
   }
 
   async createNewUser(
@@ -407,14 +419,19 @@ export class KnexDatabase extends Database {
         metakey,
       })
       .onConflict("email")
-      .merge()
+      .ignore()
       .returning("id")
       .then((v) => v[0]);
 
-    await this.db("user_roles").insert({
-      user_id: id,
-      role: "user",
-    });
+    if (id) {
+      await this.db("user_roles")
+        .insert({
+          user_id: id,
+          role: "user",
+        })
+        .onConflict(["user_id", "role"])
+        .merge();
+    }
 
     return id;
   }
