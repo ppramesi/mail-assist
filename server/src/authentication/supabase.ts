@@ -1,5 +1,5 @@
 import { Database } from "../databases/base.js";
-import { AuthReturn, Authenticator, VerifyReturn } from "./base.js";
+import { Authenticator, JWTSignReturn, JWTVerifyReturn } from "./base.js";
 
 type Fetch = typeof fetch;
 
@@ -137,7 +137,7 @@ export class SupabaseKnexAuthenticator extends Authenticator {
     };
   }
 
-  async register(email: string, password: string): Promise<AuthReturn> {
+  async register(email: string, password: string): Promise<JWTSignReturn> {
     const [{ salt, metakey, password: encryptedPass }, res] = await Promise.all(
       [
         SupabaseKnexAuthenticator.hashPasswordAndGenerateStuff(password),
@@ -155,15 +155,18 @@ export class SupabaseKnexAuthenticator extends Authenticator {
 
     await Promise.all([
       this.db.upsertUser(res.data.user.id, email, encryptedPass, salt, metakey),
-      this.db.setUserSessionKey(email, res.data.session),
+      this.db.setUserSessionKey(email, res.data.session.refresh_token),
     ]);
     return {
       status: "ok",
-      session_key: res.data.session,
+      tokens: {
+        session_token: res.data.session.access_token,
+        refresh_token: res.data.session.refresh_token,
+      },
     };
   }
 
-  async login(email: string, password: string): Promise<AuthReturn> {
+  async login(email: string, password: string): Promise<JWTSignReturn> {
     const res = await _request(
       fetch,
       "POST",
@@ -178,17 +181,55 @@ export class SupabaseKnexAuthenticator extends Authenticator {
         xform: sessionTransform,
       },
     );
-    await this.db.setUserSessionKey(email, res.data.session);
+    await this.db.setUserSessionKey(email, res.data.session.refresh_token);
     return {
       status: "ok",
-      session_key: res.data.session,
+      tokens: {
+        session_token: res.data.session.access_token,
+        refresh_token: res.data.session.refresh_token,
+      },
     };
+  }
+
+  async refreshToken(
+    _accessToken: string,
+    refreshToken: string,
+  ): Promise<JWTSignReturn> {
+    try {
+      const user = await this.db.getUserBySessionKey(refreshToken);
+      if (!user) {
+        throw new Error("Invalid refresh token");
+      }
+      const res = await _request(
+        fetch,
+        "POST",
+        `${this.authUrl}/token?grant_type=refresh_token`,
+        {
+          headers: this.buildAuthHeaders(),
+          body: { refresh_token: refreshToken },
+          xform: sessionTransform,
+        },
+      );
+      await this.db.setUserSessionKey(
+        res.data.user.email,
+        res.data.session.refresh_token,
+      );
+      return {
+        status: "ok",
+        tokens: {
+          session_token: res.data.session.access_token,
+          refresh_token: res.data.session.refresh_token,
+        },
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async verifyAdminToken(
     token: string,
     body?: Record<string, any>,
-  ): Promise<VerifyReturn> {
+  ): Promise<JWTVerifyReturn> {
     try {
       const decoded = await SupabaseKnexAuthenticator.extractInjectAdminJWT(
         token,
@@ -209,7 +250,7 @@ export class SupabaseKnexAuthenticator extends Authenticator {
   async verifySessionToken(
     token: string,
     body?: object,
-  ): Promise<VerifyReturn> {
+  ): Promise<JWTVerifyReturn> {
     try {
       const decoded = await SupabaseKnexAuthenticator.extractInjectSessionJWT(
         token,

@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import _ from "lodash";
+import * as uuid from "uuid";
 import { Database } from "../databases/base.js";
 
 export type ErrorType = {
@@ -9,14 +10,17 @@ export type ErrorType = {
   error: unknown;
 };
 
-export type AuthReturn =
+export type JWTSignReturn =
   | {
       status: "ok";
-      session_key: string;
+      tokens: {
+        session_token: string;
+        refresh_token: string;
+      };
     }
   | ErrorType;
 
-export type VerifyReturn =
+export type JWTVerifyReturn =
   | {
       status: "ok";
       jwt: Record<string, any>;
@@ -29,13 +33,18 @@ export abstract class Authenticator {
     this.db = db;
   }
 
-  abstract register(email: string, password: string): Promise<AuthReturn>;
+  abstract register(email: string, password: string): Promise<JWTSignReturn>;
 
-  abstract login(email: string, password: string): Promise<AuthReturn>;
+  abstract login(email: string, password: string): Promise<JWTSignReturn>;
 
-  abstract verifyAdminToken(token: string): Promise<VerifyReturn>;
+  abstract refreshToken(
+    accessToken: string,
+    refreshToken: string,
+  ): Promise<JWTSignReturn>;
 
-  abstract verifySessionToken(token: string): Promise<VerifyReturn>;
+  abstract verifyAdminToken(token: string): Promise<JWTVerifyReturn>;
+
+  abstract verifySessionToken(token: string): Promise<JWTVerifyReturn>;
 
   static async hashPasswordAndGenerateStuff(password: string) {
     const salt = await bcrypt.genSalt(13);
@@ -45,7 +54,8 @@ export abstract class Authenticator {
   }
 
   static signJWT(email: string, userId: string) {
-    return jwt.sign(
+    const id = uuid.v4();
+    const accessToken = jwt.sign(
       {
         email,
         user_id: userId,
@@ -54,14 +64,21 @@ export abstract class Authenticator {
       },
       process.env.TOKEN_KEY!,
       {
-        expiresIn: "10h",
+        expiresIn: 60 * 10,
         algorithm: "HS256",
         header: {
           typ: "JWT",
           alg: "HS256",
         },
+        jwtid: id,
       },
     );
+
+    const refreshToken = jwt.sign({ token_id: id }, process.env.TOKEN_KEY!, {
+      expiresIn: "7d",
+    });
+
+    return { accessToken, refreshToken };
   }
 
   static extractInjectSessionJWT(token: string, obj?: Record<string, any>) {

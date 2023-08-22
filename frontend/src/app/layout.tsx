@@ -31,8 +31,8 @@ export default function RootLayout({
   const router = useRouter();
 
   useEffect(() => {
-    const sessionKey = Cookies.get("session_key");
-    if (isNil(sessionKey)) {
+    const sessionToken = Cookies.get("session_token");
+    if (isNil(sessionToken)) {
       router.push("/login");
     } else {
       setIsLoggedIn(true);

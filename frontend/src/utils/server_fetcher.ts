@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 
 export function fetchWithSessionToken(url: string, params?: RequestInit) {
   const c = cookies();
-  const sessionToken = c.get("session_key");
+  const sessionToken = c.get("session_token");
   let actualParams: RequestInit | undefined;
   if (sessionToken) {
     if (params) {

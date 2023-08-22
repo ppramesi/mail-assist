@@ -30,18 +30,23 @@ const systemBasePrompt = `Your role as an AI is to support users in managing the
 const userPrompt = `<email-from>
 {from}
 </email-from>
+
 <email-to>
 {to}
 </email-to>
+
 <email-cc>
 {cc}
 </email-cc>
+
 <email-bcc>
 {bcc}
 </email-bcc>
+
 <email-body>
 {body}
 </email-body>
+
 <delivery-date>
 {delivery_date}
 </delivery-date>`;

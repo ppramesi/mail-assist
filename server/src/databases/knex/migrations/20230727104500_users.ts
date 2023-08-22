@@ -7,7 +7,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string("salt");
     table.string("password");
     table.text("metakey");
-    table.text("session_key").nullable();
+    table.text("refresh_token").nullable();
 
     table.string("imap_password").nullable();
     table.string("imap_host").nullable();

@@ -1,9 +1,10 @@
 import bcrypt from "bcrypt";
 import _ from "lodash";
-import { AuthReturn, Authenticator, VerifyReturn } from "./base.js";
+import jwt from "jsonwebtoken";
+import { Authenticator, JWTSignReturn, JWTVerifyReturn } from "./base.js";
 
 export class KnexAuthenticator extends Authenticator {
-  async register(email: string, password: string): Promise<AuthReturn> {
+  async register(email: string, password: string): Promise<JWTSignReturn> {
     try {
       const {
         salt,
@@ -12,11 +13,14 @@ export class KnexAuthenticator extends Authenticator {
       } = await KnexAuthenticator.hashPasswordAndGenerateStuff(password);
       await this.db.createNewUser(email, encryptedPass, salt, metakey);
       const newUser = await this.db.getUserByEmail(email);
-      const sessionKey = KnexAuthenticator.signJWT(email, newUser!.id);
-      await this.db.setUserSessionKey(email, sessionKey);
+      const tokens = KnexAuthenticator.signJWT(email, newUser!.id);
+      await this.db.setUserSessionKey(email, tokens.refreshToken);
       return {
         status: "ok",
-        session_key: sessionKey,
+        tokens: {
+          session_token: tokens.accessToken,
+          refresh_token: tokens.refreshToken,
+        },
       };
     } catch (error) {
       return {
@@ -26,7 +30,7 @@ export class KnexAuthenticator extends Authenticator {
     }
   }
 
-  async login(email: string, password: string): Promise<AuthReturn> {
+  async login(email: string, password: string): Promise<JWTSignReturn> {
     const authData = await this.db.getUserAuth(email);
     if (!authData) {
       return {
@@ -52,18 +56,58 @@ export class KnexAuthenticator extends Authenticator {
     }
 
     const { id } = userData;
-    const sessionKey = KnexAuthenticator.signJWT(email, id);
-    await this.db.setUserSessionKey(email, sessionKey);
+    const tokens = KnexAuthenticator.signJWT(email, id);
+    await this.db.setUserSessionKey(email, tokens.refreshToken);
     return {
       status: "ok",
-      session_key: sessionKey,
+      tokens: {
+        session_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+      },
     };
+  }
+
+  async refreshToken(
+    accessToken: string,
+    refreshToken: string,
+  ): Promise<JWTSignReturn> {
+    const user = await this.db.getUserBySessionKey(refreshToken);
+    if (!user) {
+      throw new Error("Invalid refresh token");
+    }
+    try {
+      const accDec = jwt.verify(
+        accessToken,
+        process.env.TOKEN_KEY!,
+      ) as jwt.JwtPayload;
+      const refDec = jwt.verify(
+        refreshToken,
+        process.env.TOKEN_KEY!,
+      ) as jwt.JwtPayload;
+
+      if (accDec.jti === refDec.token_id) {
+        const { email, id } = accDec;
+        const tokens = KnexAuthenticator.signJWT(email, id);
+        await this.db.setUserSessionKey(email, tokens.refreshToken);
+        return {
+          status: "ok",
+          tokens: {
+            session_token: tokens.accessToken,
+            refresh_token: tokens.refreshToken,
+          },
+        };
+      } else {
+        throw new Error("Invalid refresh token");
+      }
+    } catch (error) {
+      throw error;
+    }
   }
 
   async verifyAdminToken(
     token: string,
     body?: Record<string, any>,
-  ): Promise<VerifyReturn> {
+  ): Promise<JWTVerifyReturn> {
     try {
       const decoded = await KnexAuthenticator.extractInjectAdminJWT(
         token,
@@ -84,7 +128,7 @@ export class KnexAuthenticator extends Authenticator {
   async verifySessionToken(
     token: string,
     body?: object,
-  ): Promise<VerifyReturn> {
+  ): Promise<JWTVerifyReturn> {
     try {
       const decoded = await KnexAuthenticator.extractInjectSessionJWT(
         token,

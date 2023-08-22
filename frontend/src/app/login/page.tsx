@@ -24,18 +24,22 @@ export default function Login() {
       if (res.ok === false) {
         throw new Error("Not ok!");
       }
-      const { session_key: sessionKey } = await res.json();
-      if (!sessionKey) {
+      const { session_token: sessionToken, refresh_token: refreshToken } =
+        await res.json();
+      if (!sessionToken) {
         throw new Error("Session undefined");
       }
-      cookies.set("session_key", sessionKey, {
-        expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 10),
+      cookies.set("session_token", sessionToken, {
+        expires: new Date(new Date().getTime() + 1000 * 60 * 10),
+      });
+      cookies.set("refresh_token", refreshToken, {
+        expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 7),
       });
       setIsLoggedIn(true);
       router.push("/");
     } catch (error) {
       openSnackbar(true);
-      cookies.remove("session_key");
+      cookies.remove("session_token");
     }
   };
 

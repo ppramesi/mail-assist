@@ -21,9 +21,13 @@ export async function POST(request: NextRequest) {
       },
       data,
     });
-    const { session_key: sessionKey } = axiosRequest.data;
-    c.set("session_key", sessionKey, {
-      expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 10),
+    const { session_token: sessionToken, refresh_token: refreshToken } =
+      axiosRequest.data;
+    c.set("session_token", sessionToken, {
+      expires: new Date(new Date().getTime() + 1000 * 60 * 10),
+    });
+    c.set("refresh_token", refreshToken, {
+      expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 7),
     });
     return NextResponse.json(axiosRequest.data);
   } catch (error) {

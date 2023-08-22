@@ -221,10 +221,13 @@ export abstract class Database {
 
   abstract getUserSessionKey(email: string): Promise<string>;
 
-  abstract setUserSessionKey(email: string, sessionKey: string): Promise<void>;
+  abstract setUserSessionKey(
+    email: string,
+    sessionToken: string,
+  ): Promise<void>;
 
   abstract getUserBySessionKey(
-    sessionKey: string,
+    sessionToken: string,
   ): Promise<{ email: string; metakey: string } | null>;
 
   abstract setUserAuth(

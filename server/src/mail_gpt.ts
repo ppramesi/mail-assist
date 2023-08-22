@@ -398,7 +398,11 @@ export class MailGPTAPIServer extends MailGPTServer {
 
       if (auth.status === "ok") {
         logger.info(`Logging in user ${email}`);
-        res.status(200).send({ session_key: auth.session_key });
+        res.status(200).send({
+          status: "ok",
+          session_token: auth.tokens.session_token,
+          refresh_token: auth.tokens.refresh_token,
+        });
         return;
       } else {
         logger.error("bad auth: wrong password or some shit");
@@ -444,9 +448,11 @@ export class MailGPTAPIServer extends MailGPTServer {
           const auth = await this.authenticator.register(email, password);
           if (auth.status === "ok") {
             logger.info(`Registering user ${email}`);
-            res
-              .status(200)
-              .send({ status: "ok", session_key: auth.session_key });
+            res.status(200).send({
+              status: "ok",
+              session_token: auth.tokens.session_token,
+              refresh_token: auth.tokens.refresh_token,
+            });
             return;
           } else {
             logger.error("bad auth: wrong password or some shit");

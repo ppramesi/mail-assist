@@ -60,7 +60,27 @@ export function buildAuthMiddleware(database: Database) {
         return;
       }
 
-      const user = await database.getUserBySessionKey(sessionToken);
+      const unverifiedDecoded = jwt.decode(sessionToken);
+      if (!unverifiedDecoded || typeof unverifiedDecoded === "string") {
+        logger.error(`Malformed JWT: ${JSON.stringify(unverifiedDecoded)}`);
+        res
+          .status(403)
+          .send(`Malformed JWT: ${JSON.stringify(unverifiedDecoded)}`);
+        return;
+      }
+
+      if (
+        !unverifiedDecoded.exp ||
+        unverifiedDecoded.exp < new Date().getTime() / 1000
+      ) {
+        logger.error(`Expired JWT: ${JSON.stringify(unverifiedDecoded)}`);
+        res
+          .status(403)
+          .send(`Expired JWT: ${JSON.stringify(unverifiedDecoded)}`);
+        return;
+      }
+
+      const user = await database.getUserByEmail(unverifiedDecoded.email);
       if (!user) {
         logger.error("Failed to find session token:");
         res.status(403).send("Who the fuck are you?");
@@ -68,7 +88,6 @@ export function buildAuthMiddleware(database: Database) {
       }
 
       try {
-        const { email } = user!;
         const decoded = jwt.verify(
           sessionToken,
           process.env.TOKEN_KEY,
@@ -91,13 +110,7 @@ export function buildAuthMiddleware(database: Database) {
           return;
         }
 
-        if (email === decoded.email) {
-          next();
-        } else {
-          logger.error("Failed to verify token: email mismatch");
-          res.status(403).send("Who the fuck are you?");
-          return;
-        }
+        next();
       } catch (err) {
         logger.error("Failed to verify token:", err);
         res.status(403).send("Who the fuck are you?");

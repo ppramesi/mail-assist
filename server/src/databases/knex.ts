@@ -411,6 +411,11 @@ export class KnexDatabase extends Database {
       .returning("id")
       .then((v) => v[0]);
 
+    await this.db("user_roles").insert({
+      user_id: id,
+      role: "user",
+    });
+
     return id;
   }
 
@@ -527,22 +532,22 @@ export class KnexDatabase extends Database {
   async getUserSessionKey(email: string): Promise<string> {
     return this.db("users")
       .where("email", email)
-      .returning("session_key")
+      .returning("refresh_token")
       .first()
       .then((v) => v || null);
   }
 
-  async setUserSessionKey(email: string, sessionKey: string): Promise<void> {
+  async setUserSessionKey(email: string, sessionToken: string): Promise<void> {
     await this.db("users").where("email", email).update({
-      session_key: sessionKey,
+      refresh_token: sessionToken,
     });
   }
 
   async getUserBySessionKey(
-    sessionKey: string,
+    sessionToken: string,
   ): Promise<{ email: string; metakey: string } | null> {
     return this.db("users")
-      .where("session_key", sessionKey)
+      .where("refresh_token", sessionToken)
       .returning(["email", "metakey"])
       .first()
       .then((v) => v || null);
