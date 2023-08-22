@@ -42,9 +42,15 @@ export abstract class Authenticator {
     refreshToken: string,
   ): Promise<JWTSignReturn>;
 
-  abstract verifyAdminToken(token: string): Promise<JWTVerifyReturn>;
+  abstract verifyAdminToken(
+    token: string,
+    injectable?: Record<string, any>,
+  ): Promise<JWTVerifyReturn>;
 
-  abstract verifySessionToken(token: string): Promise<JWTVerifyReturn>;
+  abstract verifySessionToken(
+    token: string,
+    injectable?: Record<string, any>,
+  ): Promise<JWTVerifyReturn>;
 
   static async hashPasswordAndGenerateStuff(password: string) {
     const salt = await bcrypt.genSalt(13);

@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import { Database } from "../databases/base.js";
 import { Authenticator, JWTSignReturn, JWTVerifyReturn } from "./base.js";
 
@@ -138,10 +139,53 @@ export class SupabaseKnexAuthenticator extends Authenticator {
   }
 
   async register(email: string, password: string): Promise<JWTSignReturn> {
-    const [{ salt, metakey, password: encryptedPass }, res] = await Promise.all(
-      [
-        SupabaseKnexAuthenticator.hashPasswordAndGenerateStuff(password),
-        _request(fetch, "POST", `${this.authUrl}/signup`, {
+    try {
+      const [{ salt, metakey, password: encryptedPass }, res] =
+        await Promise.all([
+          SupabaseKnexAuthenticator.hashPasswordAndGenerateStuff(password),
+          _request(fetch, "POST", `${this.authUrl}/signup`, {
+            headers: this.buildAuthHeaders(),
+            body: {
+              email,
+              password,
+              data: {},
+            },
+            xform: sessionTransform,
+          }),
+        ]);
+
+      await Promise.all([
+        this.db.upsertUser(
+          res.data.user.id,
+          email,
+          encryptedPass,
+          salt,
+          metakey,
+        ),
+        this.db.setUserSessionKey(email, res.data.session.refresh_token),
+      ]);
+      return {
+        status: "ok",
+        tokens: {
+          session_token: res.data.session.access_token,
+          refresh_token: res.data.session.refresh_token,
+        },
+      };
+    } catch (error) {
+      return {
+        status: "error",
+        error: `register-failed-{${error}}`,
+      };
+    }
+  }
+
+  async login(email: string, password: string): Promise<JWTSignReturn> {
+    try {
+      const res = await _request(
+        fetch,
+        "POST",
+        `${this.authUrl}/token?grant_type=password`,
+        {
           headers: this.buildAuthHeaders(),
           body: {
             email,
@@ -149,46 +193,22 @@ export class SupabaseKnexAuthenticator extends Authenticator {
             data: {},
           },
           xform: sessionTransform,
-        }),
-      ],
-    );
-
-    await Promise.all([
-      this.db.upsertUser(res.data.user.id, email, encryptedPass, salt, metakey),
-      this.db.setUserSessionKey(email, res.data.session.refresh_token),
-    ]);
-    return {
-      status: "ok",
-      tokens: {
-        session_token: res.data.session.access_token,
-        refresh_token: res.data.session.refresh_token,
-      },
-    };
-  }
-
-  async login(email: string, password: string): Promise<JWTSignReturn> {
-    const res = await _request(
-      fetch,
-      "POST",
-      `${this.authUrl}/token?grant_type=password`,
-      {
-        headers: this.buildAuthHeaders(),
-        body: {
-          email,
-          password,
-          data: {},
         },
-        xform: sessionTransform,
-      },
-    );
-    await this.db.setUserSessionKey(email, res.data.session.refresh_token);
-    return {
-      status: "ok",
-      tokens: {
-        session_token: res.data.session.access_token,
-        refresh_token: res.data.session.refresh_token,
-      },
-    };
+      );
+      await this.db.setUserSessionKey(email, res.data.session.refresh_token);
+      return {
+        status: "ok",
+        tokens: {
+          session_token: res.data.session.access_token,
+          refresh_token: res.data.session.refresh_token,
+        },
+      };
+    } catch (error) {
+      return {
+        status: "error",
+        error: `login-failed-{${error}}`,
+      };
+    }
   }
 
   async refreshToken(
@@ -222,7 +242,10 @@ export class SupabaseKnexAuthenticator extends Authenticator {
         },
       };
     } catch (error) {
-      throw error;
+      return {
+        status: "error",
+        error: `refresh-token-failed-{${error}}`,
+      };
     }
   }
 
@@ -231,7 +254,7 @@ export class SupabaseKnexAuthenticator extends Authenticator {
     body?: Record<string, any>,
   ): Promise<JWTVerifyReturn> {
     try {
-      const decoded = await SupabaseKnexAuthenticator.extractInjectAdminJWT(
+      const decoded = SupabaseKnexAuthenticator.extractInjectAdminJWT(
         token,
         body,
       );
@@ -242,7 +265,7 @@ export class SupabaseKnexAuthenticator extends Authenticator {
     } catch (err) {
       return {
         status: "error",
-        error: "verify-admin-token-failed",
+        error: `verify-admin-token-failed-{${err}}`,
       };
     }
   }
@@ -252,7 +275,27 @@ export class SupabaseKnexAuthenticator extends Authenticator {
     body?: object,
   ): Promise<JWTVerifyReturn> {
     try {
-      const decoded = await SupabaseKnexAuthenticator.extractInjectSessionJWT(
+      const unverifiedDecoded = jwt.decode(token);
+      if (
+        !unverifiedDecoded ||
+        typeof unverifiedDecoded === "string" ||
+        !unverifiedDecoded.email
+      ) {
+        return {
+          status: "error",
+          error: `malformed-jwt`,
+        };
+      }
+
+      const user = await this.db.getUserByEmail(unverifiedDecoded.email);
+      if (!user) {
+        return {
+          status: "error",
+          error: `user-not-found`,
+        };
+      }
+
+      const decoded = SupabaseKnexAuthenticator.extractInjectSessionJWT(
         token,
         body,
       );
@@ -263,7 +306,7 @@ export class SupabaseKnexAuthenticator extends Authenticator {
     } catch (err) {
       return {
         status: "error",
-        error: "verify-session-token-failed",
+        error: `verify-session-token-failed-{${err}}`,
       };
     }
   }

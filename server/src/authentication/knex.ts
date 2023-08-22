@@ -25,7 +25,7 @@ export class KnexAuthenticator extends Authenticator {
     } catch (error) {
       return {
         status: "error",
-        error: `error-{${error}}`,
+        error: `register-failed-{${error}}`,
       };
     }
   }
@@ -97,10 +97,16 @@ export class KnexAuthenticator extends Authenticator {
           },
         };
       } else {
-        throw new Error("Invalid refresh token");
+        return {
+          status: "error",
+          error: "refresh-token-failed",
+        };
       }
     } catch (error) {
-      throw error;
+      return {
+        status: "error",
+        error: "refresh-token-failed",
+      };
     }
   }
 
@@ -120,7 +126,7 @@ export class KnexAuthenticator extends Authenticator {
     } catch (err) {
       return {
         status: "error",
-        error: "verify-admin-token-failed",
+        error: `verify-admin-token-failed-{${err}}`,
       };
     }
   }
@@ -130,10 +136,27 @@ export class KnexAuthenticator extends Authenticator {
     body?: object,
   ): Promise<JWTVerifyReturn> {
     try {
-      const decoded = await KnexAuthenticator.extractInjectSessionJWT(
-        token,
-        body,
-      );
+      const unverifiedDecoded = jwt.decode(token);
+      if (
+        !unverifiedDecoded ||
+        typeof unverifiedDecoded === "string" ||
+        !unverifiedDecoded.email
+      ) {
+        return {
+          status: "error",
+          error: `malformed-jwt`,
+        };
+      }
+
+      const user = await this.db.getUserByEmail(unverifiedDecoded.email);
+      if (!user) {
+        return {
+          status: "error",
+          error: `user-not-found`,
+        };
+      }
+
+      const decoded = KnexAuthenticator.extractInjectSessionJWT(token, body);
       return {
         status: "ok",
         jwt: decoded,
@@ -141,7 +164,7 @@ export class KnexAuthenticator extends Authenticator {
     } catch (err) {
       return {
         status: "error",
-        error: "verify-session-token-failed",
+        error: `verify-session-token-failed-{${err}}`,
       };
     }
   }

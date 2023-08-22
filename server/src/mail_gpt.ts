@@ -380,6 +380,35 @@ export class MailGPTAPIServer extends MailGPTServer {
   }
 
   buildAuthenticationRoutes() {
+    this.app.post("/refresh", async (req, res) => {
+      const {
+        body: { session_token: sessionToken, refresh_token: refreshToken },
+      } = req;
+      if (!sessionToken || !refreshToken) {
+        logger.error("bad auth: empty tokens");
+        res.status(403).send({ status: "empty tokens" });
+        return;
+      }
+
+      const jwtSigned = await this.authenticator.refreshToken(
+        sessionToken,
+        refreshToken,
+      );
+      if (jwtSigned.status === "ok") {
+        logger.error(
+          `Token refreshed: ${JSON.stringify({
+            session_token: sessionToken,
+            refresh_token: refreshToken,
+          })}`,
+        );
+        res.status(200).send({ status: "ok", ...jwtSigned.tokens });
+        return;
+      } else {
+        logger.error("bad auth: refresh failed");
+        res.status(403).send({ status: "bad auth: refresh failed" });
+        return;
+      }
+    });
     this.app.post("/login", async (req, res) => {
       const { body } = req;
       const { password, email } = body;
@@ -476,7 +505,7 @@ export class MailGPTAPIServer extends MailGPTServer {
 
   buildMiddlewares(middlewareOpts: MiddlewareOpts) {
     if (middlewareOpts.useAuth) {
-      this.app.use(buildAuthMiddleware(this.database));
+      this.app.use(buildAuthMiddleware(this.authenticator));
     }
   }
 

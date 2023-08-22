@@ -1,10 +1,9 @@
-import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import _ from "lodash";
 import logger from "../logger/bunyan.js";
-import { Database } from "../databases/base.js";
+import { Authenticator } from "../authentication/base.js";
 
-export function buildAuthMiddleware(database: Database) {
+export function buildAuthMiddleware(authenticator: Authenticator) {
   return async function authMiddleware(
     req: Request,
     res: Response,
@@ -26,22 +25,18 @@ export function buildAuthMiddleware(database: Database) {
         return;
       }
       try {
-        const decoded = jwt.verify(
+        const verified = await authenticator.verifyAdminToken(
           adminToken,
-          process.env.ADMIN_KEY!,
-        ) as jwt.JwtPayload;
-        if (decoded && _.isObject(decoded)) {
-          Object.entries(decoded).forEach(([key, value]) => {
-            req.body[key] = value;
-          });
-          logger.info(
-            `Token successfully verified for user with details: ${JSON.stringify(
-              decoded,
-            )}`,
-          );
+          req.body,
+        );
+        if (verified.status === "ok") {
+          req.body.fromAccessToken = true;
+          next();
+        } else {
+          logger.error("Failed to verify token:", verified);
+          res.status(403).send("Who the fuck are you?");
+          return;
         }
-        req.body.fromAccessToken = true;
-        next();
       } catch (err) {
         logger.error("Failed to verify token:", err);
         res.status(403).send("Who the fuck are you?");
@@ -60,48 +55,17 @@ export function buildAuthMiddleware(database: Database) {
         return;
       }
 
-      const unverifiedDecoded = jwt.decode(sessionToken);
-      if (!unverifiedDecoded || typeof unverifiedDecoded === "string") {
-        logger.error(`Malformed JWT: ${JSON.stringify(unverifiedDecoded)}`);
-        res
-          .status(403)
-          .send(`Malformed JWT: ${JSON.stringify(unverifiedDecoded)}`);
-        return;
-      }
-
-      if (
-        !unverifiedDecoded.exp ||
-        unverifiedDecoded.exp < new Date().getTime() / 1000
-      ) {
-        logger.error(`Expired JWT: ${JSON.stringify(unverifiedDecoded)}`);
-        res
-          .status(403)
-          .send(`Expired JWT: ${JSON.stringify(unverifiedDecoded)}`);
-        return;
-      }
-
-      const user = await database.getUserByEmail(unverifiedDecoded.email);
-      if (!user) {
-        logger.error("Failed to find session token:");
-        res.status(403).send("Who the fuck are you?");
-        return;
-      }
-
       try {
-        const decoded = jwt.verify(
+        const verified = await authenticator.verifySessionToken(
           sessionToken,
-          process.env.TOKEN_KEY,
-        ) as jwt.JwtPayload;
-
-        if (decoded && _.isObject(decoded)) {
-          Object.entries(decoded).forEach(([key, value]) => {
-            req.body[key] = value;
-          });
-          logger.info(
-            `Token successfully verified for user with details: ${JSON.stringify(
-              decoded,
-            )}`,
-          );
+          req.body,
+        );
+        if (verified.status === "ok") {
+          next();
+        } else {
+          logger.error("Failed to verify token:", verified);
+          res.status(403).send("Who the fuck are you?");
+          return;
         }
 
         if (!req.body["user_id"]) {
