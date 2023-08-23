@@ -1,42 +1,6 @@
 import { LangChainTracer } from "langchain/callbacks";
 import { BaseRun } from "langsmith/schemas";
-
-class Node {
-  constructor(
-    public id: string,
-    public parent: Node | null = null,
-  ) {}
-}
-
-class CallbackChainTracker {
-  private nodes = new Map<string, Node>();
-
-  add(id: string, parentId?: string) {
-    const parent = parentId ? this.nodes.get(parentId) : null;
-    const node = new Node(id, parent);
-
-    this.nodes.set(id, node);
-  }
-
-  getChain(id: string): string[] {
-    const node = this.nodes.get(id);
-    if (!node) return [];
-
-    const chain: string[] = [];
-    let current: Node | null = node;
-    while (current !== null) {
-      chain.unshift(current.id);
-      current = current.parent;
-    }
-
-    return chain;
-  }
-
-  getRootId(id: string): string | null {
-    const chain = this.getChain(id);
-    return chain.length > 0 ? chain[0] : null;
-  }
-}
+import { CallbackChainTracker } from "./utils.js";
 
 interface BaseCallbackHandlerInput {
   ignoreLLM?: boolean;
@@ -327,6 +291,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
       run,
     );
     await super.onRetrieverEnd(procRun);
+    this.callbackChainTracker.removeNode(run.id);
+    this.promptValues.delete(run.id);
   }
 
   async onLLMStart(run: Run): Promise<void> {
@@ -362,6 +328,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
       return acc;
     }, run);
     await super.onLLMEnd(procRun);
+    this.callbackChainTracker.removeNode(run.id);
+    this.promptValues.delete(run.id);
   }
 
   async onChainStart(run: Run): Promise<void> {
@@ -392,6 +360,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
       return acc;
     }, run);
     await super.onChainEnd(procRun);
+    this.callbackChainTracker.removeNode(run.id);
+    this.promptValues.delete(run.id);
   }
 
   async onToolStart(run: Run): Promise<void> {
@@ -417,5 +387,7 @@ export class RedactableLangChainTracer extends LangChainTracer {
       return acc;
     }, run);
     await super.onToolEnd(procRun);
+    this.callbackChainTracker.removeNode(run.id);
+    this.promptValues.delete(run.id);
   }
 }
