@@ -36,8 +36,14 @@ export class CallbackChainTracker {
   removeNode(id: string) {
     const node = this.nodes.get(id);
     if (!node) return;
+    if (node.parent) {
+      const childIdx = node.parent.children.findIndex((v) => v.id === id);
+      if (childIdx > -1) {
+        node.parent.children = node.parent.children.splice(childIdx, 1);
+      }
+    }
 
-    node.children?.map((n) => this.removeNode(n.id));
+    node.children.map((n) => this.removeNode(n.id));
     this.nodes.delete(id);
   }
 
