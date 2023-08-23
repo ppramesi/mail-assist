@@ -5,7 +5,7 @@ import { KeywordsGenerator } from "./generators/keywords_generator.js";
 import { ReplyGenerator } from "./generators/replier.js";
 import { EmailSummarizer } from "./generators/summarizer.js";
 import { VectorStoreRetriever } from "langchain/vectorstores/base";
-import { Callbacks } from "langchain/callbacks";
+import { CallbackManager, Callbacks } from "langchain/callbacks";
 import { ChainValues } from "langchain/schema";
 import logger from "../logger/bunyan.js";
 import {
@@ -21,6 +21,7 @@ import { SupabaseKnexVectorStore } from "../vectorstores/knex.js";
 export type MainExecutorOpts = {
   llm: ChatOpenAI;
   retriever: VectorStoreRetriever;
+  callbacks?: Callbacks;
 };
 
 export class MainExecutor {
@@ -32,10 +33,12 @@ export class MainExecutor {
   retriever: VectorStoreRetriever;
   currentUserId?: string;
   context?: Record<string, string>;
+  callbacks?: Callbacks;
   // db: Database;
 
   constructor(opts: MainExecutorOpts) {
     const chainParams = { llm: opts.llm };
+    this.callbacks = opts.callbacks;
     this.relevancyChain = new EmailRelevancyEvaluator(chainParams);
     this.intentionsGenerator = new IntentionsGenerator(chainParams);
     this.keywordsGenerator = new KeywordsGenerator(chainParams);
@@ -57,7 +60,8 @@ export class MainExecutor {
   }
 
   async summarize(values: ChainValues, callbacks?: Callbacks) {
-    const { text: summary } = await this.summarizer.call(values, callbacks);
+    const manager = await CallbackManager.configure(callbacks, this.callbacks)
+    const { text: summary } = await this.summarizer.call(values, manager);
     return summary;
   }
 
@@ -66,8 +70,9 @@ export class MainExecutor {
     callbacks?: Callbacks,
     options?: Record<string, any>,
   ) {
+    const manager = await CallbackManager.configure(callbacks, this.callbacks)
     const { extracted_info: extractedInfo } =
-      (await this.keywordsGenerator.call(values, callbacks)) as {
+      (await this.keywordsGenerator.call(values, manager)) as {
         extracted_info: string[];
       };
 
@@ -87,7 +92,7 @@ export class MainExecutor {
 
     const summaries = await Promise.all(
       extractedInfo.map((keyword) =>
-        this.retriever.getRelevantDocuments(keyword, callbacks),
+        this.retriever.getRelevantDocuments(keyword, manager),
       ),
     )
       .then((stuff) => {
@@ -108,15 +113,17 @@ export class MainExecutor {
   }
 
   async generateIntentions(values: ChainValues, callbacks?: Callbacks) {
+    const manager = await CallbackManager.configure(callbacks, this.callbacks)
     const { intentions } = (await this.intentionsGenerator.call(
       values,
-      callbacks,
+      manager,
     )) as { intentions: string[] };
     return intentions;
   }
 
   async generateReply(values: ChainValues, callbacks?: Callbacks) {
-    const { text } = await this.replier.call(values, callbacks);
+    const manager = await CallbackManager.configure(callbacks, this.callbacks)
+    const { text } = await this.replier.call(values, manager);
     return text;
   }
 
@@ -132,6 +139,7 @@ export class MainExecutor {
     callbacks?: Callbacks,
   ): Promise<ProcessedEmail[]> {
     this.currentUserId = userId;
+    const manager = await CallbackManager.configure(callbacks, this.callbacks)
     const processEmailPromise = emails.map(async (email) => {
       const { text: body, from, date, to: rawTo, cc, bcc } = email;
       const to = rawTo.slice(0, 10).join("\n");
@@ -145,7 +153,7 @@ export class MainExecutor {
           cc,
           bcc,
         };
-        const { decision } = await this.relevancyChain.call(values, callbacks);
+        const { decision } = await this.relevancyChain.call(values, manager);
         logger.info(`Decision: ${decision}`);
         if (decision === "none") {
           const irrelevantEmail: IrrelevantEmail = {
@@ -158,14 +166,14 @@ export class MainExecutor {
         if (decision === "reply") {
           const fetchSummariesPromise = this.vectorStoreFetchSummaries(
             values,
-            callbacks,
+            manager,
             {
               jwt: {
                 user_id: userId,
               },
             },
           );
-          const intentionsPromise = this.generateIntentions(values, callbacks);
+          const intentionsPromise = this.generateIntentions(values, manager);
           return Promise.all([
             fetchSummariesPromise,
             intentionsPromise,
@@ -179,7 +187,7 @@ export class MainExecutor {
                     intention,
                     summaries: summariesResult,
                   },
-                  callbacks,
+                  manager,
                 );
                 const { id: emailId, ...rest } = email;
                 return {
