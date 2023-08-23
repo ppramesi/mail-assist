@@ -20,17 +20,21 @@ interface Run extends BaseRun {
   child_execution_order: number;
 }
 
-type PromptTemplateReplacer = {
+type Replacer = {
+  match_name?: string
+}
+
+type PromptTemplateReplacer = Replacer & {
   type: "prompt_template_redact";
   target: string;
 };
 
-type StringReplacer = {
+type StringReplacer = Replacer & {
   type: "string_redact";
   target: string | RegExp;
 };
 
-type TotalReplacer = {
+type TotalReplacer = Replacer & {
   type: "total_redact";
 };
 
@@ -123,8 +127,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
   }
 
   redactPromptTemplate(run: Run, replacer?: PromptTemplateReplacer) {
-    if (!replacer) {
-      return run;
+    if(!replacer || (replacer?.match_name && run.name !== replacer.match_name)){
+      return run
     }
 
     const clonedRun = structuredClone(run);
@@ -180,8 +184,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
   }
 
   redactTotal(run: Run, replacer?: TotalReplacer) {
-    if (!replacer) {
-      return run;
+    if(!replacer || (replacer?.match_name && run.name !== replacer.match_name)){
+      return run
     }
 
     const redactions: {
@@ -218,8 +222,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
   }
 
   redactString(run: Run, replacer?: StringReplacer) {
-    if (!replacer) {
-      return run;
+    if(!replacer || (replacer?.match_name && run.name !== replacer.match_name)){
+      return run
     }
 
     const redactions: {
