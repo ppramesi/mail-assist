@@ -39,7 +39,7 @@ export class CallbackChainTracker {
     if (node.parent) {
       const childIdx = node.parent.children.findIndex((v) => v.id === id);
       if (childIdx > -1) {
-        node.parent.children = node.parent.children.splice(childIdx, 1);
+        node.parent.children.splice(childIdx, 1);
       }
     }
 
