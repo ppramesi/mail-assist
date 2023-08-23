@@ -59,20 +59,18 @@ export class MainExecutor {
     this.summarizer.setContext(this.context);
   }
 
-  async summarize(values: ChainValues, callbacks?: Callbacks) {
-    const manager = await CallbackManager.configure(callbacks, this.callbacks)
-    const { text: summary } = await this.summarizer.call(values, manager);
+  private async summarize(values: ChainValues, callbacks?: Callbacks) {
+    const { text: summary } = await this.summarizer.call(values, callbacks);
     return summary;
   }
 
-  async vectorStoreFetchSummaries(
+  private async vectorStoreFetchSummaries(
     values: ChainValues,
     callbacks?: Callbacks,
     options?: Record<string, any>,
   ) {
-    const manager = await CallbackManager.configure(callbacks, this.callbacks)
     const { extracted_info: extractedInfo } =
-      (await this.keywordsGenerator.call(values, manager)) as {
+      (await this.keywordsGenerator.call(values, callbacks)) as {
         extracted_info: string[];
       };
 
@@ -92,7 +90,7 @@ export class MainExecutor {
 
     const summaries = await Promise.all(
       extractedInfo.map((keyword) =>
-        this.retriever.getRelevantDocuments(keyword, manager),
+        this.retriever.getRelevantDocuments(keyword, callbacks),
       ),
     )
       .then((stuff) => {
@@ -112,18 +110,16 @@ export class MainExecutor {
     return summaries;
   }
 
-  async generateIntentions(values: ChainValues, callbacks?: Callbacks) {
-    const manager = await CallbackManager.configure(callbacks, this.callbacks)
+  private async generateIntentions(values: ChainValues, callbacks?: Callbacks) {
     const { intentions } = (await this.intentionsGenerator.call(
       values,
-      manager,
+      callbacks,
     )) as { intentions: string[] };
     return intentions;
   }
 
-  async generateReply(values: ChainValues, callbacks?: Callbacks) {
-    const manager = await CallbackManager.configure(callbacks, this.callbacks)
-    const { text } = await this.replier.call(values, manager);
+  private async generateReply(values: ChainValues, callbacks?: Callbacks) {
+    const { text } = await this.replier.call(values, callbacks);
     return text;
   }
 
@@ -139,7 +135,7 @@ export class MainExecutor {
     callbacks?: Callbacks,
   ): Promise<ProcessedEmail[]> {
     this.currentUserId = userId;
-    const manager = await CallbackManager.configure(callbacks, this.callbacks)
+    const manager = await CallbackManager.configure(callbacks, this.callbacks);
     const processEmailPromise = emails.map(async (email) => {
       const { text: body, from, date, to: rawTo, cc, bcc } = email;
       const to = rawTo.slice(0, 10).join("\n");
@@ -162,7 +158,7 @@ export class MainExecutor {
           };
           return Promise.resolve([irrelevantEmail]);
         }
-        const summarizePromise = this.summarize(values);
+        const summarizePromise = this.summarize(values, manager);
         if (decision === "reply") {
           const fetchSummariesPromise = this.vectorStoreFetchSummaries(
             values,

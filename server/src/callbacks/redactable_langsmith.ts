@@ -1,6 +1,42 @@
 import { LangChainTracer } from "langchain/callbacks";
 import { BaseRun } from "langsmith/schemas";
-import { Client } from "langsmith"
+
+class Node {
+  constructor(
+    public id: string,
+    public parent: Node | null = null,
+  ) {}
+}
+
+class CallbackChainTracker {
+  private nodes = new Map<string, Node>();
+
+  add(id: string, parentId?: string) {
+    const parent = parentId ? this.nodes.get(parentId) : null;
+    const node = new Node(id, parent);
+
+    this.nodes.set(id, node);
+  }
+
+  getChain(id: string): string[] {
+    const node = this.nodes.get(id);
+    if (!node) return [];
+
+    const chain: string[] = [];
+    let current: Node | null = node;
+    while (current !== null) {
+      chain.unshift(current.id);
+      current = current.parent;
+    }
+
+    return chain;
+  }
+
+  getRootId(id: string): string | null {
+    const chain = this.getChain(id);
+    return chain.length > 0 ? chain[0] : null;
+  }
+}
 
 interface BaseCallbackHandlerInput {
   ignoreLLM?: boolean;
@@ -21,17 +57,17 @@ interface Run extends BaseRun {
 }
 
 type PromptTemplateReplacer = {
-  type: "prompt_template";
+  type: "prompt_template_redact";
   target: string;
 };
 
 type StringReplacer = {
-  type: "string_replace";
+  type: "string_redact";
   target: string | RegExp;
 };
 
 type TotalReplacer = {
-  type: "total";
+  type: "total_redact";
 };
 
 type ChainRedactables = (
@@ -53,34 +89,59 @@ type Redactables = {
   tool?: ToolRedactables;
 };
 
+type RedactableCallbacks = {
+  onRedaction: (
+    ids: string[],
+    keys: string[],
+    targets: string[],
+    replacements: string[],
+  ) => Promise<void>;
+};
+
 export class RedactableLangChainTracer extends LangChainTracer {
   redactables: Redactables;
-  replacedWith: string;
+  /**
+   * replaceWith is a function, just in case someone needs
+   * to match the original text stored somewhere else through
+   * callbacks with the redaction
+   */
+  replaceWith: () => string;
   promptValues: Map<string, Record<string, string>>;
+  callbackChainTracker: CallbackChainTracker = new CallbackChainTracker();
+  callbacks?: RedactableCallbacks;
 
   constructor(
     redactables: Redactables,
     fields: LangChainTracerFields = {},
-    { replacedWith }: { replacedWith: string } = { replacedWith: "[REDACTED]" },
+    {
+      replaceWith,
+      callbacks,
+    }: {
+      replaceWith: string | (() => string);
+      callbacks?: RedactableCallbacks;
+    } = { replaceWith: "[REDACTED]" },
   ) {
     super(fields);
     this.redactables = redactables;
-    this.replacedWith = replacedWith;
+    if (typeof replaceWith === "string") {
+      this.replaceWith = () => replaceWith;
+    } else {
+      this.replaceWith = replaceWith;
+    }
     this.promptValues = new Map();
-    this.client = new Client({
-      apiUrl: process.env.REDACTABLE_LANGSMITH_ENDPOINT,
-      apiKey: process.env.REDACTABLE_LANGSMITH_API_KEY
-    }) as any
+    this.callbacks = callbacks;
   }
 
   savePromptValues(run: Run) {
     if (
       this.redactables.chain &&
-      this.redactables.chain.some((r) => r.type === "prompt_template")
+      this.redactables.chain.some((r) => r.type === "prompt_template_redact")
     ) {
+      const runId = this.callbackChainTracker.getRootId(run.id) ?? run.id;
+
       const promptProps = (
         this.redactables.chain.filter(
-          (r) => r.type === "prompt_template",
+          (r) => r.type === "prompt_template_redact",
         ) as PromptTemplateReplacer[]
       ).map((v) => v.target);
       const values: Record<string, string> = {};
@@ -89,94 +150,162 @@ export class RedactableLangChainTracer extends LangChainTracer {
           values[prop] = run.inputs[prop];
         }
       });
-      this.promptValues.set(run.id, {
-        ...(this.promptValues.get(run.id) ?? {}),
-        ...values,
+
+      this.promptValues.set(runId, {
+        ...values, // prioritize earlier prompt values
+        ...(this.promptValues.get(runId) ?? {}),
       });
     }
   }
 
-  replacePromptTemplate(run: Run, replacer?: PromptTemplateReplacer) {
-    if(!replacer){
+  redactPromptTemplate(run: Run, replacer?: PromptTemplateReplacer) {
+    if (!replacer) {
       return run;
     }
 
     const clonedRun = structuredClone(run);
+    const runId = this.callbackChainTracker.getRootId(run.id) ?? run.id;
+    const runPromptValues = this.promptValues.get(runId);
+    const redactions: {
+      ids: string[];
+      keys: string[];
+      targets: string[];
+      replacements: string[];
+    } = {
+      ids: [],
+      keys: [],
+      targets: [],
+      replacements: [],
+    };
+    if (!runPromptValues) {
+      return run;
+    }
     if (run.run_type === "chain") {
-      const runPromptValues = this.promptValues.get(run.id);
-      if (!runPromptValues) {
-        return run;
-      }
       Object.entries(runPromptValues).forEach(([key, _]) => {
+        const replaceWith = this.replaceWith();
         if (key in clonedRun.inputs) {
-          clonedRun.inputs[key] = this.replacedWith;
+          redactions.ids.push(run.id);
+          redactions.keys.push(key);
+          redactions.targets.push(clonedRun.inputs[key]);
+          redactions.replacements.push(replaceWith);
+          clonedRun.inputs[key] = replaceWith;
         }
       });
     } else if (run.run_type === "llm") {
-      if(!run.parent_run_id){
-        return run;
-      }
-      const runPromptValues = this.promptValues.get(run.parent_run_id);
-      if (!runPromptValues) {
-        return run;
-      }
       const prompts = clonedRun.inputs.prompts as string[];
       clonedRun.inputs.prompts = prompts.map((prompt) => {
         return Object.keys(runPromptValues).reduce((acc, key) => {
-          return acc.replaceAll(runPromptValues[key], this.replacedWith);
+          const replaceWith = this.replaceWith();
+          redactions.ids.push(run.id);
+          redactions.keys.push(key);
+          redactions.targets.push(runPromptValues[key]);
+          redactions.replacements.push(replaceWith);
+          return acc.replaceAll(runPromptValues[key], replaceWith);
         }, prompt);
       });
     }
 
+    this.callbacks?.onRedaction(
+      redactions.ids,
+      redactions.keys,
+      redactions.targets,
+      redactions.replacements,
+    );
+
     return clonedRun;
   }
 
-  replaceTotal(run: Run, replacer?: TotalReplacer) {
+  redactTotal(run: Run, replacer?: TotalReplacer) {
     if (!replacer) {
       return run;
     }
+
+    const redactions: {
+      ids: string[];
+      keys: string[];
+      targets: string[];
+      replacements: string[];
+    } = {
+      ids: [],
+      keys: [],
+      targets: [],
+      replacements: [],
+    };
     const clonedRun = structuredClone(run);
     Object.entries(clonedRun.inputs)
       .filter(([_, input]) => typeof input === "string")
       .forEach(([key, _]) => {
-        clonedRun.inputs[key] = this.replacedWith;
+        const replaceWith = this.replaceWith();
+        redactions.ids.push(run.id);
+        redactions.keys.push(key);
+        redactions.targets.push(clonedRun.inputs[key]);
+        redactions.replacements.push(replaceWith);
+
+        clonedRun.inputs[key] = replaceWith;
       });
+
+    this.callbacks?.onRedaction(
+      redactions.ids,
+      redactions.keys,
+      redactions.targets,
+      redactions.replacements,
+    );
     return clonedRun;
   }
 
-  replaceString(run: Run, replacer?: StringReplacer) {
+  redactString(run: Run, replacer?: StringReplacer) {
     if (!replacer) {
       return run;
     }
+
+    const redactions: {
+      ids: string[];
+      keys: string[];
+      targets: string[];
+      replacements: string[];
+    } = {
+      ids: [],
+      keys: [],
+      targets: [],
+      replacements: [],
+    };
     const clonedRun = structuredClone(run);
     Object.entries(clonedRun.inputs)
       .filter(([_, input]) => typeof input === "string")
       .forEach(([key, input]) => {
+        const replaceWith = this.replaceWith();
+        redactions.ids.push(run.id);
+        redactions.keys.push(replacer.target.toString());
+        redactions.targets.push(clonedRun.inputs[key]);
+        redactions.replacements.push(replaceWith);
+
         if (typeof replacer.target === "string") {
           clonedRun.inputs[key] = input.replaceAll(
             replacer.target,
-            this.replacedWith,
+            replaceWith,
           );
         } else if (replacer.target instanceof RegExp) {
-          clonedRun.inputs[key] = input.replace(
-            replacer.target,
-            this.replacedWith,
-          );
+          clonedRun.inputs[key] = input.replace(replacer.target, replaceWith);
         }
       });
 
-    clonedRun.outputs;
-
+    this.callbacks?.onRedaction(
+      redactions.ids,
+      redactions.keys,
+      redactions.targets,
+      redactions.replacements,
+    );
     return clonedRun;
   }
 
   async onRetrieverStart(run: Run): Promise<void> {
+    this.callbackChainTracker.add(run.id, run.parent_run_id);
     const procRun = (this.redactables.retriever ?? []).reduce(
       (acc, replacer) => {
-        if (replacer.type === "string_replace") {
-          return this.replaceString(acc, replacer);
-        } else if (replacer.type === "total") {
-          return this.replaceTotal(acc, replacer);
+        if (replacer.type === "string_redact") {
+          return this.redactString(acc, replacer);
+        } else if (replacer.type === "total_redact") {
+          return this.redactTotal(acc, replacer);
         }
         return acc;
       },
@@ -188,10 +317,10 @@ export class RedactableLangChainTracer extends LangChainTracer {
   async onRetrieverEnd(run: Run): Promise<void> {
     const procRun = (this.redactables.retriever ?? []).reduce(
       (acc, replacer) => {
-        if (replacer.type === "string_replace") {
-          return this.replaceString(acc, replacer);
-        } else if (replacer.type === "total") {
-          return this.replaceTotal(acc, replacer);
+        if (replacer.type === "string_redact") {
+          return this.redactString(acc, replacer);
+        } else if (replacer.type === "total_redact") {
+          return this.redactTotal(acc, replacer);
         }
         return acc;
       },
@@ -201,16 +330,17 @@ export class RedactableLangChainTracer extends LangChainTracer {
   }
 
   async onLLMStart(run: Run): Promise<void> {
+    this.callbackChainTracker.add(run.id, run.parent_run_id);
     const procRun = [
       ...(this.redactables.chain ?? []),
       ...(this.redactables.llm ?? []),
     ].reduce((acc, replacer) => {
-      if (replacer.type === "prompt_template") {
-        return this.replacePromptTemplate(acc, replacer);
-      } else if (replacer.type === "string_replace") {
-        return this.replaceString(acc, replacer);
-      } else if (replacer.type === "total") {
-        return this.replaceTotal(acc, replacer);
+      if (replacer.type === "prompt_template_redact") {
+        return this.redactPromptTemplate(acc, replacer);
+      } else if (replacer.type === "string_redact") {
+        return this.redactString(acc, replacer);
+      } else if (replacer.type === "total_redact") {
+        return this.redactTotal(acc, replacer);
       }
       return acc;
     }, run);
@@ -222,12 +352,12 @@ export class RedactableLangChainTracer extends LangChainTracer {
       ...(this.redactables.chain ?? []),
       ...(this.redactables.llm ?? []),
     ].reduce((acc, replacer) => {
-      if (replacer.type === "prompt_template") {
-        return this.replacePromptTemplate(acc, replacer);
-      } else if (replacer.type === "string_replace") {
-        return this.replaceString(acc, replacer);
-      } else if (replacer.type === "total") {
-        return this.replaceTotal(acc, replacer);
+      if (replacer.type === "prompt_template_redact") {
+        return this.redactPromptTemplate(acc, replacer);
+      } else if (replacer.type === "string_redact") {
+        return this.redactString(acc, replacer);
+      } else if (replacer.type === "total_redact") {
+        return this.redactTotal(acc, replacer);
       }
       return acc;
     }, run);
@@ -235,14 +365,15 @@ export class RedactableLangChainTracer extends LangChainTracer {
   }
 
   async onChainStart(run: Run): Promise<void> {
+    this.callbackChainTracker.add(run.id, run.parent_run_id);
     this.savePromptValues(run);
     const procRun = (this.redactables.chain ?? []).reduce((acc, replacer) => {
-      if (replacer.type === "prompt_template") {
-        return this.replacePromptTemplate(acc, replacer);
-      } else if (replacer.type === "string_replace") {
-        return this.replaceString(acc, replacer);
-      } else if (replacer.type === "total") {
-        return this.replaceTotal(acc, replacer);
+      if (replacer.type === "prompt_template_redact") {
+        return this.redactPromptTemplate(acc, replacer);
+      } else if (replacer.type === "string_redact") {
+        return this.redactString(acc, replacer);
+      } else if (replacer.type === "total_redact") {
+        return this.redactTotal(acc, replacer);
       }
       return acc;
     }, run);
@@ -251,12 +382,12 @@ export class RedactableLangChainTracer extends LangChainTracer {
 
   async onChainEnd(run: Run): Promise<void> {
     const procRun = (this.redactables.chain ?? []).reduce((acc, replacer) => {
-      if (replacer.type === "prompt_template") {
-        return this.replacePromptTemplate(acc, replacer);
-      } else if (replacer.type === "string_replace") {
-        return this.replaceString(acc, replacer);
-      } else if (replacer.type === "total") {
-        return this.replaceTotal(acc, replacer);
+      if (replacer.type === "prompt_template_redact") {
+        return this.redactPromptTemplate(acc, replacer);
+      } else if (replacer.type === "string_redact") {
+        return this.redactString(acc, replacer);
+      } else if (replacer.type === "total_redact") {
+        return this.redactTotal(acc, replacer);
       }
       return acc;
     }, run);
@@ -264,11 +395,12 @@ export class RedactableLangChainTracer extends LangChainTracer {
   }
 
   async onToolStart(run: Run): Promise<void> {
+    this.callbackChainTracker.add(run.id, run.parent_run_id);
     const procRun = (this.redactables.tool ?? []).reduce((acc, replacer) => {
-      if (replacer.type === "string_replace") {
-        return this.replaceString(acc, replacer);
-      } else if (replacer.type === "total") {
-        return this.replaceTotal(acc, replacer);
+      if (replacer.type === "string_redact") {
+        return this.redactString(acc, replacer);
+      } else if (replacer.type === "total_redact") {
+        return this.redactTotal(acc, replacer);
       }
       return acc;
     }, run);
@@ -277,10 +409,10 @@ export class RedactableLangChainTracer extends LangChainTracer {
 
   async onToolEnd(run: Run): Promise<void> {
     const procRun = (this.redactables.tool ?? []).reduce((acc, replacer) => {
-      if (replacer.type === "string_replace") {
-        return this.replaceString(acc, replacer);
-      } else if (replacer.type === "total") {
-        return this.replaceTotal(acc, replacer);
+      if (replacer.type === "string_redact") {
+        return this.redactString(acc, replacer);
+      } else if (replacer.type === "total_redact") {
+        return this.redactTotal(acc, replacer);
       }
       return acc;
     }, run);

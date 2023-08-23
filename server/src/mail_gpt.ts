@@ -66,18 +66,18 @@ export abstract class MailGPTServer {
     this.mailAdapter = opts.mailAdapter;
     this.authorizer = opts.authorizer;
     // this.mailAdapter.connect();
+    const redactorTracer = new RedactableLangChainTracer({
+      chain: [{ type: "prompt_template_redact", target: "body" }],
+    })
     this.conversator = new ConversationalEmailEvaluator({
       llm: opts.llm,
       db: opts.database,
+      callbacks: [ redactorTracer ]
     });
     const executorOpts: MainExecutorOpts = {
       llm: opts.llm,
       retriever: opts.retriever,
-      callbacks: [
-        new RedactableLangChainTracer({
-          chain: [{ type: "prompt_template", target: "body" }],
-        })
-      ]
+      callbacks: [ redactorTracer ],
     };
     this.executor = new MainExecutor(executorOpts);
     this.retriever = opts.retriever;
@@ -130,7 +130,7 @@ export abstract class MailGPTServer {
       timestamp: Date.now(),
     };
 
-    const streamFunction = this.conversator.buildToStream({
+    const streamFunction = await this.conversator.buildToStream({
       context: context
         ? Object.entries(context).map(([key, value]) => `${key}: ${value}`)
         : "",
@@ -245,7 +245,7 @@ export abstract class MailGPTServer {
       try {
         const processedEmails = await this.executor.processEmails(
           id,
-          newEmails
+          newEmails,
         );
         const processedPromises = processedEmails.map(async (emailOrReply) => {
           switch (emailOrReply.process_status) {
