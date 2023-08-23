@@ -21,8 +21,8 @@ interface Run extends BaseRun {
 }
 
 type Replacer = {
-  match_name?: string
-}
+  lc_name?: string;
+};
 
 type PromptTemplateReplacer = Replacer & {
   type: "prompt_template_redact";
@@ -127,8 +127,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
   }
 
   redactPromptTemplate(run: Run, replacer?: PromptTemplateReplacer) {
-    if(!replacer || (replacer?.match_name && run.name !== replacer.match_name)){
-      return run
+    if (!replacer || (replacer?.lc_name && run.name !== replacer.lc_name)) {
+      return run;
     }
 
     const clonedRun = structuredClone(run);
@@ -184,8 +184,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
   }
 
   redactTotal(run: Run, replacer?: TotalReplacer) {
-    if(!replacer || (replacer?.match_name && run.name !== replacer.match_name)){
-      return run
+    if (!replacer || (replacer?.lc_name && run.name !== replacer.lc_name)) {
+      return run;
     }
 
     const redactions: {
@@ -222,8 +222,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
   }
 
   redactString(run: Run, replacer?: StringReplacer) {
-    if(!replacer || (replacer?.match_name && run.name !== replacer.match_name)){
-      return run
+    if (!replacer || (replacer?.lc_name && run.name !== replacer.lc_name)) {
+      return run;
     }
 
     const redactions: {
