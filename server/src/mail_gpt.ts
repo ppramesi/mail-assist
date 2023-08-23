@@ -68,16 +68,16 @@ export abstract class MailGPTServer {
     // this.mailAdapter.connect();
     const redactorTracer = new RedactableLangChainTracer({
       chain: [{ type: "prompt_template_redact", target: "body" }],
-    })
+    });
     this.conversator = new ConversationalEmailEvaluator({
       llm: opts.llm,
       db: opts.database,
-      callbacks: [ redactorTracer ]
+      callbacks: [redactorTracer],
     });
     const executorOpts: MainExecutorOpts = {
       llm: opts.llm,
       retriever: opts.retriever,
-      callbacks: [ redactorTracer ],
+      callbacks: [redactorTracer],
     };
     this.executor = new MainExecutor(executorOpts);
     this.retriever = opts.retriever;

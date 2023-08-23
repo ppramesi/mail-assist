@@ -152,8 +152,8 @@ export class RedactableLangChainTracer extends LangChainTracer {
       });
 
       this.promptValues.set(runId, {
-        ...values, // prioritize earlier prompt values
-        ...(this.promptValues.get(runId) ?? {}),
+        ...values,
+        ...(this.promptValues.get(runId) ?? {}), // prioritize earlier prompt values
       });
     }
   }

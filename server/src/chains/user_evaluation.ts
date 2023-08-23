@@ -8,7 +8,11 @@ import {
   HumanMessagePromptTemplate,
   SystemMessagePromptTemplate,
 } from "langchain/prompts";
-import { CallbackManager, CallbackManagerForChainRun, Callbacks } from "langchain/callbacks";
+import {
+  CallbackManager,
+  CallbackManagerForChainRun,
+  Callbacks,
+} from "langchain/callbacks";
 import _ from "lodash";
 import { AIMessage, HumanMessage } from "../schema/index.js";
 
@@ -86,7 +90,7 @@ export class ConversationalEmailEvaluator extends LLMChain {
       },
     callbacks?: Callbacks,
   ) {
-    const manager = await CallbackManager.configure(callbacks, this.callbacks)
+    const manager = await CallbackManager.configure(callbacks, this.callbacks);
     const { chat_messages: chatMessages, ...values } = aValues;
     this.buildPrompt(chatMessages);
     const chain = this.prompt.pipe<string>(this.llm);
