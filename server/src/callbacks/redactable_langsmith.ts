@@ -5,6 +5,8 @@ import cloneDeep from "lodash/cloneDeep.js";
 import { Client } from "langsmith";
 import { BaseMessage, Generation } from "langchain/schema";
 
+type PartialRequired<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>;
+
 interface BaseCallbackHandlerInput {
   ignoreLLM?: boolean;
   ignoreChain?: boolean;
@@ -32,8 +34,8 @@ type RedactorCallbacks = {
   ) => Promise<void>;
 };
 
-export type RedactorOpts = {
-  replaceTargets?: any;
+export type RedactorOpts<T> = {
+  replaceTargets?: T[];
   chainTargets?: RedactorChainTypes[];
   lc_name?: string;
   replaceWith?: string | (() => string);
@@ -55,7 +57,7 @@ export abstract class Redactor {
     lc_name,
     replaceWith,
     callbacks,
-  }: RedactorOpts) {
+  }: RedactorOpts<any>) {
     this.replaceTargets = replaceTargets;
     this.chainTargets = chainTargets;
     this.lc_name = lc_name;
@@ -85,7 +87,7 @@ export class PromptTemplateRedactor extends Redactor {
   declare TargetType: string;
   callbackChainTracker: CallbackChainTracker = new CallbackChainTracker();
   promptValues: Map<string, Record<string, string>>;
-  constructor(opts: RedactorOpts) {
+  constructor(opts: PartialRequired<RedactorOpts<PromptTemplateRedactor["TargetType"]>, "replaceTargets">) {
     super(opts);
     this.promptValues = new Map();
   }
@@ -341,7 +343,6 @@ export class TotalRedactor extends Redactor {
         });
       };
       redactHelper(clonedRun.outputs!, "");
-      console.log({ outputs: clonedRun.outputs });
     }
 
     this.callbacks?.onRedaction(
@@ -364,6 +365,9 @@ export class TotalRedactor extends Redactor {
 
 export class StringRedactor extends Redactor {
   declare TargetType: string | RegExp;
+  constructor(opts: PartialRequired<RedactorOpts<StringRedactor["TargetType"]>, "replaceTargets">) {
+    super(opts);
+  }
   redactInput(run: Run): Run {
     if (
       (this.chainTargets &&

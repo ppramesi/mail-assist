@@ -10,7 +10,6 @@ import { ChatOpenAI } from "langchain/chat_models/openai";
 test("Total Redaction", async () => {
   const tracer = new RedactableLangChainTracer([
     new TotalRedactor({
-      // replaceTargets: ["body"],
       chainTargets: ["chain", "llm"],
     }),
   ]);
@@ -21,12 +20,13 @@ test("Total Redaction", async () => {
     }),
   });
   generator.setContext({ "My name": "Shake Zula", "My Job": "The mic rula" });
+  // everything should be redacted
   const values = {
     body: `asdfasdfasdf
     asdfasdf
     xzcvzxcvzxcv
     wertwertwertwert
-    235235234`, // body should be redacted
+    235235234`,
     from: ["test@test.com <tester tester>"].join("\n"),
     delivery_date: new Date().toLocaleDateString(),
     to: ["hello@hello.com", "hi@hi.com"].join("\n"),
