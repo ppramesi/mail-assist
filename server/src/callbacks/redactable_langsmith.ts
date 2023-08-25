@@ -87,7 +87,12 @@ export class PromptTemplateRedactor extends Redactor {
   declare TargetType: string;
   callbackChainTracker: CallbackChainTracker = new CallbackChainTracker();
   promptValues: Map<string, Record<string, string>>;
-  constructor(opts: PartialRequired<RedactorOpts<PromptTemplateRedactor["TargetType"]>, "replaceTargets">) {
+  constructor(
+    opts: PartialRequired<
+      RedactorOpts<PromptTemplateRedactor["TargetType"]>,
+      "replaceTargets"
+    >,
+  ) {
     super(opts);
     this.promptValues = new Map();
   }
@@ -365,7 +370,12 @@ export class TotalRedactor extends Redactor {
 
 export class StringRedactor extends Redactor {
   declare TargetType: string | RegExp;
-  constructor(opts: PartialRequired<RedactorOpts<StringRedactor["TargetType"]>, "replaceTargets">) {
+  constructor(
+    opts: PartialRequired<
+      RedactorOpts<StringRedactor["TargetType"]>,
+      "replaceTargets"
+    >,
+  ) {
     super(opts);
   }
   redactInput(run: Run): Run {
