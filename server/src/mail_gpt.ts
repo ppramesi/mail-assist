@@ -25,7 +25,10 @@ import { Authorization } from "./authorization/base.js";
 import { buildSettingsRoutes } from "./routes/express/settings.js";
 import { Authenticator } from "./authentication/base.js";
 import { SupabaseKnexVectorStore } from "./vectorstores/knex.js";
-import { RedactableLangChainTracer } from "./callbacks/redactable_langsmith.js";
+import {
+  PromptTemplateRedactor,
+  RedactableLangChainTracer,
+} from "./callbacks/redactable_langsmith.js";
 
 export interface MailGPTServerOpts {
   onStartServer?: (instance?: MailGPTServer) => void;
@@ -66,18 +69,21 @@ export abstract class MailGPTServer {
     this.mailAdapter = opts.mailAdapter;
     this.authorizer = opts.authorizer;
     // this.mailAdapter.connect();
-    const redactorTracer = new RedactableLangChainTracer({
-      chain: [{ type: "prompt_template_redact", target: "body" }],
-    });
+    const tracer = new RedactableLangChainTracer([
+      new PromptTemplateRedactor({
+        replaceTargets: ["body"],
+        chainTargets: ["chain", "llm"],
+      }),
+    ]);
     this.conversator = new ConversationalEmailEvaluator({
       llm: opts.llm,
       db: opts.database,
-      callbacks: [redactorTracer],
+      callbacks: [tracer],
     });
     const executorOpts: MainExecutorOpts = {
       llm: opts.llm,
       retriever: opts.retriever,
-      callbacks: [redactorTracer],
+      callbacks: [tracer],
     };
     this.executor = new MainExecutor(executorOpts);
     this.retriever = opts.retriever;

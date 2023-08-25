@@ -1,5 +1,5 @@
 import { LLMChain } from "langchain/chains";
-import { CallbackManagerForChainRun } from "langchain/callbacks";
+import { CallbackManagerForChainRun, Callbacks } from "langchain/callbacks";
 import { ChainValues } from "langchain/schema";
 import {
   ChatPromptTemplate,
@@ -69,6 +69,7 @@ const buildPrompt = () =>
 
 export type IntentionsOpts = {
   llm: ChatOpenAI;
+  callbacks?: Callbacks;
 };
 
 export class IntentionsGenerator extends LLMChain<any, ChatOpenAI> {
@@ -77,6 +78,7 @@ export class IntentionsGenerator extends LLMChain<any, ChatOpenAI> {
   constructor(opts: IntentionsOpts) {
     const functionName = "output_formatter";
     super({
+      callbacks: opts.callbacks,
       llm: opts.llm,
       prompt: buildPrompt(),
       outputParser: new JsonKeyOutputFunctionsParser({ attrName: keyName }),
