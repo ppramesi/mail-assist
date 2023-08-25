@@ -261,17 +261,22 @@ export class TotalRedactor extends Redactor {
         });
       }
     } else {
-      Object.entries(clonedRun.inputs)
-        .filter(([_, input]) => typeof input === "string")
-        .forEach(([key, _]) => {
-          const replaceWith = this.replaceWith();
-          redactions.ids.push(run.id);
-          redactions.keys.push(key);
-          redactions.targets.push(clonedRun.inputs[key]);
-          redactions.replacements.push(replaceWith);
-
-          clonedRun.inputs[key] = replaceWith;
+      const redactHelper = (kvMap: KVMap, path: string = "") => {
+        Object.keys(kvMap).forEach((key) => {
+          const newPath = path ? `${path}.${key}` : key;
+          if (typeof kvMap[key] === "string") {
+            const replaceWith = this.replaceWith();
+            redactions.ids.push(run.id);
+            redactions.keys.push(newPath);
+            redactions.targets.push(kvMap[key]);
+            redactions.replacements.push(replaceWith);
+            kvMap[key] = replaceWith;
+          } else if (typeof kvMap[key] === "object") {
+            redactHelper(kvMap[key], newPath);
+          }
         });
+      };
+      redactHelper(clonedRun.inputs);
     }
 
     this.callbacks?.onRedaction(
@@ -332,7 +337,7 @@ export class TotalRedactor extends Redactor {
         );
       }
     } else {
-      const redactHelper = (kvMap: KVMap, path: string) => {
+      const redactHelper = (kvMap: KVMap, path: string = "") => {
         Object.keys(kvMap).forEach((key) => {
           const newPath = path ? `${path}.${key}` : key;
           if (typeof kvMap[key] === "string") {
@@ -347,7 +352,7 @@ export class TotalRedactor extends Redactor {
           }
         });
       };
-      redactHelper(clonedRun.outputs!, "");
+      redactHelper(clonedRun.outputs!);
     }
 
     this.callbacks?.onRedaction(
@@ -576,7 +581,7 @@ export class StringRedactor extends Redactor {
       replacements: string[];
     },
   ) {
-    const redactHelper = (kvMap: KVMap, path: string) => {
+    const redactHelper = (kvMap: KVMap, path: string = "") => {
       Object.keys(kvMap).forEach((key) => {
         const newPath = path ? `${path}.${key}` : key;
         if (typeof kvMap[key] === "string") {
@@ -598,7 +603,7 @@ export class StringRedactor extends Redactor {
         }
       });
     };
-    redactHelper(source, "");
+    redactHelper(source);
     return source;
   }
 
