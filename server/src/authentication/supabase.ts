@@ -53,26 +53,30 @@ async function _request<
   Y extends GotrueRequestOptions,
   T extends ReturnType<Y["xform"]>,
 >(fetcher: Fetch, method: "POST" | "GET", url: string, options: Y): Promise<T> {
-  const headers = { ...options?.headers };
-  if (options?.jwt) {
-    headers["Authorization"] = `Bearer ${options.jwt}`;
+  try {
+    const headers = { ...options?.headers };
+    if (options?.jwt) {
+      headers["Authorization"] = `Bearer ${options.jwt}`;
+    }
+    const qs = options?.query ?? {};
+    if (options?.redirectTo) {
+      qs["redirect_to"] = options.redirectTo;
+    }
+    const queryString = Object.keys(qs).length
+      ? "?" + new URLSearchParams(qs).toString()
+      : "";
+    const data = await _handleRequest(
+      fetcher,
+      method,
+      url + queryString,
+      { headers },
+      {},
+      options?.body,
+    );
+    return options.xform(data);
+  } catch (error) {
+    throw error;
   }
-  const qs = options?.query ?? {};
-  if (options?.redirectTo) {
-    qs["redirect_to"] = options.redirectTo;
-  }
-  const queryString = Object.keys(qs).length
-    ? "?" + new URLSearchParams(qs).toString()
-    : "";
-  const data = await _handleRequest(
-    fetcher,
-    method,
-    url + queryString,
-    { headers },
-    {},
-    options?.body,
-  );
-  return options.xform(data);
 }
 
 async function _handleRequest(

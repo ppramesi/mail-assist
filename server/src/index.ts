@@ -9,35 +9,19 @@ import { CallerScheduler } from "./scheduler/caller.js";
 import { IMAPGmailAdapter } from "./adapters/gmail.js";
 import { KnexAuthorization } from "./authorization/knex.js";
 import { KnexAuthenticator } from "./authentication/knex.js";
+import { buildConfig } from "./knex_config.js";
+
 dotenv.config();
 
-if (!process.env.GMAIL_USER || !process.env.GMAIL_PASSWORD) {
-  throw new Error(
-    "Set the .env file with GMAIL_USER and GMAIL_PASSWORD you dumb fuck!",
-  );
-}
+console.log("mail-assist starting!");
 
-const mailAdapter = new IMAPGmailAdapter({
-  user: process.env.GMAIL_USER!,
-  password: process.env.GMAIL_PASSWORD!,
-  host: "imap.gmail.com",
-  port: 993,
-  tls: true,
-  tlsOptions: {
-    rejectUnauthorized: false,
-  },
-});
+const mailAdapter = new IMAPGmailAdapter();
 
-const knex = Knex.knex({
-  client: "postgresql",
-  connection: {
-    host: process.env.POSTGRES_HOST,
-    port: parseInt(process.env.POSTGRES_PORT!),
-    user: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DB,
-  },
-});
+const KnexConfig = buildConfig(process.env);
+
+const knex = Knex.knex(
+  KnexConfig[process.env.USE_KNEX_CONFIG ?? "development"],
+);
 
 const authorizer = new KnexAuthorization(knex);
 const dbInstance = new KnexDatabase(knex);

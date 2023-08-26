@@ -14,6 +14,7 @@
 		"auth:set:imap": "node ./helpers/set_user_imap_settings.cjs",
 		"knex:migrate:make": "node --loader ts-node/esm ./node_modules/.bin/knex migrate:make",
 		"knex:migrate:latest": "node --loader ts-node/esm ./node_modules/.bin/knex migrate:latest",
+		"knex:migrate:up": "node --loader ts-node/esm ./node_modules/.bin/knex migrate:up",
 		"knex:migrate:rollback": "node --loader ts-node/esm ./node_modules/.bin/knex migrate:rollback --all",
     "test:single": "NODE_OPTIONS=--experimental-vm-modules yarn run jest --config jest.config.cjs --testTimeout 100000"
 	},

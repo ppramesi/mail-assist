@@ -4,8 +4,9 @@ const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 dotenv.config();
+
 async function main() {
-  const knex = require("knex")({
+  let knexConfig = {
     client: "postgresql",
     connection: {
       database: process.env.POSTGRES_DB,
@@ -16,7 +17,18 @@ async function main() {
       min: 2,
       max: 10,
     },
-  });
+  }
+  if(process.env.USE_KNEX_CONFIG === "supabase"){
+    knexConfig = {
+      client: "postgresql",
+      connection: process.env.SUPABASE_POSTGRES_URI,
+      pool: {
+        min: 2,
+        max: 10
+      }
+    }
+  }
+  const knex = require("knex")(knexConfig);
 
   const { e, p, email, password } = argv;
   const emailStr = e || email;
@@ -33,19 +45,50 @@ async function main() {
   const hashed = await bcrypt.hash(passwordStr, salt);
   const authenticated = await bcrypt.compare(passwordStr, hashed);
 
-  if (authenticated) {
-    await knex("users")
-      .insert({
+  try {
+    if (authenticated) {
+      const userObj = {
         email: emailStr,
         password: hashedPassword,
         salt,
         metakey,
-      })
-      .onConflict("email")
-      .merge();
-    console.log("User created successfully!! 🎉");
-  } else {
-    throw new Error("Ooops, something went wrong!!! 😕");
+      }
+      if(process.env.USE_KNEX_CONFIG === "supabase"){
+        const authUrl = `${process.env.SUPABASE_URL}/auth/v1`;
+        const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  
+        const reqOpts = {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json;charset=UTF-8",
+            Authorization: `Bearer ${serviceKey}`,
+            apikey: `${serviceKey}`,
+          },
+          body: JSON.stringify({
+            email: emailStr,
+            password: passwordStr
+          })
+        }
+  
+        const fetched = await fetch(`${authUrl}/signup`, reqOpts)
+        const newUser = await fetched.json()
+        console.log({status: fetched.status})
+        if(fetched.status !== 200){
+          throw new Error(newUser)
+        }
+        console.log({ newUser })
+        userObj.id = newUser.user.id;
+      }
+      await knex("users")
+        .insert(userObj)
+        .onConflict("email")
+        .merge();
+      console.log("User created successfully!! 🎉");
+    } else {
+      throw new Error("Ooops, something went wrong!!! 😕");
+    }
+  } catch (error) {
+    console.error(JSON.stringify(error, null, 2))
   }
 }
 

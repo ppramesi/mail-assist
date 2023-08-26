@@ -50,7 +50,7 @@ function decrypt(message, init, salt) {
 }
 
 async function main() {
-  const knex = require("knex")({
+  let knexConfig = {
     client: "postgresql",
     connection: {
       database: process.env.POSTGRES_DB,
@@ -61,7 +61,18 @@ async function main() {
       min: 2,
       max: 10,
     },
-  });
+  }
+  if(process.env.USE_KNEX_CONFIG === "supabase"){
+    knexConfig = {
+      client: "postgresql",
+      connection: process.env.SUPABASE_POSTGRES_URI,
+      pool: {
+        min: 2,
+        max: 10
+      }
+    }
+  }
+  const knex = require("knex")(knexConfig);
 
   const { e, p, email, password } = argv;
   const emailStr = e || email;

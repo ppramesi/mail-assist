@@ -6,7 +6,7 @@ import _ from "lodash";
 
 export interface KnexVectorStoreArgs {
   knex: KnexT;
-  tableName: string;
+  tableName?: string;
 }
 
 const OpMap = {
@@ -46,7 +46,7 @@ export class KnexVectorStore extends VectorStore {
     super(embeddings, args);
     this.embeddings = embeddings;
     this.knex = args.knex;
-    this.tableName = args.tableName;
+    this.tableName = args.tableName ?? "summary_embeddings";
   }
 
   _vectorstoreType(): string {

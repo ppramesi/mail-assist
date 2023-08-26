@@ -5,6 +5,7 @@ import * as uuid from "uuid";
 import { Source } from "mailparser";
 import _ from "lodash";
 import { Email } from "../schema/index.js";
+import logger from "../logger/bunyan.js";
 
 export class IMAPGmailAdapter extends IMAPMailAdapter {
   declare AuthType: IMAPAuth;
@@ -56,38 +57,44 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
       this.client!.openBox("INBOX", true, () => {
         this.client!.search([["SINCE", formattedDate]], (err, results) => {
           if (err) reject(err);
-          var fetch = this.client!.fetch(results, {
-            bodies: "",
-            struct: true,
-          });
+          if (results.length === 0) {
+            logger.info(`No email fetched for ${auth?.user}`);
+            resolve([]);
+          } else {
+            logger.info(`${results.length} emails fetched for ${auth?.user}`);
+            var fetch = this.client!.fetch(results, {
+              bodies: "",
+              struct: true,
+            });
 
-          const emails: Email[] = [];
+            const emails: Email[] = [];
 
-          fetch.on("message", (msg) => {
-            msg.on("body", (stream) => {
-              simpleParser(stream as unknown as Source, (err, mail) => {
-                if (err) reject(err);
-                emails.push({
-                  read: false,
-                  id: uuid.v4(),
-                  from: IMAPGmailAdapter.flattenAddressObjects(mail.from)!,
-                  to: IMAPGmailAdapter.flattenAddressObjects(mail.to)!,
-                  cc: IMAPGmailAdapter.flattenAddressObjects(mail.cc),
-                  bcc: IMAPGmailAdapter.flattenAddressObjects(mail.bcc),
-                  subject: mail.subject,
-                  date:
-                    mail?.date ??
-                    new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
-                  text: mail.text,
-                  hash: IMAPGmailAdapter.hashText(mail.text ?? ""),
+            fetch.on("message", (msg) => {
+              msg.on("body", (stream) => {
+                simpleParser(stream as unknown as Source, (err, mail) => {
+                  if (err) reject(err);
+                  emails.push({
+                    read: false,
+                    id: uuid.v4(),
+                    from: IMAPGmailAdapter.flattenAddressObjects(mail.from)!,
+                    to: IMAPGmailAdapter.flattenAddressObjects(mail.to)!,
+                    cc: IMAPGmailAdapter.flattenAddressObjects(mail.cc),
+                    bcc: IMAPGmailAdapter.flattenAddressObjects(mail.bcc),
+                    subject: mail.subject,
+                    date:
+                      mail?.date ??
+                      new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+                    text: mail.text,
+                    hash: IMAPGmailAdapter.hashText(mail.text ?? ""),
+                  });
                 });
               });
             });
-          });
 
-          fetch.once("end", () => {
-            resolve(emails);
-          });
+            fetch.once("end", () => {
+              resolve(emails);
+            });
+          }
         });
       });
     });
