@@ -28,7 +28,7 @@ export class KnexDatabase extends Database {
   }
 
   async connect(): Promise<void> {
-    await this.db.raw("SELECT 1+1 AS result");
+    await this.db.raw("SELECT * FROM settings");
   }
 
   async disconnect(): Promise<void> {
@@ -557,6 +557,12 @@ export class KnexDatabase extends Database {
   async setUserSessionKey(email: string, sessionToken: string): Promise<void> {
     await this.db("users").where("email", email).update({
       refresh_token: sessionToken,
+    });
+  }
+
+  async destroyUserSessionKey(id: string): Promise<void> {
+    await this.db("users").where("id", id).update({
+      refresh_token: null,
     });
   }
 

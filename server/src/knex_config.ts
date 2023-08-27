@@ -12,7 +12,7 @@ export function buildConfig(env: NodeJS.ProcessEnv): {
         password: env.POSTGRES_PASSWORD,
       },
       pool: {
-        min: 2,
+        min: 0,
         max: 10,
       },
       migrations: {
@@ -33,7 +33,7 @@ export function buildConfig(env: NodeJS.ProcessEnv): {
         password: env.POSTGRES_PASSWORD,
       },
       pool: {
-        min: 2,
+        min: 0,
         max: 10,
       },
       migrations: {
@@ -54,7 +54,7 @@ export function buildConfig(env: NodeJS.ProcessEnv): {
         password: env.POSTGRES_PASSWORD,
       },
       pool: {
-        min: 2,
+        min: 0,
         max: 10,
       },
       migrations: {
@@ -71,7 +71,7 @@ export function buildConfig(env: NodeJS.ProcessEnv): {
       client: "postgresql",
       connection: env.SUPABASE_POSTGRES_URI,
       pool: {
-        min: 2,
+        min: 0,
         max: 10,
       },
       migrations: {

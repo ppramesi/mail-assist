@@ -60,6 +60,7 @@ export abstract class MailGPTServer {
   conversator: ConversationalEmailEvaluator;
   retriever: VectorStoreRetriever;
   authenticator: Authenticator;
+  running: boolean;
   authorizer?: Authorization;
   context?: Record<string, string>;
   scheduler?: CallerScheduler;
@@ -90,9 +91,40 @@ export abstract class MailGPTServer {
     this.allowedHosts = opts.allowedHosts || [];
     this.onStartServer = opts.onStartServer;
     this.authenticator = opts.authenticator;
+    // this.database.connect();
+    this.running = false;
   }
 
-  abstract startServer(): Promise<void>;
+  async startServer() {
+    this.running = true;
+    logger.info("Starting server");
+    try {
+      await this._startServer();
+    } catch (error) {
+      logger.error(error);
+    }
+    process.on("SIGINT", this.stopServer);
+    process.on("SIGTERM", this.stopServer);
+    process.on("uncaughtException", this.stopServer);
+  }
+
+  async stopServer() {
+    if (this.running) {
+      logger.info("Stopping server");
+      try {
+        await this.database.disconnect();
+      } catch (error) {
+        logger.error("failed to disconnect", error);
+      }
+      await this._stopServer();
+      this.running = false;
+    }
+    process.exit(1);
+  }
+
+  abstract _stopServer(): Promise<void>;
+
+  abstract _startServer(): Promise<void>;
 
   async getAllowedHostsFilter(userId?: string, hostsParam: AllowedHost[] = []) {
     const hosts = await this.database.getAllowedHosts(userId);
@@ -373,7 +405,10 @@ export abstract class MailGPTServer {
 }
 
 export class MailGPTGRPCServer extends MailGPTServer {
-  async startServer(): Promise<void> {
+  _stopServer(): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  async _startServer(): Promise<void> {
     this.onStartServer?.(this);
   }
 }
@@ -659,7 +694,7 @@ export class MailGPTAPIServer extends MailGPTServer {
     this.app.use("/settings", buildSettingsRoutes(this.database));
   }
 
-  async startServer() {
+  async _startServer() {
     await new Promise<void>((resolve) => {
       this.app.listen(this.port, () => {
         logger.info(`Server started on port ${this.port}`);
@@ -668,4 +703,6 @@ export class MailGPTAPIServer extends MailGPTServer {
     });
     this.onStartServer?.(this);
   }
+
+  async _stopServer() {}
 }

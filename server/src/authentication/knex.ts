@@ -67,6 +67,24 @@ export class KnexAuthenticator extends Authenticator {
     };
   }
 
+  async logout(accessToken: string) {
+    try {
+      const verified = jwt.verify(
+        accessToken,
+        process.env.TOKEN_KEY!,
+      ) as jwt.JwtPayload;
+      const { id } = verified;
+      await this.db.destroyUserSessionKey(id);
+      return {
+        status: "ok" as const,
+      };
+    } catch (error) {
+      return {
+        status: "error" as const,
+      };
+    }
+  }
+
   async refreshToken(
     accessToken: string,
     refreshToken: string,

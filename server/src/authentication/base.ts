@@ -37,6 +37,8 @@ export abstract class Authenticator {
 
   abstract login(email: string, password: string): Promise<JWTSignReturn>;
 
+  abstract logout(accessToken: string): Promise<{ status: "ok" | "error" }>;
+
   abstract refreshToken(
     accessToken: string,
     refreshToken: string,

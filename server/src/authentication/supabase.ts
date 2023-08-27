@@ -215,6 +215,25 @@ export class SupabaseKnexAuthenticator extends KnexAuthenticator {
     }
   }
 
+  async logout(
+    accessToken: string,
+  ): Promise<{ status: "ok" } | { status: "error" }> {
+    try {
+      await _request(fetch, "POST", `${this.authUrl}/logout?scope=global`, {
+        headers: this.buildAuthHeaders(accessToken),
+        xform: () => {},
+      });
+      await super.logout(accessToken);
+      return {
+        status: "ok",
+      };
+    } catch (error) {
+      return {
+        status: "error",
+      };
+    }
+  }
+
   async refreshToken(
     _accessToken: string,
     refreshToken: string,

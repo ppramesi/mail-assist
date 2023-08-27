@@ -226,6 +226,8 @@ export abstract class Database {
     sessionToken: string,
   ): Promise<void>;
 
+  abstract destroyUserSessionKey(id: string): Promise<void>;
+
   abstract getUserBySessionKey(
     sessionToken: string,
   ): Promise<{ email: string; metakey: string } | null>;
