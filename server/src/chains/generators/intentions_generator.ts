@@ -15,12 +15,11 @@ import { stringJoinArrayOrNone } from "../../utils/string.js";
 const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to generate possible users intentions for email replies, given the context below. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Generate an array of sentences describing possible user reply intentions.
 
 <context>
+Current Time: ${new Date().toLocaleString("en-EN", {
+  timeZone: "Asia/Jakarta",
+})}
 {context}
-</context>
-
-<current_time>
-${new Date().toLocaleString("en-EN", { timeZone: "Asia/Jakarta" })}
-<current_time>`;
+</context>`;
 
 const userPrompt = `<email-from>
 {from}

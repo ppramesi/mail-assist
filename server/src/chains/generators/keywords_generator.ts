@@ -12,15 +12,16 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { JsonKeyOutputFunctionsParser } from "langchain/output_parsers";
 import { stringJoinArrayOrNone } from "../../utils/string.js";
 
-const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to analyze the provided email and extract as much important information as possible from the body of the email. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Your answer should be in the form of an array of short sentences that contains important information from the email relevant to the following context.
+const systemBasePrompt = `Your role as an AI is to assist users in managing their email correspondence more effectively. Specifically, your task is to zero in on the body of the provided email to identify the most significant pieces of information that are actionable or contextually important. Ignore header details like "from", "to", "cc", and "delivery date" unless they are directly related to the content and context of the email body. The email information will be structured with XML tags to delineate each component (from, to, cc, bcc, delivery date, and body).
+
+Based on your analysis of the email body, your answer should be in the form of an array of short, succinct sentences that highlight key takeaways, action items, or important context. Your focus is not to provide a simple rundown of what is in the email, but to offer a concise summary of the most pertinent details that would aid the user in quickly understanding the purpose and required actions stemming from the email.
 
 <context>
+Current Time: ${new Date().toLocaleString("en-EN", {
+  timeZone: "Asia/Jakarta",
+})}
 {context}
-</context>
-
-<current_time>
-${new Date().toLocaleString("en-EN", { timeZone: "Asia/Jakarta" })}
-<current_time>`;
+</context>`;
 
 const userPrompt = `<email-from>
 {from}

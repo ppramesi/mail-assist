@@ -28,7 +28,7 @@ const dbInstance = new KnexDatabase(knex);
 const retriever = new KnexVectorStore(new OpenAIEmbeddings(), {
   knex,
   tableName: "summary_embeddings",
-}).asRetriever(3);
+}).asRetriever(1);
 
 let callerScheduler: CallerScheduler | undefined;
 let port = parseInt(process.env.SERVER_PORT ?? "42069");

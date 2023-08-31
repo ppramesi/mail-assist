@@ -24,12 +24,11 @@ export interface EmailSummarizerOpts extends ChainInputs {
 const systemBasePrompt = `Your role as an AI is to support users in managing their email exchanges. Your task is to summarize the email's body, given the context below. Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. Please answer with nothing but the summary and make it as short as possible.
 
 <context>
+Current Time: ${new Date().toLocaleString("en-EN", {
+  timeZone: "Asia/Jakarta",
+})}
 {context}
-</context>
-
-<current_time>
-${new Date().toLocaleString("en-EN", { timeZone: "Asia/Jakarta" })}
-<current_time>`;
+</context>`;
 
 const userPrompt = `<email-from>
 {from}

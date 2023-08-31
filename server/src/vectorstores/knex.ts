@@ -74,7 +74,6 @@ export class KnexVectorStore extends VectorStore {
 
       return documentRow;
     });
-    console.log({ rows });
     await this.doQuery((database) => database(this.tableName).insert(rows));
     // await this.knex(this.tableName).insert(rows);
   }

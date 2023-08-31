@@ -13,19 +13,18 @@ export interface ReplyGeneratorOpts {
   llm: ChatOpenAI;
 }
 
-const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. Your task is to write a reply given the email's body, user's intention and relevant summaries of previous emails (ignore them if they're irrelevant). Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. You answer should only be the email's text and nothing else. Write the email as if you're going to reply immediately. 
+const systemBasePrompt = `Your role as an AI is to support users when responding to email exchanges. Your task is to write a reply given the email's body, user's intention and relevant summaries of previous emails (ignore them if they're irrelevant). Included is the information regarding the email (from, to, cc, bcc addresses, delivery date and body) each delimited with XML tags. You answer should only be the email's text and nothing else. Write the email as if you're going to reply immediately. If the context contains preferred language, write the email in that language. If not, default to english.
 
 <context>
+Current Time: ${new Date().toLocaleString("en-EN", {
+  timeZone: "Asia/Jakarta",
+})}
 {context}
 </context>
 
 <summaries>
 {summaries}
-</summaries>
-
-<current_time>
-${new Date().toLocaleString("en-EN", { timeZone: "Asia/Jakarta" })}
-<current_time>`;
+</summaries>`;
 
 const userPrompt = `<email-from>
 {from}
