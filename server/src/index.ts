@@ -7,9 +7,9 @@ import { ChatOpenAI } from "langchain/chat_models/openai";
 import dotenv from "dotenv";
 import { CallerScheduler } from "./scheduler/caller.js";
 import { IMAPGmailAdapter } from "./adapters/gmail.js";
-import { KnexAuthorization } from "./authorization/knex.js";
 import { KnexAuthenticator } from "./authentication/knex.js";
 import { buildConfig } from "./knex_config.js";
+import { SupabaseAuthorization } from "./authorization/supabase.js";
 
 dotenv.config();
 
@@ -23,7 +23,7 @@ const knex = Knex.knex(
   KnexConfig[process.env.USE_KNEX_CONFIG ?? "development"],
 );
 
-const authorizer = new KnexAuthorization(knex);
+const authorizer = new SupabaseAuthorization();
 const dbInstance = new KnexDatabase(knex);
 const retriever = new KnexVectorStore(new OpenAIEmbeddings(), {
   knex,

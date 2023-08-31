@@ -21,6 +21,7 @@ export function buildChatHistoryRoutes(
         });
         body.policies = policies;
         next();
+        return;
       } else {
         logger.error("Failed chat history request: Unauthorized empty user");
         res.status(403).send({
@@ -30,6 +31,7 @@ export function buildChatHistoryRoutes(
       }
     } else {
       next();
+      return;
     }
   });
 

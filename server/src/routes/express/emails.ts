@@ -18,6 +18,7 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
         });
         body.policies = policies;
         next();
+        return;
       } else {
         logger.error("Failed emails request: Unauthorized empty user");
         res
@@ -28,6 +29,7 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
     } else {
       body.policies = Authorization.buildDefaultAllowPolicy();
       next();
+      return;
     }
   });
 

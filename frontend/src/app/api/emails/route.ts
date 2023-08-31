@@ -6,8 +6,10 @@ export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   try {
+    const url = buildPath("/emails/");
+    console.log(url);
     const axiosRequest = await axios.request({
-      url: buildPath("/emails/"),
+      url: url,
       method: "GET",
       headers: {
         "x-session-token": request.headers.get("x-session-token"),

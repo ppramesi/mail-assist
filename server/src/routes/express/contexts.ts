@@ -18,6 +18,7 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
         });
         body.policies = policies;
         next();
+        return;
       } else {
         logger.error("Failed contexts request: Unauthorized empty user");
         res
@@ -27,6 +28,7 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
       }
     } else {
       next();
+      return;
     }
   });
 

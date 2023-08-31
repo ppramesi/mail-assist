@@ -32,6 +32,7 @@ export function buildAuthMiddleware(authenticator: Authenticator) {
         if (verified.status === "ok") {
           req.body.fromAccessToken = true;
           next();
+          return;
         } else {
           logger.error("Failed to verify token:", verified);
           res.status(403).send("Who the fuck are you?");
@@ -60,21 +61,20 @@ export function buildAuthMiddleware(authenticator: Authenticator) {
           sessionToken,
           req.body,
         );
-        if (verified.status === "ok") {
-          next();
-        } else {
-          logger.error("Failed to verify token:", verified);
-          res.status(403).send("Who the fuck are you?");
-          return;
-        }
 
         if (!req.body["user_id"]) {
           logger.error("Malformed jwt!!!");
           res.status(403).send("Malformed jwt!!!!?!");
           return;
         }
-
-        next();
+        if (verified.status === "ok") {
+          next();
+          return;
+        } else {
+          logger.error("Failed to verify token:", verified);
+          res.status(403).send("Who the fuck are you?");
+          return;
+        }
       } catch (err) {
         logger.error("Failed to verify token:", err);
         res.status(403).send("Who the fuck are you?");

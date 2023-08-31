@@ -21,6 +21,7 @@ export function buildAllowedHostsRoutes(
         });
         body.policies = policies;
         next();
+        return;
       } else {
         logger.error("Failed allowed hosts request: Unauthorized empty user");
         res.status(403).send({
@@ -30,6 +31,7 @@ export function buildAllowedHostsRoutes(
       }
     } else {
       next();
+      return;
     }
   });
 
