@@ -329,6 +329,7 @@ export abstract class MailGPTServer {
                     emailOrReply.id,
                     "summarized",
                     emailOrReply.summary,
+                    emailOrReply.extracted_info,
                   ),
                   new Promise(async (resolve, reject) => {
                     if (

@@ -72,7 +72,11 @@ export abstract class Database {
           : oldestDate;
       }, emails[0].date);
 
-    const recentDbEmails = await this.getEmailsAfterDate(oldestEmailDate!);
+    const minusOneDay = new Date(
+      new Date(oldestEmailDate!).getTime() - 1000 * 60 * 60 * 24,
+    );
+
+    const recentDbEmails = await this.getEmailsAfterDate(minusOneDay);
 
     const newEmails = emails.filter(
       (serverEmail) =>
@@ -105,6 +109,7 @@ export abstract class Database {
     id: string,
     status: string,
     summary?: string,
+    extractedInfo?: string[],
   ): Promise<void>;
 
   /**

@@ -82,6 +82,7 @@ export class KnexDatabase extends Database {
   async insertUnseenEmails(emails: Email[]): Promise<Email[]> {
     if (emails.length === 0) return [];
     const emailsNotInDb = await this.filterNotInDatabase(emails);
+    if (emailsNotInDb.length === 0) return [];
     const procEmails = emailsNotInDb
       .filter((e) => !_.isNil(e.date))
       .map((email) => {
@@ -130,9 +131,11 @@ export class KnexDatabase extends Database {
     id: string,
     status: string,
     summary?: string | undefined,
+    extractedInfo?: string[],
   ): Promise<void> {
     const updateData: Partial<Email> = { status };
     if (summary) updateData.summary = summary;
+    if (extractedInfo) updateData.extracted_info = extractedInfo;
     await this.db("emails").where("id", id).update(updateData);
   }
 

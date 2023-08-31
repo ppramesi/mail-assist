@@ -2,7 +2,7 @@ import _ from "lodash";
 import { KnexDatabase } from "./knex.js";
 import { Knex } from "knex";
 
-export class SupabaseDatabaseDEPRECATED extends KnexDatabase {
+export class SupabaseDatabase_DEPRECATED extends KnexDatabase {
   doQuery<T>(
     query: (db: KnexDatabase) => Promise<T>,
     options?: { jwt: Record<string, any> },

@@ -14,6 +14,7 @@ export async function up(knex: Knex): Promise<void> {
     table.boolean("read");
     table.text("summary").nullable();
     table.string("status").nullable();
+    table.jsonb("extracted_info").nullable();
     table.uuid("user_id").references("id").inTable("users");
   });
 }

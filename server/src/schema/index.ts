@@ -11,6 +11,7 @@ export interface Email extends Pick<ParsedMail, "subject" | "text" | "date"> {
   status?: string;
   summary?: string;
   user_id?: string;
+  extracted_info?: string[];
 }
 
 export interface EmptyEmail extends Email {
@@ -23,6 +24,7 @@ export interface IrrelevantEmail extends Email {
 
 export interface SummarizedEmail extends Email {
   process_status: "summarized";
+  extracted_info?: string[];
   summary: string;
 }
 

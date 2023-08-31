@@ -66,17 +66,20 @@ export class MainExecutor {
     return summary;
   }
 
-  private async vectorStoreFetchSummaries(
-    values: ChainValues,
-    options?: Record<string, any>,
-  ) {
+  private async generateKeywords(values: ChainValues) {
     const { extracted_info: extractedInfo } =
       (await this.keywordsGenerator.call(values, {
         callbacks: this.callbacks,
       })) as {
         extracted_info: string[];
       };
+    return extractedInfo;
+  }
 
+  private async vectorStoreFetchSummaries(
+    extractedInfo: string[],
+    options?: Record<string, any>,
+  ) {
     if (this.currentUserId) {
       this.retriever.filter = {
         user_id: {
@@ -164,11 +167,15 @@ export class MainExecutor {
         }
         const summarizePromise = this.summarize(values);
         if (decision === "reply") {
-          const fetchSummariesPromise = this.vectorStoreFetchSummaries(values, {
-            jwt: {
-              user_id: userId,
+          const extractedInfo = await this.generateKeywords(values);
+          const fetchSummariesPromise = this.vectorStoreFetchSummaries(
+            extractedInfo,
+            {
+              jwt: {
+                user_id: userId,
+              },
             },
-          });
+          );
           const intentionsPromise = this.generateIntentions(values);
           return Promise.all([
             fetchSummariesPromise,
@@ -196,6 +203,7 @@ export class MainExecutor {
             const summarizedEmail: SummarizedEmail = {
               summary,
               process_status: "summarized",
+              extracted_info: extractedInfo,
               ...email,
             };
             return [...generator, summarizedEmail];
