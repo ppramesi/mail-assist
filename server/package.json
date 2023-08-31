@@ -8,8 +8,9 @@
 	"type": "module",
 	"scripts": {
 		"format": "prettier --write \"src\"",
-		"build": "tsc",
+		"build": "yarn clean & tsc",
 		"start": "node ./dist/index.js",
+    "clean": "rimraf dist/",
 		"auth:create:user": "node ./helpers/register_user_knex.cjs",
 		"auth:set:imap": "node ./helpers/set_user_imap_settings.cjs",
 		"knex:migrate:make": "node --loader ts-node/esm ./node_modules/.bin/knex migrate:make",
@@ -33,6 +34,7 @@
 		"node-schedule": "^2.1.1",
 		"p-retry": "^5.1.2",
 		"pg": "^8.11.1",
+		"rimraf": "^5.0.1",
 		"uuid": "^9.0.0",
 		"zod": "^3.21.4",
 		"zod-to-json-schema": "^3.21.4"
