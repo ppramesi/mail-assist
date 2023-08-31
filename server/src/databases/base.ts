@@ -23,6 +23,7 @@ export abstract class Database {
     "read",
     "summary",
     "status",
+    "user_id",
   ];
   /**
    * Establishes a connection to the database.

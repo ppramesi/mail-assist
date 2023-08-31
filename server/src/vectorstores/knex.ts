@@ -60,7 +60,7 @@ export class KnexVectorStore extends VectorStore {
   async addVectors(
     vectors: number[][],
     documents: Document<Record<string, any>>[],
-    _options?: { [x: string]: any } | undefined,
+    options?: { [x: string]: any } | undefined,
   ): Promise<void> {
     await this.ensureTableInDatabase();
     const rows = vectors.map((embedding, idx) => {
@@ -69,22 +69,25 @@ export class KnexVectorStore extends VectorStore {
         pageContent: documents[idx].pageContent,
         embedding: embeddingString,
         metadata: documents[idx].metadata,
+        user_id: options?.user_id,
       };
 
       return documentRow;
     });
+    console.log({ rows });
     await this.doQuery((database) => database(this.tableName).insert(rows));
     // await this.knex(this.tableName).insert(rows);
   }
 
   async addDocuments(
     documents: Document<Record<string, any>>[],
-    _options?: { [x: string]: any } | undefined,
+    options?: { [x: string]: any } | undefined,
   ): Promise<void | string[]> {
     const texts = documents.map(({ pageContent }) => pageContent);
     return this.addVectors(
       await this.embeddings.embedDocuments(texts),
       documents,
+      options,
     );
   }
 
@@ -138,16 +141,30 @@ export class KnexVectorStore extends VectorStore {
 
   buildSqlFilterStr(filter?: KnexFilter) {
     if (filter == null) return null;
-    return `WHERE ${Object.entries(filter)
+    let filterLength = 0;
+    const strFilter = `WHERE ${Object.entries(filter)
       .flatMap(([key, ops]) =>
         Object.entries(ops as Record<string, any>).map(([opName, value]) => {
+          if (!value) return null;
+          filterLength += 1;
           const opRaw = OpMap[opName as keyof typeof OpMap];
-          return this.knex
-            .raw(`metadata ->> "${key}" ${opRaw} ?`, [value])
-            .toString();
+          const valueType = typeof value;
+          let typeCast = "";
+          if (valueType === "string") {
+            typeCast = "::text";
+          }
+          if (key !== "user_id") {
+            return this.knex
+              .raw(`metadata->>"${key}" ${opRaw} ?${typeCast}`, [value])
+              .toString();
+          } else {
+            return this.knex.raw("user_id = ?", [value]).toString();
+          }
         }),
       )
       .join(" AND ")}`;
+    if (filterLength === 0) return null;
+    return strFilter;
   }
 }
 

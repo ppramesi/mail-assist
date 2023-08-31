@@ -72,11 +72,9 @@ async function main() {
   
         const fetched = await fetch(`${authUrl}/signup`, reqOpts)
         const newUser = await fetched.json()
-        console.log({status: fetched.status})
         if(fetched.status !== 200){
           throw new Error(newUser)
         }
-        console.log({ newUser })
         userObj.id = newUser.user.id;
       }
       await knex("users")

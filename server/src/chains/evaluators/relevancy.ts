@@ -24,7 +24,11 @@ For instances where the email is a promotional, scam or spam email, your respons
 
 <context>
 {context}
-</context>`;
+</context>
+
+<current_time>
+${new Date().toLocaleString("en-EN", { timeZone: "Asia/Jakarta" })}
+<current_time>`;
 
 const userPrompt = `<email-from>
 {from}

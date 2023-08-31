@@ -263,8 +263,8 @@ export abstract class MailGPTServer {
       users.push(...userIds);
     }
 
-    const promises = users.map(async (id) => {
-      const imapSettings = await this.database.getUserImapSettings(id);
+    const promises = users.map(async (innerUserId) => {
+      const imapSettings = await this.database.getUserImapSettings(innerUserId);
       if (!imapSettings) {
         throw new Error("User not found");
       }
@@ -273,16 +273,16 @@ export abstract class MailGPTServer {
       logger.info("Starting to process emails");
       const lastEmail = await this.database.getLatestEmail();
       const [emails, context, hostsFilter] = await Promise.all([
-        this.mailAdapter.fetch(imapAuth, lastEmail?.date),
-        this.database.getContext(id),
-        this.getAllowedHostsFilter(id, this.allowedHosts),
+        this.mailAdapter.fetch(imapAuth, lastEmail?.date, innerUserId),
+        this.database.getContext(innerUserId),
+        this.getAllowedHostsFilter(innerUserId, this.allowedHosts),
       ]);
       const filteredEmails = emails.filter(hostsFilter ?? (() => false));
       const newEmails = await this.database.insertUnseenEmails(filteredEmails);
       this.executor.setContext(context ?? {});
       try {
         const processedEmails = await this.executor.processEmails(
-          id,
+          innerUserId,
           newEmails,
         );
         const processedPromises = processedEmails.map(async (emailOrReply) => {
@@ -336,22 +336,24 @@ export abstract class MailGPTServer {
                       SupabaseKnexVectorStore
                     ) {
                       this.retriever.vectorStore.setJWT({
-                        user_id: userId,
+                        user_id: innerUserId,
                       });
                     }
                     this.retriever
-                      .addDocuments([
-                        new Document({
-                          pageContent: emailOrReply.summary,
-                          metadata: {
-                            id,
-                            text,
-                            from,
-                            date: date?.toLocaleString(),
-                            user_id: id,
-                          },
-                        }),
-                      ])
+                      .addDocuments(
+                        [
+                          new Document({
+                            pageContent: emailOrReply.summary,
+                            metadata: {
+                              id,
+                              text,
+                              from,
+                              date: date?.toLocaleString(),
+                            },
+                          }),
+                        ],
+                        { user_id: innerUserId },
+                      )
                       .then((doc) => {
                         if (
                           this.retriever.vectorStore instanceof
@@ -377,12 +379,15 @@ export abstract class MailGPTServer {
             }
             case "reply_email": {
               try {
-                const result = await this.database.insertReplyEmail(id, {
-                  ...emailOrReply,
-                });
+                const result = await this.database.insertReplyEmail(
+                  innerUserId,
+                  {
+                    ...emailOrReply,
+                  },
+                );
                 logger.info(
                   "Potential reply: ",
-                  emailOrReply.id,
+                  emailOrReply.email_id,
                   emailOrReply.hash,
                 );
                 return result;

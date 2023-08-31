@@ -25,7 +25,11 @@ const systemBasePrompt = `Your role as an AI is to support users in managing the
 
 <context>
 {context}
-</context>`;
+</context>
+
+<current_time>
+${new Date().toLocaleString("en-EN", { timeZone: "Asia/Jakarta" })}
+<current_time>`;
 
 const userPrompt = `<email-from>
 {from}
@@ -96,37 +100,4 @@ export class EmailSummarizer extends LLMChain {
       .join("\n");
     return super._call({ ...rest, context, cc, bcc }, runManager);
   }
-
-  // setContext(newContext: Record<string, string>) {
-  //   this.context = newContext;
-  // }
-
-  // get inputKeys(): string[] {
-  //   return this.stufferChain.outputKeys;
-  // }
-
-  // get outputKeys(): string[] {
-  //   return this.stufferChain.inputKeys;
-  // }
-
-  // _chainType(): string {
-  //   return "summarizer_chain";
-  // }
-
-  // async _call(
-  //   values: ChainValues,
-  //   runManager?: CallbackManagerForChainRun | undefined,
-  // ): Promise<ChainValues> {
-  //   if (!this.context) throw new Error("Context not set");
-  //   let { cc, bcc, ...rest } = values;
-  //   cc = stringJoinArrayOrNone(cc);
-  //   bcc = stringJoinArrayOrNone(bcc);
-  //   let context: string = Object.entries(this.context)
-  //     .map(([key, value]) => `${key}: ${value}`)
-  //     .join("\n");
-  //   return super._call(
-  //     { ...rest, context, cc, bcc },
-  //     runManager,
-  //   );
-  // }
 }

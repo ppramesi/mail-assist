@@ -29,7 +29,11 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
     });
   }
 
-  async fetch(auth?: this["AuthType"], afterDate?: Date): Promise<Email[]> {
+  async fetch(
+    auth?: this["AuthType"],
+    afterDate?: Date,
+    injectUserId?: string,
+  ): Promise<Email[]> {
     if (!this.connected && _.isNil(auth)) {
       throw new Error("Auth mail adapter not set");
     }
@@ -61,11 +65,15 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
             logger.info(`No email fetched for ${auth?.user}`);
             resolve([]);
           } else {
-            logger.info(`${results.length} emails fetched for ${auth?.user}`);
+            logger.info(
+              `${results.length} emails fetched for ${auth?.user}: ${injectUserId}`,
+            );
             var fetch = this.client!.fetch(results, {
               bodies: "",
               struct: true,
             });
+            let processed = 0;
+            const total = results.length;
 
             const emails: Email[] = [];
 
@@ -86,14 +94,19 @@ export class IMAPGmailAdapter extends IMAPMailAdapter {
                       new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
                     text: mail.text,
                     hash: IMAPGmailAdapter.hashText(mail.text ?? ""),
+                    user_id: injectUserId,
                   });
+                  processed += 1;
+                  if (processed === total) {
+                    resolve(emails);
+                  }
                 });
               });
             });
 
-            fetch.once("end", () => {
-              resolve(emails);
-            });
+            // fetch.once("end", () => {
+            //   resolve(emails);
+            // });
           }
         });
       });

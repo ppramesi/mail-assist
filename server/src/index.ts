@@ -43,8 +43,9 @@ const apiServer = new MailGPTAPIServer({
   mailAdapter,
   authenticator,
   llm: new ChatOpenAI({
-    modelName: "gpt-3.5",
+    modelName: "gpt-3.5-turbo",
     maxConcurrency: 5,
+    temperature: 0.02,
   }),
   middlewareOpts: {
     useAuth,
