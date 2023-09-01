@@ -173,7 +173,6 @@ export class KnexAuthenticator extends Authenticator {
           error: `user-not-found`,
         };
       }
-
       const decoded = KnexAuthenticator.extractInjectSessionJWT(token, body);
       return {
         status: "ok",

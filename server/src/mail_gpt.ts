@@ -448,12 +448,6 @@ export class MailGPTAPIServer extends MailGPTServer {
         refreshToken,
       );
       if (jwtSigned.status === "ok") {
-        logger.error(
-          `Token refreshed: ${JSON.stringify({
-            session_token: sessionToken,
-            refresh_token: refreshToken,
-          })}`,
-        );
         res.status(200).send({ status: "ok", ...jwtSigned.tokens });
         return;
       } else {

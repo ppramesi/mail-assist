@@ -95,6 +95,9 @@ export abstract class Authenticator {
         token,
         process.env.TOKEN_KEY!,
       ) as jwt.JwtPayload;
+      if (decoded?.sub) {
+        decoded.user_id = decoded.sub;
+      }
       if (obj && decoded && _.isObject(decoded)) {
         Object.entries(decoded).forEach(([key, value]) => {
           obj[key] = value;

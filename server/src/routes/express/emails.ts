@@ -8,6 +8,7 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
   const router = express.Router();
   router.use(async (req, res, next) => {
     const { body, params } = req;
+    console.log({ body });
     const { user_id: userId } = body;
     if (authorizer) {
       if (userId) {

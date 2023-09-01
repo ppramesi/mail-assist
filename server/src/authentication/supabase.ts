@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import { Database } from "../databases/base.js";
 import { JWTSignReturn } from "./base.js";
 import { KnexAuthenticator } from "./knex.js";
@@ -168,11 +169,18 @@ export class SupabaseKnexAuthenticator extends KnexAuthenticator {
         ),
         this.db.setUserSessionKey(email, res.data.session.refresh_token),
       ]);
+      const refreshTokenToken = jwt.sign(
+        { token_id: res.data.session.refresh_token },
+        process.env.TOKEN_KEY!,
+        {
+          expiresIn: "7d",
+        },
+      );
       return {
         status: "ok",
         tokens: {
           session_token: res.data.session.access_token,
-          refresh_token: res.data.session.refresh_token,
+          refresh_token: refreshTokenToken,
         },
       };
     } catch (error) {
@@ -199,12 +207,19 @@ export class SupabaseKnexAuthenticator extends KnexAuthenticator {
           xform: sessionTransform,
         },
       );
-      await this.db.setUserSessionKey(email, res.data.session.refresh_token);
+      const refreshTokenToken = jwt.sign(
+        { token_id: res.data.session.refresh_token },
+        process.env.TOKEN_KEY!,
+        {
+          expiresIn: "7d",
+        },
+      );
+      await this.db.setUserSessionKey(email, refreshTokenToken);
       return {
         status: "ok",
         tokens: {
           session_token: res.data.session.access_token,
-          refresh_token: res.data.session.refresh_token,
+          refresh_token: refreshTokenToken,
         },
       };
     } catch (error) {
@@ -243,25 +258,33 @@ export class SupabaseKnexAuthenticator extends KnexAuthenticator {
       if (!user) {
         throw new Error("Invalid refresh token");
       }
+      const verified = jwt.verify(
+        refreshToken,
+        process.env.TOKEN_KEY!,
+      ) as jwt.JwtPayload;
       const res = await _request(
         fetch,
         "POST",
         `${this.authUrl}/token?grant_type=refresh_token`,
         {
           headers: this.buildAuthHeaders(),
-          body: { refresh_token: refreshToken },
+          body: { refresh_token: verified.token_id },
           xform: sessionTransform,
         },
       );
-      await this.db.setUserSessionKey(
-        res.data.user.email,
-        res.data.session.refresh_token,
+      await this.db.setUserSessionKey(res.data.user.email, verified.token_id);
+      const refreshTokenToken = jwt.sign(
+        { token_id: res.data.session.refresh_token },
+        process.env.TOKEN_KEY!,
+        {
+          expiresIn: "7d",
+        },
       );
       return {
         status: "ok",
         tokens: {
           session_token: res.data.session.access_token,
-          refresh_token: res.data.session.refresh_token,
+          refresh_token: refreshTokenToken,
         },
       };
     } catch (error) {
