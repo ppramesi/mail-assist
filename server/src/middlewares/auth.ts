@@ -61,7 +61,7 @@ export function buildAuthMiddleware(authenticator: Authenticator) {
           sessionToken,
           req.body,
         );
-        
+
         if (verified.status === "ok") {
           next();
           return;

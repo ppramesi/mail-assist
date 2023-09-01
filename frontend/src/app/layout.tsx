@@ -37,45 +37,57 @@ export default function RootLayout({
         const sessionToken = Cookies.get("session_token");
         if (isNil(sessionToken)) {
           reject(false);
-        } else {
-          const refToken = Cookies.get("refresh_token");
-          if (isNil(refToken)) {
-            reject(false);
-          }
-          const seshDecoded = jwt.decode(sessionToken) as JwtPayload;
-          if (seshDecoded === null) {
-            reject(false);
-          } else {
-            if (seshDecoded.exp! < Date.now() / 1000) {
-              resolve(true);
-            } else {
-              const refDecoded = jwt.decode(refToken!) as JwtPayload;
-              if (refDecoded === null) {
-                reject(false);
-              }
-
-              if (refDecoded.exp! < Date.now() / 1000) {
-                reject(false);
-              }
-              const {
-                sessionToken: newSessionToken,
-                refreshToken: newRefreshToken,
-              } = await refresh(sessionToken, refToken!);
-              if (!sessionToken) {
-                throw new Error("Session undefined");
-              }
-              Cookies.set("session_token", newSessionToken, {
-                expires: new Date(new Date().getTime() + 1000 * 60 * 10),
-              });
-              Cookies.set("refresh_token", newRefreshToken, {
-                expires: new Date(
-                  new Date().getTime() + 1000 * 60 * 60 * 24 * 7,
-                ),
-              });
-              resolve(true);
-            }
-          }
+          return;
         }
+
+        const refToken = Cookies.get("refresh_token");
+        if (isNil(refToken)) {
+          reject(false);
+          return;
+        }
+
+        const seshDecoded = jwt.decode(sessionToken) as JwtPayload;
+        if (seshDecoded === null) {
+          reject(false);
+          return;
+        }
+
+        if (seshDecoded.exp! < Date.now() / 1000) {
+          resolve(true);
+          return;
+        }
+
+        const refDecoded = jwt.decode(refToken) as JwtPayload;
+        if (refDecoded === null) {
+          reject(false);
+          return;
+        }
+
+        if (refDecoded.exp! < Date.now() / 1000) {
+          reject(false);
+          return;
+        }
+
+        const {
+          sessionToken: newSessionToken,
+          refreshToken: newRefreshToken,
+        } = await refresh(sessionToken, refToken!);
+
+        if (!sessionToken) {
+          throw new Error("Session undefined");
+        }
+
+        Cookies.set("session_token", newSessionToken, {
+          expires: new Date(new Date().getTime() + 1000 * 60 * 10),
+        });
+        Cookies.set("refresh_token", newRefreshToken, {
+          expires: new Date(
+            new Date().getTime() + 1000 * 60 * 60 * 24 * 7,
+          ),
+        });
+
+        resolve(true);
+        return;
       });
     gogogo()
       .then((res) => {
