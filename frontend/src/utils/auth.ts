@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import Cookies from "js-cookie";
 
 export function createToken(injectables: Record<string, any> = {}) {
   if (!process.env.TOKEN_KEY) {
@@ -17,6 +18,15 @@ export function createToken(injectables: Record<string, any> = {}) {
       },
     },
   );
+}
+
+export function setTokens(sessionToken: string, refreshToken: string) {
+  Cookies.set("session_token", sessionToken, {
+    expires: new Date(new Date().getTime() + 1000 * 60 * 10),
+  });
+  Cookies.set("refresh_token", refreshToken, {
+    expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 7),
+  });
 }
 
 export async function login(email: string, password: string) {

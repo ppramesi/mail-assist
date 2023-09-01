@@ -13,7 +13,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import isNil from "lodash/isNil";
 import Link from "next/link";
 import "./globals.css";
-import { refresh } from "@/utils/auth";
+import { refresh, setTokens } from "@/utils/auth";
 
 export const SessionContext = createContext<{
   isLoggedIn: boolean;
@@ -75,12 +75,7 @@ export default function RootLayout({
           throw new Error("Session undefined");
         }
 
-        Cookies.set("session_token", newSessionToken, {
-          expires: new Date(new Date().getTime() + 1000 * 60 * 10),
-        });
-        Cookies.set("refresh_token", newRefreshToken, {
-          expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 7),
-        });
+        setTokens(newSessionToken, newRefreshToken);
 
         resolve(true);
         return;
@@ -94,7 +89,7 @@ export default function RootLayout({
           router.push("/login");
         }
       })
-      .catch((err) => {
+      .catch((_err) => {
         setIsLoggedIn(false);
         router.push("/login");
       });

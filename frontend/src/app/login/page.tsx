@@ -6,7 +6,7 @@ import cookies from "js-cookie";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import { SessionContext } from "../layout";
-import { login } from "@/utils/auth";
+import { login, setTokens } from "@/utils/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -18,12 +18,8 @@ export default function Login() {
     e.preventDefault();
     try {
       const { sessionToken, refreshToken } = await login(email, password);
-      cookies.set("session_token", sessionToken, {
-        expires: new Date(new Date().getTime() + 1000 * 60 * 10),
-      });
-      cookies.set("refresh_token", refreshToken, {
-        expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 7),
-      });
+      setTokens(sessionToken, refreshToken);
+
       setIsLoggedIn(true);
       router.push("/");
     } catch (error) {
