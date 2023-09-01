@@ -68,10 +68,8 @@ export default function RootLayout({
           return;
         }
 
-        const {
-          sessionToken: newSessionToken,
-          refreshToken: newRefreshToken,
-        } = await refresh(sessionToken, refToken!);
+        const { sessionToken: newSessionToken, refreshToken: newRefreshToken } =
+          await refresh(sessionToken, refToken!);
 
         if (!sessionToken) {
           throw new Error("Session undefined");
@@ -81,9 +79,7 @@ export default function RootLayout({
           expires: new Date(new Date().getTime() + 1000 * 60 * 10),
         });
         Cookies.set("refresh_token", newRefreshToken, {
-          expires: new Date(
-            new Date().getTime() + 1000 * 60 * 60 * 24 * 7,
-          ),
+          expires: new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 7),
         });
 
         resolve(true);
