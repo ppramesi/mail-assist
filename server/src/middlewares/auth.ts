@@ -61,12 +61,7 @@ export function buildAuthMiddleware(authenticator: Authenticator) {
           sessionToken,
           req.body,
         );
-
-        if (!req.body["user_id"]) {
-          logger.error("Malformed jwt!!!");
-          res.status(403).send("Malformed jwt!!!!?!");
-          return;
-        }
+        
         if (verified.status === "ok") {
           next();
           return;

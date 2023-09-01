@@ -6,6 +6,7 @@ import cookies from "js-cookie";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import { SessionContext } from "../layout";
+import { login } from "@/utils/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -16,19 +17,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (res.ok === false) {
-        throw new Error("Not ok!");
-      }
-      const { session_token: sessionToken, refresh_token: refreshToken } =
-        await res.json();
-      if (!sessionToken) {
-        throw new Error("Session undefined");
-      }
+      const { sessionToken, refreshToken } = await login(email, password);
       cookies.set("session_token", sessionToken, {
         expires: new Date(new Date().getTime() + 1000 * 60 * 10),
       });
@@ -40,6 +29,7 @@ export default function Login() {
     } catch (error) {
       openSnackbar(true);
       cookies.remove("session_token");
+      cookies.remove("refresh_token");
     }
   };
 

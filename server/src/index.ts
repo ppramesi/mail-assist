@@ -6,10 +6,10 @@ import { ChatOpenAI } from "langchain/chat_models/openai";
 import dotenv from "dotenv";
 import { CallerScheduler } from "./scheduler/caller.js";
 import { IMAPGmailAdapter } from "./adapters/gmail.js";
-import { KnexAuthenticator } from "./authentication/knex.js";
 import { buildConfig } from "./knex_config.js";
 import { SupabaseAuthorization } from "./authorization/supabase.js";
 import { SupabaseDatabase } from "./databases/supabase.js";
+import { SupabaseKnexAuthenticator } from "./authentication/supabase.js";
 
 dotenv.config();
 
@@ -34,7 +34,7 @@ let callerScheduler: CallerScheduler | undefined;
 let port = parseInt(process.env.SERVER_PORT ?? "42069");
 let useAuth = process.env.USE_AUTH ? process.env.USE_AUTH === "true" : true;
 
-const authenticator = new KnexAuthenticator(dbInstance);
+const authenticator = new SupabaseKnexAuthenticator(dbInstance);
 
 const apiServer = new MailGPTAPIServer({
   port,
