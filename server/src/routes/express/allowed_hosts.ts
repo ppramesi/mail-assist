@@ -38,7 +38,7 @@ export function buildAllowedHostsRoutes(
   router.delete("/:id", async (req, res) => {
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.deleteAllowed) {
         logger.error("Failed to delete allowed hosts: Unauthorized!");
@@ -50,7 +50,9 @@ export function buildAllowedHostsRoutes(
         return;
       }
       const { id } = req.params;
-      await db.doQuery((database) => database.deleteAllowedHost(id));
+      await db.doQuery((database) => database.deleteAllowedHost(id), {
+        jwt: { user_id: userId },
+      });
       // await db.deleteAllowedHost(id);
       logger.info(`Deleted allowed hosts: ${id}`);
       res.status(200).send({ status: "ok" });
@@ -65,7 +67,7 @@ export function buildAllowedHostsRoutes(
   router.post("/:id", async (req, res) => {
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.updateAllowed) {
         logger.error("Failed to update allowed hosts: Unauthorized!");
@@ -77,8 +79,9 @@ export function buildAllowedHostsRoutes(
         return;
       }
       const { body, params } = req;
-      await db.doQuery((database) =>
-        database.updateAllowedHost(params.id, body.hosts),
+      await db.doQuery(
+        (database) => database.updateAllowedHost(params.id, body.hosts),
+        { jwt: { user_id: userId } },
       );
       // await db.updateAllowedHost(params.id, body.hosts);
       logger.info(`Set allowed hosts to: ${JSON.stringify(body.hosts)}`);
@@ -104,8 +107,9 @@ export function buildAllowedHostsRoutes(
         );
         return;
       }
-      const allowedHosts = await db.doQuery((database) =>
-        database.getAllowedHosts(userId),
+      const allowedHosts = await db.doQuery(
+        (database) => database.getAllowedHosts(userId),
+        { jwt: { user_id: userId } },
       );
       // const allowedHosts = await db.getAllowedHosts(userId);
       logger.info(`Fetched all allowed hosts: ${JSON.stringify(allowedHosts)}`);
@@ -134,7 +138,7 @@ export function buildAllowedHostsRoutes(
     ) => {
       try {
         const {
-          body: { policies },
+          body: { policies, user_id: userId },
         } = req;
         if (!policies.createAllowed) {
           logger.error("Failed to set allowed hosts: Unauthorized!");
@@ -146,8 +150,9 @@ export function buildAllowedHostsRoutes(
           return;
         }
         const { body } = req;
-        await db.doQuery((database) =>
-          database.createAllowedHosts(body.user_id, body.hosts),
+        await db.doQuery(
+          (database) => database.createAllowedHosts(body.user_id, body.hosts),
+          { jwt: { user_id: userId } },
         );
         // await db.createAllowedHosts(body.user_id, body.hosts);
         logger.info(`Set allowed hosts to: ${JSON.stringify(body.hosts)}`);

@@ -60,7 +60,7 @@ export default function ReplyList({ emailId }: { emailId: string }) {
               <Typography className="mt-4" color="text.secondary">
                 Email Body:
               </Typography>
-              <Typography className="pl-2" variant="body2">
+              <Typography className="pl-2 whitespace-pre-line" variant="body2">
                 {fetchedEmail!.text}
               </Typography>
               <Typography className="mt-4" color="text.secondary">

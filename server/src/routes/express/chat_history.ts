@@ -39,7 +39,7 @@ export function buildChatHistoryRoutes(
     const { emailId } = req.params;
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.readAllowed) {
         logger.error("Failed to get chat history by email: Unauthorized!");
@@ -50,8 +50,9 @@ export function buildChatHistoryRoutes(
         );
         return;
       }
-      const chatHistory = await db.doQuery((database) =>
-        database.getChatHistoryByEmail(emailId),
+      const chatHistory = await db.doQuery(
+        (database) => database.getChatHistoryByEmail(emailId),
+        { jwt: { user_id: userId } },
       );
       // const chatHistory = await db.getChatHistoryByEmail(emailId);
       logger.info(`Fetched chat history by email ID: ${emailId}`);
@@ -71,7 +72,7 @@ export function buildChatHistoryRoutes(
     const { replyId } = req.params;
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.readAllowed) {
         logger.error("Failed to get chat history by reply: Unauthorized!");
@@ -82,8 +83,9 @@ export function buildChatHistoryRoutes(
         );
         return;
       }
-      const chatHistory = await db.doQuery((database) =>
-        database.getChatHistoryByReply(replyId),
+      const chatHistory = await db.doQuery(
+        (database) => database.getChatHistoryByReply(replyId),
+        { jwt: { user_id: userId } },
       );
       // const chatHistory = await db.getChatHistoryByReply(replyId);
       logger.info(`Fetched chat history by reply ID: ${replyId}`);
@@ -105,14 +107,14 @@ export function buildChatHistoryRoutes(
       req: Request<
         { id: string },
         {},
-        { chat: Message[]; policies: PolicyResult }
+        { chat: Message[]; policies: PolicyResult; user_id: string }
       >,
       res,
     ) => {
       const { body } = req;
       const { id } = req.params;
       try {
-        const { policies } = body;
+        const { policies, user_id: userId } = body;
         if (!policies.updateAllowed) {
           logger.error("Failed to update chat history: Unauthorized!");
           res.status(500).send(
@@ -122,8 +124,9 @@ export function buildChatHistoryRoutes(
           );
           return;
         }
-        await db.doQuery((database) =>
-          database.appendChatHistory(id, body.chat),
+        await db.doQuery(
+          (database) => database.appendChatHistory(id, body.chat),
+          { jwt: { user_id: userId } },
         );
         // await db.appendChatHistory(id, body.chat);
         logger.info(`Appended messages to chat history ID: ${id}`);
@@ -141,7 +144,7 @@ export function buildChatHistoryRoutes(
     const { id } = req.params;
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.readAllowed) {
         logger.error("Failed to get chat history: Unauthorized!");
@@ -152,8 +155,9 @@ export function buildChatHistoryRoutes(
         );
         return;
       }
-      const chatHistory = await db.doQuery((database) =>
-        database.getChatHistoryById(id),
+      const chatHistory = await db.doQuery(
+        (database) => database.getChatHistoryById(id),
+        { jwt: { user_id: userId } },
       );
       // const chatHistory = await db.getChatHistoryById(id);
       logger.info(`Fetched chat history by ID: ${id}`);
@@ -189,8 +193,9 @@ export function buildChatHistoryRoutes(
           );
           return;
         }
-        await db.doQuery((database) =>
-          database.insertChatHistory(userId, chatHistory),
+        await db.doQuery(
+          (database) => database.insertChatHistory(userId, chatHistory),
+          { jwt: { user_id: userId } },
         );
         // await db.insertChatHistory(userId, chatHistory);
         logger.info(
@@ -220,8 +225,9 @@ export function buildChatHistoryRoutes(
         );
         return;
       }
-      const chatHistory = await db.doQuery((database) =>
-        database.getChatHistory(userId),
+      const chatHistory = await db.doQuery(
+        (database) => database.getChatHistory(userId),
+        { jwt: { user_id: userId } },
       );
       // const chatHistory = await db.getChatHistory(userId);
       logger.info(`Fetched all chat histories`);

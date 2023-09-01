@@ -125,8 +125,12 @@ export function buildSettingsRoutes(db: Database) {
 
     try {
       await Promise.all([
-        db.doQuery((database) => database.setUserImapSettings(userId, data)),
-        db.doQuery((database) => database.deleteTempKey(keyUuid)),
+        db.doQuery((database) => database.setUserImapSettings(userId, data), {
+          jwt: { user_id: userId },
+        }),
+        db.doQuery((database) => database.deleteTempKey(keyUuid), {
+          jwt: { user_id: userId },
+        }),
       ]);
       logger.info(`Updated imap settings for user: ${userId}`);
       res.status(200).send({ status: "ok" });

@@ -36,7 +36,7 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
     const { id } = req.params;
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.readAllowed) {
         logger.error("Failed to get context: Unauthorized!");
@@ -47,8 +47,9 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
           );
         return;
       }
-      const context = await db.doQuery((database) =>
-        database.getContextById(id),
+      const context = await db.doQuery(
+        (database) => database.getContextById(id),
+        { jwt: { user_id: userId } },
       );
       // const context = await db.getContextById(id);
       if (!context) {
@@ -75,11 +76,11 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
       req: Request<
         { id: string },
         {},
-        { key: string; value: string; policies: PolicyResult }
+        { key: string; value: string; policies: PolicyResult; user_id: string }
       >,
       res,
     ) => {
-      const { value, key, policies } = req.body;
+      const { value, key, policies, user_id: userId } = req.body;
       const { id } = req.params;
       try {
         if (!policies.updateAllowed) {
@@ -91,8 +92,9 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        await db.doQuery((database) =>
-          database.setContextValue(id, key, value),
+        await db.doQuery(
+          (database) => database.setContextValue(id, key, value),
+          { jwt: { user_id: userId } },
         );
         // await db.setContextValue(id, key, value);
         logger.info(
@@ -115,7 +117,7 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
     const { id } = req.params;
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.deleteAllowed) {
         logger.error("Failed to delete context: Unauthorized!");
@@ -126,7 +128,9 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
         );
         return;
       }
-      await db.doQuery((database) => database.deleteContext(id));
+      await db.doQuery((database) => database.deleteContext(id), {
+        jwt: { user_id: userId },
+      });
       // await db.deleteContext(id);
       logger.info(`Deleted context by ID: ${id}`);
       res.status(200).send({ status: "ok" });
@@ -161,7 +165,10 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        await db.doQuery((database) => database.insertContext(userId, context));
+        await db.doQuery(
+          (database) => database.insertContext(userId, context),
+          { jwt: { user_id: userId } },
+        );
         // await db.insertContext(userId, context);
         logger.info(
           `Set multiple context key-value pairs: ${JSON.stringify(body)}`,
@@ -190,8 +197,9 @@ export function buildContextRoutes(db: Database, authorizer?: Authorization) {
           );
         return;
       }
-      const context = await db.doQuery((database) =>
-        database.getContext(userId),
+      const context = await db.doQuery(
+        (database) => database.getContext(userId),
+        { jwt: { user_id: userId } },
       );
       // const context = await db.getContext(userId);
       logger.info(`Fetched the whole context`);

@@ -36,12 +36,16 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
   router.post(
     "/bulk",
     async (
-      req: Request<{}, {}, { emails: Email[]; policies: PolicyResult }>,
+      req: Request<
+        {},
+        {},
+        { emails: Email[]; policies: PolicyResult; user_id: string }
+      >,
       res,
     ) => {
       const { body } = req;
       try {
-        const { policies } = body;
+        const { policies, user_id: userId } = body;
         if (!policies.updateAllAllowed) {
           logger.error("Failed to get emails: Unauthorized!");
           res.status(500).send(
@@ -51,7 +55,9 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        await db.doQuery((database) => database.insertEmails(body.emails));
+        await db.doQuery((database) => database.insertEmails(body.emails), {
+          jwt: { user_id: userId },
+        });
         // await db.insertEmails(body.emails);
         logger.info(`Inserted multiple emails: ${JSON.stringify(body.emails)}`);
         res.status(200).send({ status: "ok" });
@@ -70,12 +76,17 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
       req: Request<
         { id: string },
         {},
-        { status: string; summary?: string; policies: PolicyResult }
+        {
+          status: string;
+          summary?: string;
+          policies: PolicyResult;
+          user_id: string;
+        }
       >,
       res,
     ) => {
       const { id } = req.params;
-      const { status, summary, policies } = req.body;
+      const { status, summary, policies, user_id: userId } = req.body;
       try {
         if (!policies.updateAllowed) {
           logger.error("Failed to update emails: Unauthorized!");
@@ -86,8 +97,9 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        await db.doQuery((database) =>
-          database.updateEmailProcessedData(id, status, summary),
+        await db.doQuery(
+          (database) => database.updateEmailProcessedData(id, status, summary),
+          { jwt: { user_id: userId } },
         );
         // await db.updateEmailProcessedData(id, status, summary);
         logger.info(
@@ -110,7 +122,7 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
     const { id } = req.params;
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.readAllowed) {
         logger.error("Failed to fetch email: Unauthorized!");
@@ -121,7 +133,9 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
           );
         return;
       }
-      const email = await db.doQuery((database) => database.getEmail(id));
+      const email = await db.doQuery((database) => database.getEmail(id), {
+        jwt: { user_id: userId },
+      });
       // const email = await db.getEmail(id);
       logger.info(`Fetched email by id: ${id}`);
       res.status(200).send({ email });
@@ -147,7 +161,10 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
           );
         return;
       }
-      const emails = await db.doQuery((database) => database.getEmails(userId));
+      const emails = await db.doQuery(
+        (database) => database.getEmails(userId),
+        { jwt: { user_id: userId } },
+      );
       // const emails = await db.getEmails(userId);
       logger.info("Fetched all emails");
       res.status(200).send({ emails });
@@ -176,7 +193,9 @@ export function buildEmailRoutes(db: Database, authorizer?: Authorization) {
       if (userId) {
         email.user_id = userId;
       }
-      await db.doQuery((database) => database.insertEmail(email));
+      await db.doQuery((database) => database.insertEmail(email), {
+        jwt: { user_id: userId },
+      });
       // await db.insertEmail(email);
       logger.info(`Inserted single email: ${JSON.stringify(email)}`);
       res.status(200).send({ status: "ok" });

@@ -36,7 +36,7 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
     const { emailId } = req.params;
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.readAllowed) {
         logger.error("Failed to get replies: Unauthorized!");
@@ -47,8 +47,9 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
         );
         return;
       }
-      const replies = await db.doQuery((database) =>
-        database.getReplyEmailsByEmail(emailId),
+      const replies = await db.doQuery(
+        (database) => database.getReplyEmailsByEmail(emailId),
+        { jwt: { user_id: userId } },
       );
       // const replies = await db.getReplyEmailsByEmail(emailId);
       logger.info(`Fetched reply emails by email id: ${emailId}`);
@@ -68,7 +69,7 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
     const { id } = req.params;
     try {
       const {
-        body: { policies },
+        body: { policies, user_id: userId },
       } = req;
       if (!policies.readAllowed) {
         logger.error("Failed to get replies: Unauthorized!");
@@ -79,7 +80,9 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
         );
         return;
       }
-      const reply = await db.doQuery((database) => database.getReplyEmail(id));
+      const reply = await db.doQuery((database) => database.getReplyEmail(id), {
+        jwt: { user_id: userId },
+      });
       // const reply = await db.getReplyEmail(id);
       logger.info(`Fetched reply email by id: ${id}`);
       res.status(200).send({ reply });
@@ -97,7 +100,7 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
       req: Request<
         { id: string },
         {},
-        { text: string; policies: PolicyResult }
+        { text: string; policies: PolicyResult; user_id: string }
       >,
       res,
     ) => {
@@ -107,7 +110,7 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
       } = req;
       try {
         const {
-          body: { policies },
+          body: { policies, user_id: userId },
         } = req;
         if (!policies.updateAllowed) {
           logger.error("Failed to update replies: Unauthorized!");
@@ -118,8 +121,9 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        const replyId = await db.doQuery((database) =>
-          database.updateReplyEmail(id, body.text),
+        const replyId = await db.doQuery(
+          (database) => database.updateReplyEmail(id, body.text),
+          { jwt: { user_id: userId } },
         );
         // const replyId = await db.updateReplyEmail(id, body.text);
         logger.info(
@@ -160,8 +164,9 @@ export function buildReplyRoutes(db: Database, authorizer?: Authorization) {
           );
           return;
         }
-        const replyId = await db.doQuery((database) =>
-          database.insertReplyEmail(userId, replies),
+        const replyId = await db.doQuery(
+          (database) => database.insertReplyEmail(userId, replies),
+          { jwt: { user_id: userId } },
         );
         // const replyId = await db.insertReplyEmail(userId, replies);
         logger.info(

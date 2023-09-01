@@ -8,7 +8,7 @@ export default function EmailItem({ email }: { email: Email }) {
   const date = new Date(email.date ?? new Date());
   return (
     <Card className="mb-4 p-2 bg-gray-100 rounded-md shadow">
-      <Link href={`/api/emails/reply/${email.id}`}>
+      <Link href={`/emails/reply/${email.id}`}>
         <CardContent>
           <Typography variant="h6" component="div">
             From: {email.from}
@@ -23,7 +23,7 @@ export default function EmailItem({ email }: { email: Email }) {
           <Typography className="mt-4" color="text.secondary">
             Email Body:
           </Typography>
-          <Typography className="pl-2" variant="body2">
+          <Typography className="pl-2 whitespace-pre-line" variant="body2">
             {email.text}
           </Typography>
           <Typography className="mt-4" color="text.secondary">

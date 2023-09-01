@@ -66,7 +66,7 @@ export default function ReplyItem({ reply }: { reply: ReplyEmail }) {
         <Typography className="mt-4" color="text.secondary">
           Reply Text:
         </Typography>
-        <Typography className="pl-2" variant="body2">
+        <Typography className="pl-2 whitespace-pre-line" variant="body2">
           {reply.reply_text}
         </Typography>
         {showChat ? (

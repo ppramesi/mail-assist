@@ -1,5 +1,4 @@
 import Knex from "knex";
-import { KnexDatabase } from "./databases/knex.js";
 import { MailGPTAPIServer, MailGPTServer } from "./mail_gpt.js";
 import { KnexVectorStore } from "./vectorstores/knex.js";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
@@ -10,6 +9,7 @@ import { IMAPGmailAdapter } from "./adapters/gmail.js";
 import { KnexAuthenticator } from "./authentication/knex.js";
 import { buildConfig } from "./knex_config.js";
 import { SupabaseAuthorization } from "./authorization/supabase.js";
+import { SupabaseDatabase } from "./databases/supabase.js";
 
 dotenv.config();
 
@@ -24,7 +24,7 @@ const knex = Knex.knex(
 );
 
 const authorizer = new SupabaseAuthorization();
-const dbInstance = new KnexDatabase(knex);
+const dbInstance = new SupabaseDatabase(knex);
 const retriever = new KnexVectorStore(new OpenAIEmbeddings(), {
   knex,
   tableName: "summary_embeddings",
