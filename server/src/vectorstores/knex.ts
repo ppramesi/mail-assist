@@ -1,6 +1,10 @@
-import { VectorStore } from "langchain/vectorstores/base";
+import {
+  VectorStore,
+  MaxMarginalRelevanceSearchOptions,
+} from "langchain/vectorstores/base";
 import { Embeddings } from "langchain/embeddings/base";
 import { Document } from "langchain/document";
+import { maximalMarginalRelevance } from "langchain/util/math";
 import { Knex as KnexT } from "knex";
 import _ from "lodash";
 
@@ -9,26 +13,36 @@ export interface KnexVectorStoreArgs {
   tableName?: string;
 }
 
-const OpMap = {
-  equals: "=",
-  lt: "<",
-  lte: "<=",
-  gt: ">",
-  gte: ">=",
-  not: "<>",
+export type FilterValue = string | number | boolean;
+
+export type ComparisonOperator =
+  | { $eq: FilterValue }
+  | { $gt: FilterValue }
+  | { $gte: FilterValue }
+  | { $lt: FilterValue }
+  | { $lte: FilterValue }
+  | { $not: FilterValue };
+
+export type LogicalOperator = { $and: KnexFilter[] } | { $or: KnexFilter[] };
+
+export type KeyValueFilter = {
+  [key: string]: FilterValue | ComparisonOperator;
 };
 
-export type KnexFilter<
-  TModel extends Record<string, unknown> = Record<string, unknown>,
-> = {
-  [K in keyof TModel]?: {
-    equals?: TModel[K];
-    lt?: TModel[K];
-    lte?: TModel[K];
-    gt?: TModel[K];
-    gte?: TModel[K];
-    not?: TModel[K];
-  };
+export type KnexFilter = KeyValueFilter | LogicalOperator;
+
+const ComparisonMap = {
+  $eq: "=",
+  $lt: "<",
+  $lte: "<=",
+  $gt: ">",
+  $gte: ">=",
+  $not: "<>",
+};
+
+const LogicalMap = {
+  $and: "AND",
+  $or: "OR",
 };
 
 export type SearchResult = {
@@ -100,15 +114,16 @@ export class KnexVectorStore extends VectorStore {
         "pageContent" text,
         "metadata" jsonb,
         "embedding" vector
+        "user_id" uuid REFERENCES users(id)
       );
     `);
   }
 
-  async similaritySearchVectorWithScore(
+  async fetchRows(
     query: number[],
     k: number,
     filter?: this["FilterType"] | undefined,
-  ): Promise<[Document<Record<string, any>>, number][]> {
+  ): Promise<SearchResult[]> {
     const vector = `[${query.join(",")}]`;
     const queryStr = [
       this.knex
@@ -125,8 +140,15 @@ export class KnexVectorStore extends VectorStore {
     const results = await this.doQuery((database) => {
       return database.raw(queryStr);
     });
-    // const results = await this.knex.raw(queryStr);
-    const rows = results.rows as SearchResult[];
+    return results.rows as SearchResult[];
+  }
+
+  async similaritySearchVectorWithScore(
+    query: number[],
+    k: number,
+    filter?: this["FilterType"] | undefined,
+  ): Promise<[Document<Record<string, any>>, number][]> {
+    const rows = await this.fetchRows(query, k, filter);
     return rows.map((row) => {
       return [
         new Document({
@@ -138,31 +160,80 @@ export class KnexVectorStore extends VectorStore {
     });
   }
 
+  async maxMarginalRelevanceSearch(
+    query: string,
+    options: MaxMarginalRelevanceSearchOptions<this["FilterType"]>,
+  ): Promise<Document[]> {
+    const { k, fetchK = 20, lambda = 0.7, filter } = options;
+    const queryEmbedding = await this.embeddings.embedQuery(query);
+    const results = await this.fetchRows(queryEmbedding, fetchK, filter);
+
+    const embeddings = results.map((result) => result.embedding);
+    const mmrIndexes = maximalMarginalRelevance(
+      queryEmbedding,
+      embeddings,
+      lambda,
+      k,
+    );
+    return mmrIndexes
+      .filter((idx) => idx !== -1)
+      .map((idx) => {
+        const result = results[idx];
+        return new Document({
+          pageContent: result.pageContent,
+          metadata: result.metadata,
+        });
+      });
+  }
+
   buildSqlFilterStr(filter?: KnexFilter) {
     if (filter == null) return null;
-    let filterLength = 0;
-    const strFilter = `WHERE ${Object.entries(filter)
-      .flatMap(([key, ops]) =>
-        Object.entries(ops as Record<string, any>).map(([opName, value]) => {
-          if (!value) return null;
-          filterLength += 1;
-          const opRaw = OpMap[opName as keyof typeof OpMap];
-          const valueType = typeof value;
-          let typeCast = "";
-          if (valueType === "string") {
-            typeCast = "::text";
+
+    const buildClause = (key: string, operator: string, value: any): string => {
+      const compRaw = ComparisonMap[operator as keyof typeof ComparisonMap];
+      const valueType = typeof value;
+      let typeCast = "";
+      if (valueType === "string") {
+        typeCast = "::text";
+      }
+      if (key !== "user_id") {
+        return this.knex
+          .raw(`metadata->>"${key}" ${compRaw} ?${typeCast}`, [value])
+          .toString();
+      } else {
+        return this.knex.raw("user_id = ?", [value]).toString();
+      }
+    };
+    const allowedOps = Object.keys(LogicalMap);
+
+    const recursiveBuild = (filterObj: KnexFilter): string => {
+      return Object.entries(filterObj)
+        .map(([key, ops]) => {
+          if (allowedOps.includes(key)) {
+            const logicalParts = (ops as KnexFilter[]).map(recursiveBuild);
+            const separator = LogicalMap[key as keyof typeof LogicalMap];
+            return `(${logicalParts.join(` ${separator} `)})`;
           }
-          if (key !== "user_id") {
-            return this.knex
-              .raw(`metadata->>"${key}" ${opRaw} ?${typeCast}`, [value])
-              .toString();
-          } else {
-            return this.knex.raw("user_id = ?", [value]).toString();
+
+          if (typeof ops === "object" && !Array.isArray(ops)) {
+            return Object.entries(ops as Record<string, any>)
+              .map(([opName, value]) => {
+                if (!value) return null;
+                return buildClause(key, opName, value);
+              })
+              .filter(Boolean)
+              .join(" AND ");
           }
-        }),
-      )
-      .join(" AND ")}`;
-    if (filterLength === 0) return null;
+
+          return buildClause(key, "$eq", ops);
+        })
+        .filter(Boolean)
+        .join(" AND ");
+    };
+
+    const strFilter = `WHERE ${recursiveBuild(filter)}`;
+
+    if (strFilter === "WHERE ") return null;
     return strFilter;
   }
 }

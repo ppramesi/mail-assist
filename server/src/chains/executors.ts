@@ -83,7 +83,7 @@ export class MainExecutor {
     if (this.currentUserId) {
       this.retriever.filter = {
         user_id: {
-          equals: this.currentUserId,
+          "$eq": this.currentUserId,
         },
       };
     }

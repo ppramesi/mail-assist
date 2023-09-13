@@ -1,17 +1,17 @@
-export class Node {
+export class TrackerNode {
   constructor(
     public id: string,
-    public parent: Node | null = null,
-    public children: Node[] = [],
+    public parent: TrackerNode | null = null,
+    public children: TrackerNode[] = [],
   ) {}
 }
 
 export class CallbackChainTracker {
-  private nodes = new Map<string, Node>();
+  private nodes = new Map<string, TrackerNode>();
 
   add(id: string, parentId?: string) {
     const parent = parentId ? this.nodes.get(parentId) : null;
-    const node = new Node(id, parent);
+    const node = new TrackerNode(id, parent);
     if (parent) {
       parent.children.push(node);
     }
@@ -24,7 +24,7 @@ export class CallbackChainTracker {
     if (!node) return [];
 
     const chain: string[] = [];
-    let current: Node | null = node;
+    let current: TrackerNode | null = node;
     while (current !== null) {
       chain.unshift(current.id);
       current = current.parent;
