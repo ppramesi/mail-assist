@@ -7,6 +7,7 @@ import { Document } from "langchain/document";
 import { maximalMarginalRelevance } from "langchain/util/math";
 import { Knex as KnexT } from "knex";
 import _ from "lodash";
+import { isFloat, isInt, isString } from "./utils.js";
 
 export interface KnexVectorStoreArgs {
   knex: KnexT;
@@ -191,14 +192,26 @@ export class KnexVectorStore extends VectorStore {
 
     const buildClause = (key: string, operator: string, value: any): string => {
       const compRaw = ComparisonMap[operator as keyof typeof ComparisonMap];
-      const valueType = typeof value;
-      let typeCast = "";
-      if (valueType === "string") {
+
+      let typeCast;
+      let arrow;
+
+      if (isString(value)) {
         typeCast = "::text";
+        arrow = "->>";
+      } else if (isInt(value)) {
+        typeCast = "::int";
+        arrow = "->";
+      } else if (isFloat(value)) {
+        typeCast = "::float";
+        arrow = "->";
+      } else {
+        throw new Error("Data type not supported");
       }
+
       if (key !== "user_id") {
         return this.knex
-          .raw(`metadata->>"${key}" ${compRaw} ?${typeCast}`, [value])
+          .raw(`metadata${arrow}"${key}" ${compRaw} ?${typeCast}`, [value])
           .toString();
       } else {
         return this.knex.raw("user_id = ?", [value]).toString();
