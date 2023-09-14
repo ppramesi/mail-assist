@@ -14,7 +14,7 @@ export interface KnexVectorStoreArgs {
   tableName?: string;
 }
 
-export type FilterValue = string | number | boolean;
+export type FilterValue = string | number;
 
 export type ComparisonOperator =
   | { $eq: FilterValue }
@@ -129,12 +129,12 @@ export class KnexVectorStore extends VectorStore {
     const queryStr = [
       this.knex
         .raw(
-          `SELECT *, embedding <=> ?::vector as "_distance" FROM ${this.tableName}`,
+          `SELECT *, 1 - (embedding <=> ?::vector) as "_distance" FROM ${this.tableName}`,
           [vector],
         )
         .toString(),
       this.buildSqlFilterStr(filter),
-      this.knex.raw(`ORDER BY "_distance" ASC LIMIT ?;`, [k]).toString(),
+      this.knex.raw(`ORDER BY "_distance" LIMIT ?;`, [k]).toString(),
     ]
       .filter((x) => x != null)
       .join(" ");
